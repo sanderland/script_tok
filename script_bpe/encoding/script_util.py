@@ -100,10 +100,8 @@ class ScriptEncodingBase:
             chars_by_sc[self.script_category(char_info)].append(char_info['char'])
             num_chars_by_script[char_info['script']] += 1
 
-        _largest_block, largest_block_chars = max(chars_by_sc.items(), key=lambda kv: len(kv[1]))
-        num_index_tokens = len(largest_block_chars)
+        num_index_tokens = len(chars_by_sc[self.LARGEST_BLOCK_SCRIPT_CAT])
         blocks = []
-
         for sc, cps in sorted(chars_by_sc.items(), key=lambda kv: (num_chars_by_script[kv[0][0]], kv[1]), reverse=True):
             sid = len(blocks) + num_index_tokens
             for sub_block, start in enumerate(range(0, len(cps), num_index_tokens)):
