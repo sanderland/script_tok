@@ -15,7 +15,7 @@ ngrams/
 training_timing_logs/
 results/training_timing_logs/
 results/tokenizers/**/*.md
-
+huggingface/
 
 # Python-generated files
 __pycache__/

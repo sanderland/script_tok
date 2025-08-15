@@ -7,10 +7,8 @@ from typing import Any
 from script_bpe.utils import (
     InputTokenSeq,
     PretokenizedT,
-    TokenSeq,
     remove_unassigned_private_surrogate,
 )
-
 
 class BasePretokenizer(ABC):
     def __init__(self, config: dict[str, Any]) -> None:

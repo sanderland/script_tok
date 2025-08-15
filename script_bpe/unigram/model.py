@@ -15,20 +15,19 @@ def logaddexp(a: float, b: float) -> float:
         a, b = b, a
     return a + math.log1p(math.exp(b - a))
 
-@dataclass
 class UnigramToken:
-    id: int
-    base_tokens: TokenSeq
-    log_prob: float
-    locked: bool = False # if true, can not be removed
-    
+    def __init__(self, id: int, base_tokens: TokenSeq, log_prob: float, required: bool = False, **kwargs):
+        self.id = id
+        self.base_tokens = base_tokens
+        self.log_prob = log_prob
+        self.required = required
+
     def to_dict(self):
         """Convert the token to a dictionary for serialization."""
         return {
             "id": self.id,
-            "base_tokens": self.base_tokens.tolist() if hasattr(self.base_tokens, 'tolist') else list(self.base_tokens),
+            "base_tokens": list(self.base_tokens),
             "log_prob": self.log_prob,
-            "locked": self.locked
         }
 
 class Trie:
@@ -135,7 +134,7 @@ class UnigramModel:
     """
     VERSION = "seunigram-v1"
     
-    def __init__(self, pretokenizer: BasePretokenizer, tokens: list[UnigramToken] = None, metadata: dict = None):
+    def __init__(self, pretokenizer: BasePretokenizer, tokens: list[UnigramToken], metadata: dict = None):
         """
         Initialize the Unigram model.
         
@@ -197,7 +196,9 @@ class UnigramModel:
         Returns:
             str: The path the model was saved to
         """
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        dirname = os.path.dirname(file_path)
+        if dirname:
+            os.makedirs(dirname, exist_ok=True)
         open_func = gzip.open if file_path.endswith(".gz") else open
         with open_func(file_path, "wt") as f:
             json.dump(
@@ -232,7 +233,7 @@ class UnigramModel:
         is_undecodable = {
             t.id: "�" in self.pretokenizer.decode(t.base_tokens, errors="replace")
             for t in self.tokens
-            if not t.locked
+            if not t.required
         }
         
         return {
@@ -292,7 +293,7 @@ class UnigramModel:
             'ID': token.id,
             'Log Probability': f"{token.log_prob:.4f}",
             'Text': repr(self.pretokenizer.tokens_to_readable_string(token.base_tokens))
-        } for token in sorted(self.tokens, key=lambda t: -t.log_prob) if not token.locked]
+        } for token in sorted(self.tokens, key=lambda t: -t.log_prob) if not token.required]
 
         report.extend([
             "## Non-base tokens by probability",

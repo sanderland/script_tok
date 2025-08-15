@@ -1,19 +1,19 @@
 import array
 import functools
+import gc
 import logging
 import multiprocessing
 import os
 import sys
 import time
-import unicodedata
-from script_bpe.encoding.encoder import unicode_script_map
+from script_bpe.encoding.script_util import unicode_script_map
 from typing import Iterable
 
 # one dir lower than this script
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # ---- multiprocessing context ----
-
+gc.freeze()  # docs suggest freezing to avoid copy-on-write
 mp_ctx = multiprocessing.get_context("forkserver")
 
 # ---- typing ----

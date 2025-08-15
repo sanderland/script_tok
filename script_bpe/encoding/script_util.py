@@ -1,13 +1,12 @@
 import functools
-import copy
 import os
 import unicodedata
-from collections import Counter, defaultdict
 from typing import Any
+from collections import defaultdict, Counter
+from frozendict import frozendict
 
 SCRIPTS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "unicode_scripts.txt")
 END_CODEPOINT = 0xE0FFF  # full cover of non private use code points, excluding surrogates
-
 
 SCRIPTS_WHICH_USE_SPACES = [
     "Latin",  # Near space 18.0% of time, overall count 296,227,775,159
@@ -37,24 +36,16 @@ def char_name(c: str):
     return unicodedata.name(c, "<UNKNOWN>")
 
 
-@functools.cache
-def supercategory(category):
-    sc = category[0]
-    if sc in {"P", "S"}:
-        return "PS"  # Punctuation/Symbol
-    if sc in {"L", "M"}:
-        return "LM"  # Letter/Non-spacing Mark (like accept modifiers)
-    return sc
 
 @functools.cache
-def unicode_script_map(filename=SCRIPTS_PATH) -> dict[str, dict[str, str]]:
+def unicode_script_map(filename=SCRIPTS_PATH) -> list[dict[str, str]]:
     """
     Load Unicode script and category data from a file.
 
     Returns:
-        A dictionary mapping codepoint (int) to a dict with 'script' and 'category' keys
+        A list of dictionaries with 'cp', 'char', 'script' and 'category' keys
     """
-    char_info: dict[str, dict[str, str]] = {}
+    char_infos = []
     with open(filename, "r", encoding="utf-8") as f:
         for line in f:
             # Skip comments and empty lines
@@ -72,48 +63,45 @@ def unicode_script_map(filename=SCRIPTS_PATH) -> dict[str, dict[str, str]]:
                 start = end = int(range_str, 16)
             # Add each codepoint in the range to the result dictionary
             for cp in range(start, end + 1):
-                char_info[chr(cp)] = dict(
+                char_infos.append(frozendict(
+                    cp=cp,
+                    char=chr(cp),
                     script=script,
                     category=category,  # file is typically newer than python's unicodedata
-                )
-    for entry in char_info.values():
-        entry["supercategory"] = supercategory(entry["category"])
-    return char_info
+                ))
+    return char_infos
 
 
-class ScriptEncoding:
-    VERSION = "1.0"
+
+class ScriptEncodingBase:
     FIRST_TOKEN_ID = 1  # leave 0 for padding
-    SPLIT_SCRIPTS = [  # Large scripts split into sub-blocks
-        ("Han", "LM"),  # 98687 entries
-        ("Hangul", "LM"),  # 11677 entries
-        ("Common", "PS"),  # 7195 entries
-        ("Tangut", "LM"),  # 6914 entries
-        ("Egyptian_Hieroglyphs", "LM"),  # 5089 entries
-    ]
-    SCRIPT_CAT_OVERRIDE = {
-        "\n": ("Common", "Z"),  # Newline – whitespace
-        "\t": ("Common", "Z"),  # Tab – whitespace
-        "\u30fc": ("Inherited", "LM"),  # カー (カ + ー) Katakana-Hiragana Prolonged Sound Mark in Japanese
-        "\uff70": ("Inherited", "LM"),  # ﾊﾟｰﾃｨｰ (halfwidth)
-        "\u0640": ("Arabic", "LM"),  # ـــمــر (used in Arabic script shaping)
-    }
+
     # pretokenize allows a single leading space for these
     DEFAULT_SCRIPT_CAT_WITH_SPACE = [(s, "LM") for s in SCRIPTS_WHICH_USE_SPACES] + [("Common", "PS")]
+    # all blocks larger than this will be split
+    LARGEST_BLOCK_SCRIPT_CAT = ("Latin", "LM")
 
-    def script_encoding_blocks(self):
-        sc_map = copy.deepcopy(unicode_script_map())
+    def __init__(self):
+        self.blocks, self.config = self.create_blocks()
+        self.config['version'] = self.__class__.__name__
+        self.config['num_blocks'] = len(self.blocks)
+        largest_block = max(self.blocks, key=lambda b: len(b[4]))
+        self.config['num_index_tokens'] = len(largest_block[4])
+        self.config['script_cat_with_space'] = self.DEFAULT_SCRIPT_CAT_WITH_SPACE
 
+    @classmethod
+    def script_category(cls, char_info) -> tuple[str, str]:
+        raise NotImplementedError
+
+    def create_blocks(self) -> tuple[list, dict]:
         chars_by_sc = defaultdict(list)
         num_chars_by_script = Counter()
-        for c, char_info in sc_map.items():
-            if c in self.SCRIPT_CAT_OVERRIDE:
-                char_info["script"], char_info["supercategory"] = self.SCRIPT_CAT_OVERRIDE[c]
-            chars_by_sc[(char_info["script"], char_info["supercategory"])].append(c)
-            num_chars_by_script[char_info["script"]] += 1
+        for char_info in unicode_script_map():
+            chars_by_sc[self.script_category(char_info)].append(char_info['char'])
+            num_chars_by_script[char_info['script']] += 1
 
-        largest_block = max(chars_by_sc.items(), key=lambda kv: 0 if kv[0][:2] in self.SPLIT_SCRIPTS else len(kv[1]))
-        num_index_tokens = len(largest_block[1])
+        _largest_block, largest_block_chars = max(chars_by_sc.items(), key=lambda kv: len(kv[1]))
+        num_index_tokens = len(largest_block_chars)
         blocks = []
 
         for sc, cps in sorted(chars_by_sc.items(), key=lambda kv: (num_chars_by_script[kv[0][0]], kv[1]), reverse=True):
@@ -121,22 +109,13 @@ class ScriptEncoding:
             for sub_block, start in enumerate(range(0, len(cps), num_index_tokens)):
                 blocks.append([sid, *sc, sub_block, "".join(cps[start : start + num_index_tokens])])
 
-        config = dict(
-            version=self.VERSION,
-            num_index_tokens=num_index_tokens,
-            num_blocks=len(blocks),
-            script_cat_with_space=self.DEFAULT_SCRIPT_CAT_WITH_SPACE,
-            stats=dict(  # just diagnostic
-                largest_block=list(largest_block[0]),
-            ),
-            settings=dict(  # used to create, but not used downstream
-                split_scripts=[list(sc) for sc in self.SPLIT_SCRIPTS],
-            ),
-        )
-        return config, blocks
+        # recode Hiragana to Han
+        han_sid = next(b[0] for b in blocks if b[1:3] == ["Han", "LM"])
+        for b in blocks: # for pretokenization, hiragana is lumped with han
+            if b[1:3] == ["Hiragana", "LM"]:
+                b[0] = han_sid
 
-    def __init__(self):
-        self.config, self.blocks = self.script_encoding_blocks()
+        return blocks, {}
 
     def export_config(self) -> dict[str, Any]:
         return dict(

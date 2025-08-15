@@ -3,7 +3,7 @@ name = "script_bpe"
 version = "0.5.0"
 description = "BPE with support for SCRIPT encoding"
 authors = [
-    {name = "Sander Land", email = "sander@cohere.com"},
+    {name = "Sander Land", email = "sander@writer.com"},
     {name = "Catherine Arnett", email = "catherine@eleuther.ai"},
 ]
 readme = "README.md"
@@ -15,24 +15,27 @@ dependencies = [
     "regex>=2024.11.6",
     "tabulate>=0.9.0",
     "tqdm>=4.67.1",
-    "pytest>=8.3.5",
-    "pip>=25.1.1", # avoids jupyter notebook in vscode issues
-    "jinja2>=3.1.6",
     "scipy>=1.16.1",
-    "scalene>=1.5.51",
+    "frozendict>=2.4.6",
 ]
-
-
 
 [project.scripts]
 train = "script_bpe.train:main"
 
-[tool.black]
-line-length = 120
+[dependency-groups]
+dev = [
+    "ruff>=0.12.9",
+    "pytest>=8.3.5",
+    "pip>=25.1.1", # avoids jupyter notebook in vscode issues
+    "scalene>=1.5.51", # profiler
+    "jinja2>=3.1.6",
+]
 
-[tool.isort]
-profile="black"
+
+[tool.ruff]
+line-length = 120
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+

@@ -1,6 +1,6 @@
 from typing import Any, Callable, Type
 
-from script_bpe.encoding import ScriptEncoding
+from script_bpe.encoding import ScriptEncodingV1
 
 from .base import BasePretokenizer
 from .regex import RegexBytePretokenizer
@@ -9,7 +9,7 @@ from .scriptencoding import (
     ScriptEncodingPretokenizerRegexSplitting,
 )
 
-DefaultScriptEncoding = ScriptEncoding().export_config()
+DefaultScriptEncodingV1 = ScriptEncodingV1().export_config()
 
 
 GPT2_REGEX = r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"
@@ -37,16 +37,16 @@ PRETOKENIZER_REGISTRY: dict[str, Callable[[], BasePretokenizer]] = {
     "bytes_gpt4o": lambda: RegexBytePretokenizer({"regex": GPT4O_REGEX, "enforce_char_boundaries": False}),
     "bytes_gpt4o_cb": lambda: RegexBytePretokenizer({"regex": GPT4O_REGEX, "enforce_char_boundaries": True}),
     "bytes_nosplit_cb": lambda: RegexBytePretokenizer({"regex": NO_SPLIT_REGEX, "enforce_char_boundaries": True}),
-    "scriptenc": lambda: ScriptEncodingPretokenizer({**DefaultScriptEncoding, "enforce_char_boundaries": False}),
-    "scriptenc_cb": lambda: ScriptEncodingPretokenizer({**DefaultScriptEncoding, "enforce_char_boundaries": True}),
+    "scriptenc": lambda: ScriptEncodingPretokenizer({**DefaultScriptEncodingV1, "enforce_char_boundaries": False}),
+    "scriptenc_cb": lambda: ScriptEncodingPretokenizer({**DefaultScriptEncodingV1, "enforce_char_boundaries": True}),
     "scriptenc_gpt4o_cb": lambda: ScriptEncodingPretokenizerRegexSplitting(
-        {**DefaultScriptEncoding, "regex": GPT4O_REGEX, "enforce_char_boundaries": True}
+        {**DefaultScriptEncodingV1, "regex": GPT4O_REGEX, "enforce_char_boundaries": True}
     ),
     "scriptenc_gpt4o": lambda: ScriptEncodingPretokenizerRegexSplitting(
-        {**DefaultScriptEncoding, "regex": GPT4O_REGEX, "enforce_char_boundaries": False}
+        {**DefaultScriptEncodingV1, "regex": GPT4O_REGEX, "enforce_char_boundaries": False}
     ),
     "scriptenc_nosplit_cb": lambda: ScriptEncodingPretokenizerRegexSplitting(
-        {**DefaultScriptEncoding, "regex": NO_SPLIT_REGEX, "enforce_char_boundaries": True}
+        {**DefaultScriptEncodingV1, "regex": NO_SPLIT_REGEX, "enforce_char_boundaries": True}
     ),
 }
 
