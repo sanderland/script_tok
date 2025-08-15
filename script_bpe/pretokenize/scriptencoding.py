@@ -66,7 +66,6 @@ class ScriptEncodingPretokenizer(BasePretokenizer):
     # pretokenization
 
     def _script_encode_char(self, c: str) -> ScriptEncNoneT:
-        breakpoint()
         if c not in self.script_encoding:
             print(f"Warning: character '{c}' ({ord(c)}) not found in script encoding map.")
             return None, (-1, -1)
