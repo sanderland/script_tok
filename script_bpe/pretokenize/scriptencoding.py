@@ -114,6 +114,7 @@ class ScriptEncodingPretokenizer(BasePretokenizer):
     def _encode_and_chunk(self, text: str) -> PretokenizedT:
         encoded_and_grouped = self.chunk_script_encoding(self.script_encode(text))
         # Strip script ID from final groups and concat pairs
+        breakpoint()
         return [token_array([t for _, ts in group for t in ts]) for group in encoded_and_grouped]
 
     def decode(self, tokenization: InputTokenSeq, errors="replace") -> str:

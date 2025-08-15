@@ -38,14 +38,14 @@ def char_name(c: str):
 
 
 @functools.cache
-def unicode_script_map(filename=SCRIPTS_PATH) -> list[dict[str, str]]:
+def unicode_script_map(filename=SCRIPTS_PATH) -> dict[str, dict[str, str]]:
     """
     Load Unicode script and category data from a file.
 
     Returns:
         A list of dictionaries with 'cp', 'char', 'script' and 'category' keys
     """
-    char_infos = []
+    char_infos = {}
     with open(filename, "r", encoding="utf-8") as f:
         for line in f:
             # Skip comments and empty lines
@@ -63,12 +63,12 @@ def unicode_script_map(filename=SCRIPTS_PATH) -> list[dict[str, str]]:
                 start = end = int(range_str, 16)
             # Add each codepoint in the range to the result dictionary
             for cp in range(start, end + 1):
-                char_infos.append(frozendict(
+                char_infos[chr(cp)] = frozendict(
                     cp=cp,
                     char=chr(cp),
                     script=script,
                     category=category,  # file is typically newer than python's unicodedata
-                ))
+                )
     return char_infos
 
 
@@ -96,7 +96,7 @@ class ScriptEncodingBase:
     def create_blocks(self) -> tuple[list, dict]:
         chars_by_sc = defaultdict(list)
         num_chars_by_script = Counter()
-        for char_info in unicode_script_map():
+        for char_info in unicode_script_map().values():
             chars_by_sc[self.script_category(char_info)].append(char_info['char'])
             num_chars_by_script[char_info['script']] += 1
 
