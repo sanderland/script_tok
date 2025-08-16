@@ -100,6 +100,7 @@ class ScriptEncodingBase:
             chars_by_sc[self.script_category(char_info)].append(char_info['char'])
             num_chars_by_script[char_info['script']] += 1
 
+        assert self.LARGEST_BLOCK_SCRIPT_CAT in chars_by_sc, f"{self.LARGEST_BLOCK_SCRIPT_CAT} not found. Blocks are: {chars_by_sc.keys()}"
         num_index_tokens = len(chars_by_sc[self.LARGEST_BLOCK_SCRIPT_CAT])
         blocks = []
         for sc, cps in sorted(chars_by_sc.items(), key=lambda kv: (num_chars_by_script[kv[0][0]], kv[1]), reverse=True):

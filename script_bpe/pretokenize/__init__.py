@@ -1,6 +1,6 @@
 from typing import Any, Callable, Type
 
-from script_bpe.encoding import ScriptEncodingV1
+from script_bpe.encoding import ScriptEncodingV1, ScriptEncodingV2
 
 from .base import BasePretokenizer
 from .regex import RegexBytePretokenizer
@@ -10,6 +10,7 @@ from .scriptencoding import (
 )
 
 DefaultScriptEncodingV1 = ScriptEncodingV1().export_config()
+DefaultScriptEncodingV2 = ScriptEncodingV2().export_config()
 
 
 GPT2_REGEX = r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"
@@ -47,6 +48,10 @@ PRETOKENIZER_REGISTRY: dict[str, Callable[[], BasePretokenizer]] = {
     ),
     "scriptenc_nosplit_cb": lambda: ScriptEncodingPretokenizerRegexSplitting(
         {**DefaultScriptEncodingV1, "regex": NO_SPLIT_REGEX, "enforce_char_boundaries": True}
+    ),
+    "scriptenc2_cb": lambda: ScriptEncodingPretokenizer({**DefaultScriptEncodingV2, "enforce_char_boundaries": True}),
+    "scriptenc2_gpt4o_cb": lambda: ScriptEncodingPretokenizerRegexSplitting(
+        {**DefaultScriptEncodingV2, "regex": GPT4O_REGEX, "enforce_char_boundaries": True}
     ),
 }
 

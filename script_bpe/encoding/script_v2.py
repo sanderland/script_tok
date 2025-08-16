@@ -20,11 +20,13 @@ class ScriptEncodingV2(ScriptEncodingBase):
 
         category, script = char_info["category"], char_info["script"]
         supercat = category[0]
-        if supercat in {"P", "S"} or category=="Cf":
-            return "PSF"  # Punctuation/Symbol
         if supercat in {"L", "M"}:
-            return "LM"  # Letter/Non-spacing Mark (like accept modifiers)
+            supercat  = "LM"  # Letter/Non-spacing Mark (like accept modifiers)
+        else:
+            script = ALL  
+        if supercat in {"P", "S"} or category=="Cf":
+            supercat = "PSF"  # Punctuation/Symbol
         if supercat == "Z" or category == "Cc":
-            return "ZC" # whitespace/control
-        # TODO: "other" script
+            supercat = "ZC" # whitespace/control
+        # TODO: "other" script?
         return script, supercat

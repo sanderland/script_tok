@@ -81,7 +81,6 @@ def test_bpe_train(tmp_path, pretokenizer_name, text_fixture, expected_merge_rul
     corpus = PretokenizedCorpus.from_texts(
         f"test_bpe_train_{text_fixture}", texts=[text], pretokenizer=pretokenizer, base_path=str(tmp_path)
     )
-    breakpoint()
     tokenizer = train_bpe(pretokenizer, corpus, additional_vocab_size=x_tokens, verbose=True)
 
     # Basic assertions
