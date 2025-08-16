@@ -6,7 +6,7 @@ import multiprocessing
 import os
 import sys
 import time
-from script_bpe.encoding.script_util import unicode_script_map
+from script_bpe.encoding import unicode_script_map
 from typing import Iterable
 
 # one dir lower than this script

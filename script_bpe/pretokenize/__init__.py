@@ -1,4 +1,4 @@
-from typing import Any, Callable, Type
+from typing import Callable
 
 from script_bpe.encoding import ScriptEncodingV1, ScriptEncodingV2
 

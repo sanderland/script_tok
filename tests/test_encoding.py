@@ -2,22 +2,17 @@ import unicodedata
 
 import pytest
 
-from script_bpe.encoding import ScriptEncodingV1
-from script_bpe.encoding.script_util import END_CODEPOINT, unicode_script_map
+from script_bpe.encoding import ScriptEncodingV1, ScriptEncodingV2  
+from script_bpe.encoding import END_CODEPOINT, unicode_script_map
 from script_bpe.utils import UNASSIGNED_CATEGORIES
-
 
 @pytest.fixture
 def sc_map():
     return unicode_script_map()
 
-
-@pytest.fixture
-def script_encoding():
-    return ScriptEncodingV1()
-
-
-def test_build_script_encoding(script_encoding):
+@pytest.mark.parametrize("script_encoding_cls", [ScriptEncodingV1, ScriptEncodingV2])
+def test_build_script_encoding(script_encoding_cls):
+    script_encoding = script_encoding_cls()
     blocks = script_encoding.blocks
     config = script_encoding.config
     assert isinstance(config, dict)
@@ -32,21 +27,21 @@ def test_build_script_encoding(script_encoding):
     seen_chars = set()
     seen_sids = set()
     seen_sss = set()
-    for sid, script, supercat, sub_block_id, cs in blocks:
-        assert isinstance(sid, int)
-        if script != "Hiragana":
-            assert (sid, sub_block_id) not in seen_sids
-            seen_sids.add((sid, sub_block_id))
+    for block in blocks:
+        assert isinstance(block['script_id'], int)
+        if block['script'] != "Hiragana":
+            assert (block['script_id'], block['sub_block_id']) not in seen_sids
+            seen_sids.add((block['script_id'], block['sub_block_id']))
 
-        assert isinstance(script, str)
-        assert isinstance(supercat, str)
-        assert isinstance(sub_block_id, int)
-        assert (script, supercat, sub_block_id) not in seen_sss
-        seen_sss.add((script, supercat, sub_block_id))
+        assert isinstance(block['script'], str)
+        assert isinstance(block['category'], str)
+        assert isinstance(block['sub_block_id'], int)
+        assert (block['script'], block['category'], block['sub_block_id']) not in seen_sss
+        seen_sss.add((block['script'], block['category'], block['sub_block_id']))
 
-        assert isinstance(cs, str)
-        assert len(cs) > 0
-        for c in cs:
+        assert isinstance(block['chars'], str)
+        assert len(block['chars']) > 0
+        for c in block['chars']:
             assert c not in seen_chars
             seen_chars.add(c)
 
