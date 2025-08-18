@@ -9,9 +9,9 @@ import functools
 SCRIPTS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "unicode_scripts.txt")
 END_CODEPOINT = 0xE0FFF  # full cover of non private use code points, excluding surrogates
 
+
 def char_name(c: str):
     return unicodedata.name(c, "<UNKNOWN>")
-
 
 
 @functools.cache
@@ -49,10 +49,9 @@ def unicode_script_map(filename=SCRIPTS_PATH) -> dict[str, dict[str, str]]:
     return char_infos
 
 
-
 class ScriptEncodingBase:
     FIRST_TOKEN_ID = 1  # leave 0 for padding
-    ALL = "✭" # symbol used to represent "any" script or category
+    ALL = "✭"  # symbol used to represent "any" script or category
 
     SCRIPT_LM_WITH_SPACES = {
         "Latin",  # Near space 18.0% of time, overall count 296,227,775,159
@@ -78,13 +77,13 @@ class ScriptEncodingBase:
     }
     SCRIPT_HIGH_RESOURCE_NO_SPACES = {
         "Common",
-        "Han",        
-        "Hiragana",   
-        "Katakana",   
-        "Thai",       
-        "Myanmar",    
-        "Khmer",      
-        "Lao",        
+        "Han",
+        "Hiragana",
+        "Katakana",
+        "Thai",
+        "Myanmar",
+        "Khmer",
+        "Lao",
     }
     # Pretokenize allows a single leading space for these. PS is only for V1 and ASCII/PSF is only for V2
     SCRIPT_CAT_WITH_SPACE = [(s, "LM") for s in SCRIPT_LM_WITH_SPACES]
@@ -94,10 +93,10 @@ class ScriptEncodingBase:
 
     def __init__(self):
         self.blocks, self.config = self.create_blocks()
-        self.config['version'] = self.__class__.__name__
-        self.config['num_blocks'] = len(self.blocks)
+        self.config["version"] = self.__class__.__name__
+        self.config["num_blocks"] = len(self.blocks)
         largest_block = max(self.blocks, key=lambda b: len(b["chars"]))
-        self.config['num_index_tokens'] = len(largest_block["chars"])
+        self.config["num_index_tokens"] = len(largest_block["chars"])
 
     @classmethod
     def script_category(cls, char_info) -> tuple[str, str]:
@@ -120,10 +119,12 @@ class ScriptEncodingBase:
         chars_by_sc = defaultdict(list)
         num_chars_by_script = Counter()
         for char_info in unicode_script_map().values():
-            chars_by_sc[self.script_category(char_info)].append(char_info['char'])
-            num_chars_by_script[char_info['script']] += 1
+            chars_by_sc[self.script_category(char_info)].append(char_info["char"])
+            num_chars_by_script[char_info["script"]] += 1
 
-        assert self.LARGEST_BLOCK_SCRIPT_CAT in chars_by_sc, f"{self.LARGEST_BLOCK_SCRIPT_CAT} not found. Blocks are: {chars_by_sc.keys()}"
+        assert self.LARGEST_BLOCK_SCRIPT_CAT in chars_by_sc, (
+            f"{self.LARGEST_BLOCK_SCRIPT_CAT} not found. Blocks are: {chars_by_sc.keys()}"
+        )
         num_index_tokens = len(chars_by_sc[self.LARGEST_BLOCK_SCRIPT_CAT])
         blocks = []
         for sc, cps in sorted(chars_by_sc.items(), key=lambda kv: (num_chars_by_script[kv[0][0]], kv[1]), reverse=True):
@@ -131,7 +132,16 @@ class ScriptEncodingBase:
             script, supercat = sc
             combines_with_spaces = (script, supercat) in self.SCRIPT_CAT_WITH_SPACE
             for sub_block, start in enumerate(range(0, len(cps), num_index_tokens)):
-                blocks.append( dict(script_id=sid, script=script, category=supercat, sub_block_id=sub_block, combines_with_spaces=combines_with_spaces, chars="".join(cps[start : start + num_index_tokens]) ) )
+                blocks.append(
+                    dict(
+                        script_id=sid,
+                        script=script,
+                        category=supercat,
+                        sub_block_id=sub_block,
+                        combines_with_spaces=combines_with_spaces,
+                        chars="".join(cps[start : start + num_index_tokens]),
+                    )
+                )
 
         if self.MERGE_HIRAGANA_WITH_HAN:
             blocks = self._merge_hiragana_with_han(blocks)
@@ -157,8 +167,8 @@ class ScriptEncodingV1(ScriptEncodingBase):
     @classmethod
     @functools.cache
     def script_category(cls, char_info) -> tuple[str, str]:
-        if char_info['char'] in cls.SCRIPT_CAT_OVERRIDE:
-            return cls.SCRIPT_CAT_OVERRIDE[char_info['char']]
+        if char_info["char"] in cls.SCRIPT_CAT_OVERRIDE:
+            return cls.SCRIPT_CAT_OVERRIDE[char_info["char"]]
 
         category, script = char_info["category"], char_info["script"]
         supercat = category[0]
@@ -167,6 +177,7 @@ class ScriptEncodingV1(ScriptEncodingBase):
         if supercat in {"L", "M"}:
             supercat = "LM"  # Letter/Non-spacing Mark (like accept modifiers)
         return script, supercat
+
 
 class ScriptEncodingV2(ScriptEncodingBase):
     ASCII_SCRIPT = "ASCII"
@@ -180,25 +191,25 @@ class ScriptEncodingV2(ScriptEncodingBase):
     @classmethod
     @functools.cache
     def script_category(cls, char_info) -> tuple[str, str]:
-        if char_info['char'] in cls.SCRIPT_CAT_OVERRIDE:
-            return cls.SCRIPT_CAT_OVERRIDE[char_info['char']]
+        if char_info["char"] in cls.SCRIPT_CAT_OVERRIDE:
+            return cls.SCRIPT_CAT_OVERRIDE[char_info["char"]]
 
         category, script = char_info["category"], char_info["script"]
         supercat = category[0]
 
         # low resource scripts are (script, *) with no blocks for category
         if not cls._is_higher_resource_script(script):
-            supercat = cls.ALL # for low resource script, ignore category
+            supercat = cls.ALL  # for low resource script, ignore category
             return script, supercat
 
         # merge categories into supercategories
         if supercat in {"L", "M"}:
-            supercat  = "LM"  # Letter/Mark
+            supercat = "LM"  # Letter/Mark
         elif supercat == "Z" or category == "Cc":
-            supercat = "ZC" # whitespace/control, which includes \n,\t, etc
-        elif supercat in {"P", "S"} or category=="Cf":
+            supercat = "ZC"  # whitespace/control, which includes \n,\t, etc
+        elif supercat in {"P", "S"} or category == "Cf":
             supercat = "PSF"  # Punctuation/Symbol/Formatting
-            if ord(char_info['char']) < 128: # ascii punctuation is its own script, which allows for leading spaces
+            if ord(char_info["char"]) < 128:  # ascii punctuation is its own script, which allows for leading spaces
                 script = cls.ASCII_SCRIPT
 
         # for all non-letters we ignore the script

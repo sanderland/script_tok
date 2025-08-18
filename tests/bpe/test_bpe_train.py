@@ -86,12 +86,12 @@ def test_bpe_train(tmp_path, pretokenizer_name, text_fixture, expected_merge_rul
     # Basic assertions
     assert isinstance(tokenizer, BPETokenizer)
     if "gpt4" not in pretokenizer_name:
-        assert (
-            len(tokenizer.merge_rules) == x_tokens
-        ), f"Expected {x_tokens} merge rules, got {len(tokenizer.merge_rules)}"
-    assert len(tokenizer.tokens) == len(tokenizer.merge_rules) + len(
-        pretokenizer.base_tokens
-    ), f"Expected {len(tokenizer.tokens)}"
+        assert len(tokenizer.merge_rules) == x_tokens, (
+            f"Expected {x_tokens} merge rules, got {len(tokenizer.merge_rules)}"
+        )
+    assert len(tokenizer.tokens) == len(tokenizer.merge_rules) + len(pretokenizer.base_tokens), (
+        f"Expected {len(tokenizer.tokens)}"
+    )
 
     # Verify token counts
     metadata_tokens = {t["id"]: t for t in tokenizer.metadata["tokens"]}
@@ -99,17 +99,17 @@ def test_bpe_train(tmp_path, pretokenizer_name, text_fixture, expected_merge_rul
     base_tokens = sum(tokenizer.pretokenizer.encode_and_chunk(text), token_array([]))
 
     for token_id, count in Counter(base_tokens).items():
-        assert (
-            count == metadata_tokens[token_id]["original_count"]
-        ), f"Base token {token_id} original count mismatch: manual count {count} does not match metadata {metadata_tokens[token_id]}"
+        assert count == metadata_tokens[token_id]["original_count"], (
+            f"Base token {token_id} original count mismatch: manual count {count} does not match metadata {metadata_tokens[token_id]}"
+        )
 
     for token_id, count in Counter(tokens).items():
-        assert (
-            count == metadata_tokens[token_id]["final_count"]
-        ), f"Token {token_id} final count mismatch: manual count {count} does not match metadata {metadata_tokens[token_id]}"
+        assert count == metadata_tokens[token_id]["final_count"], (
+            f"Token {token_id} final count mismatch: manual count {count} does not match metadata {metadata_tokens[token_id]}"
+        )
 
     # Optional merge rules check
     if expected_merge_rules is not None:
-        assert (
-            tokenizer.merge_rules == expected_merge_rules
-        ), f"Merge rules mismatch for {pretokenizer_name} + {text_fixture.__name__}"
+        assert tokenizer.merge_rules == expected_merge_rules, (
+            f"Merge rules mismatch for {pretokenizer_name} + {text_fixture.__name__}"
+        )

@@ -7,7 +7,7 @@ from script_bpe.utils import create_logger
 
 
 def create_huggingface_corpus(
-    dataset_name: str, corpus_name: str, pretokenizer, base_dir: str, logger,  subsample: int | None = None, **kwargs
+    dataset_name: str, corpus_name: str, pretokenizer, base_dir: str, logger, subsample: int | None = None, **kwargs
 ) -> PretokenizedCorpus:
     num_cpus = os.cpu_count() or 4
     dataset = load_dataset(dataset_name, **kwargs)
@@ -52,7 +52,7 @@ def load_corpus_by_name(
             logger=logger,
             split="train",
             data_files=[f"{corpus_name}.txt"],
-            subsample=10 if corpus_name.startswith('smol') else None,
+            subsample=10 if corpus_name.startswith("smol") else None,
         )
         return corpus
     elif "OSCAR" in corpus_name or "CulturaX" in corpus_name:

@@ -65,9 +65,11 @@ UNASSIGNED_CATEGORIES = {"Cn", "Co", "Cs"}  # we ignore Cn=Not Assigned, Co=Priv
 def remove_unassigned_private_surrogate(s):
     return "".join(c for c in s if not is_unassigned_private_surrogate(c))
 
+
 @functools.cache
 def is_unassigned_private_surrogate(char):
     return char not in unicode_script_map()
+
 
 @functools.cache
 def utf_byte_type(b: int) -> int:

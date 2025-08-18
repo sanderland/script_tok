@@ -2,13 +2,15 @@ import unicodedata
 
 import pytest
 
-from script_bpe.encoding import ScriptEncodingV1, ScriptEncodingV2  
+from script_bpe.encoding import ScriptEncodingV1, ScriptEncodingV2
 from script_bpe.encoding import END_CODEPOINT, unicode_script_map
 from script_bpe.utils import UNASSIGNED_CATEGORIES
+
 
 @pytest.fixture
 def sc_map():
     return unicode_script_map()
+
 
 @pytest.mark.parametrize("script_encoding_cls", [ScriptEncodingV1, ScriptEncodingV2])
 def test_build_script_encoding(script_encoding_cls):
@@ -28,20 +30,20 @@ def test_build_script_encoding(script_encoding_cls):
     seen_sids = set()
     seen_sss = set()
     for block in blocks:
-        assert isinstance(block['script_id'], int)
-        if block['script'] != "Hiragana":
-            assert (block['script_id'], block['sub_block_id']) not in seen_sids
-            seen_sids.add((block['script_id'], block['sub_block_id']))
+        assert isinstance(block["script_id"], int)
+        if block["script"] != "Hiragana":
+            assert (block["script_id"], block["sub_block_id"]) not in seen_sids
+            seen_sids.add((block["script_id"], block["sub_block_id"]))
 
-        assert isinstance(block['script'], str)
-        assert isinstance(block['category'], str)
-        assert isinstance(block['sub_block_id'], int)
-        assert (block['script'], block['category'], block['sub_block_id']) not in seen_sss
-        seen_sss.add((block['script'], block['category'], block['sub_block_id']))
+        assert isinstance(block["script"], str)
+        assert isinstance(block["category"], str)
+        assert isinstance(block["sub_block_id"], int)
+        assert (block["script"], block["category"], block["sub_block_id"]) not in seen_sss
+        seen_sss.add((block["script"], block["category"], block["sub_block_id"]))
 
-        assert isinstance(block['chars'], str)
-        assert len(block['chars']) > 0
-        for c in block['chars']:
+        assert isinstance(block["chars"], str)
+        assert len(block["chars"]) > 0
+        for c in block["chars"]:
             assert c not in seen_chars
             seen_chars.add(c)
 
@@ -56,5 +58,3 @@ def test_unicode_script_map_unknown_script_cat(sc_map):
         if chr(i) not in sc_map:
             category = unicodedata.category(chr(i))
             assert category in UNASSIGNED_CATEGORIES, f"Unexpected category {category} for U+{ord(c):X} script None"
-
-

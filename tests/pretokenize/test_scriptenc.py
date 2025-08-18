@@ -21,17 +21,17 @@ def test_se_tokenize(script_encoding_pretokenizer):
 # string, v1 groups, v2 groups
 TEST_CASES = [
     # 1. Latin "Hello ", Arabic "العالمية", spaces, Emoji "❤️"
-    ("Hello \u0627\u0644\u0639\u0627\u0644\u0645\u064A  \u2764", 4, 4),
+    ("Hello \u0627\u0644\u0639\u0627\u0644\u0645\u064a  \u2764", 4, 4),
     # 2. Latin "Hello ", Arabic "العالمية", ZWJ+Emoji "‍❤️"
-    ("Hello \u0627\u0644\u0639\u0627\u0644\u0645\u064A\u200C❤️", 3, 3),
+    ("Hello \u0627\u0644\u0639\u0627\u0644\u0645\u064a\u200c❤️", 3, 3),
     # 3. Latin "Hello ", Arabic "العالمية", space, Emoji "🌍"
-    ("Hello \u0627\u0644\u0639\u0627\u0644\u0645\u064A \u0020🌍", 4, 4),
+    ("Hello \u0627\u0644\u0639\u0627\u0644\u0645\u064a \u0020🌍", 4, 4),
     # 4. Latin "abc ", Arabic "مَبْنِي" (with diacritics), spaces "  ", Latin "xyz"
-    ("abc \u0645\u0650\u0628\u0646\u064A  xyz", 4, 4),
+    ("abc \u0645\u0650\u0628\u0646\u064a  xyz", 4, 4),
     # 5. Arabic "رينر" (with diacritic), space+Emoji "❤️"
-    ("\u0631\u064A\u0646\u0650\u0631 ❤️", 2, 3),
+    ("\u0631\u064a\u0646\u0650\u0631 ❤️", 2, 3),
     # 6. Pure Arabic text only
-    ("\u0627\u0639\u062F\u0644\u0639\u0645\u062F\u0631\u0648\u0632", 1, 1),
+    ("\u0627\u0639\u062f\u0644\u0639\u0645\u062f\u0631\u0648\u0632", 1, 1),
     # 7. Tamil "வணக்கம்", space, Emoji "❤️"
     ("வணக்கம் ❤️", 2, 3),
     # 8. Mixed chinese
@@ -49,17 +49,18 @@ TEST_CASES = [
     # 19. Japanese with Number (Should split)
     ("第1番", 3, 3),  # JPN(Han), Number, JPN(Han)
 ]
-PRETOKENIZER_NAMES = ['scriptenc_cb', 'scriptenc2_cb']
-VERSION_WITH_TEST_CASES = [(text, expected[i], PRETOKENIZER_NAMES[i]) for text, *expected in TEST_CASES for i in [0,1]]
+PRETOKENIZER_NAMES = ["scriptenc_cb", "scriptenc2_cb"]
+VERSION_WITH_TEST_CASES = [(text, expected[i], PRETOKENIZER_NAMES[i]) for text, *expected in TEST_CASES for i in [0, 1]]
+
 
 @pytest.mark.parametrize("text, n_expected, pretokenizer_name", VERSION_WITH_TEST_CASES)
 def test_se_pretokenize_groups(pretokenizer_name, text, n_expected):
     script_encoding_pretokenizer = get_pretokenizer(pretokenizer_name)
     pretokenized_groups = script_encoding_pretokenizer.encode_and_chunk(text)
     redecoded_groups = [script_encoding_pretokenizer.decode(group) for group in pretokenized_groups]
-    assert (
-        len(pretokenized_groups) == n_expected
-    ), f"Expected {n_expected} groups but found {len(pretokenized_groups)} for {text!r}, got {len(pretokenized_groups)} groups: {redecoded_groups}"
+    assert len(pretokenized_groups) == n_expected, (
+        f"Expected {n_expected} groups but found {len(pretokenized_groups)} for {text!r}, got {len(pretokenized_groups)} groups: {redecoded_groups}"
+    )
 
     # detokenize and check if we get the original string back
     detokenized = script_encoding_pretokenizer.decode(sum(pretokenized_groups, token_array([])))

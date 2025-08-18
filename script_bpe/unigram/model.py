@@ -9,11 +9,13 @@ import tabulate
 import os
 from collections import defaultdict
 
+
 def logaddexp(a: float, b: float) -> float:
     """Stable log(exp(a) + exp(b)) for two finite terms."""
     if a < b:
         a, b = b, a
     return a + math.log1p(math.exp(b - a))
+
 
 class UnigramToken:
     def __init__(self, id: int, base_tokens: TokenSeq, log_prob: float, required: bool = False, **kwargs):
@@ -29,6 +31,7 @@ class UnigramToken:
             "base_tokens": list(self.base_tokens),
             "log_prob": self.log_prob,
         }
+
 
 class Trie:
     def __init__(self, tokens: list[UnigramToken]):
@@ -60,12 +63,12 @@ class Lattice:
         self.tokens_from_pos = tokens_from_pos
 
     def viterbi(self, allow_single_token=True) -> tuple[list[UnigramToken], float]:
-        best_at_pos = [(None,0)] + [(None,float('-inf'))] * len(self.base_token_seq)
+        best_at_pos = [(None, 0)] + [(None, float("-inf"))] * len(self.base_token_seq)
         for pos in range(len(self.base_token_seq)):
             for token in self.tokens_from_pos[pos]:
                 end = pos + len(token.base_tokens)
-                if pos==0 and not allow_single_token and end==len(self.base_token_seq):
-                    continue # do not allow direct path
+                if pos == 0 and not allow_single_token and end == len(self.base_token_seq):
+                    continue  # do not allow direct path
                 score = best_at_pos[pos][1] + token.log_prob
                 if score > best_at_pos[end][1]:
                     best_at_pos[end] = (token, score)
@@ -86,18 +89,18 @@ class Lattice:
             return
         for token in self.tokens_from_pos[starting_pos]:
             for sub_path, sub_prob in self.all_paths(starting_pos + len(token.base_tokens)):
-                yield ( (token,) + sub_path, sub_prob + token.log_prob)
+                yield ((token,) + sub_path, sub_prob + token.log_prob)
 
     def _forward_backward(self) -> tuple[list[float], list[float]]:
         """returns
         alpha(pos) = total prob of path to pos
         beta(pos) = total prob of path from pos to end
         """
-        alpha = [0] + [float('-inf')] * len(self.base_token_seq)
-        beta = [float('-inf')] * (len(self.base_token_seq)) + [0]
+        alpha = [0] + [float("-inf")] * len(self.base_token_seq)
+        beta = [float("-inf")] * (len(self.base_token_seq)) + [0]
 
         for pos in range(len(self.base_token_seq)):
-            if alpha[pos] != float('-inf'):
+            if alpha[pos] != float("-inf"):
                 for token in self.tokens_from_pos[pos]:
                     end = pos + len(token.base_tokens)
                     alpha[end] = logaddexp(alpha[end], alpha[pos] + token.log_prob)
@@ -105,14 +108,16 @@ class Lattice:
         for pos in range(len(self.base_token_seq) - 1, -1, -1):
             for token in self.tokens_from_pos[pos]:
                 end = pos + len(token.base_tokens)
-                if beta[end] != float('-inf'):
+                if beta[end] != float("-inf"):
                     beta[pos] = logaddexp(beta[pos], beta[end] + token.log_prob)
         return alpha, beta
 
     def calc_marginal(self) -> tuple[float, dict[int, float]]:
         alpha, beta = self._forward_backward()
         z = alpha[-1]
-        assert z != float('-inf'), f"Lattice for {self.base_token_seq!r} has no valid paths with tokens_from_pos {self.tokens_from_pos}"
+        assert z != float("-inf"), (
+            f"Lattice for {self.base_token_seq!r} has no valid paths with tokens_from_pos {self.tokens_from_pos}"
+        )
         token_prob = defaultdict(float)
         for pos in range(len(self.base_token_seq)):
             for token in self.tokens_from_pos[pos]:
@@ -122,22 +127,21 @@ class Lattice:
         return z, token_prob
 
 
-
-
 class UnigramModel:
     """
     A Unigram language model for tokenization.
-    
+
     This implements the Unigram algorithm described in:
     Kudo, T. (2018). Subword Regularization: Improving Neural Network Translation
     Models with Multiple Subword Candidates. https://arxiv.org/abs/1804.10959
     """
+
     VERSION = "seunigram-v1"
-    
+
     def __init__(self, pretokenizer: BasePretokenizer, tokens: list[UnigramToken], metadata: dict = None):
         """
         Initialize the Unigram model.
-        
+
         Args:
             pretokenizer: The pretokenizer to use for encoding/decoding
             tokens: List of UnigramToken objects (optional)
@@ -168,31 +172,27 @@ class UnigramModel:
     @classmethod
     def load(cls, file):
         """Load a UnigramModel from a file.
-        
+
         Args:
             file: Path to the model file (.json or .json.gz)
-            
+
         Returns:
             UnigramModel: The loaded model
         """
         open_func = gzip.open if file.endswith(".gz") else open
         with open_func(file, "rt") as f:
             data = json.load(f)
-            
+
         pretokenizer = make_pretokenizer(data["pretokenizer"])
         tokens = [UnigramToken(**t) for t in data["tokens"]]
-        return cls(
-            pretokenizer=pretokenizer,
-            tokens=tokens,
-            metadata=data.get("metadata")
-        )
+        return cls(pretokenizer=pretokenizer, tokens=tokens, metadata=data.get("metadata"))
 
     def save(self, file_path: str) -> str:
         """Save the model to a file.
-        
+
         Args:
             file_path: Path to save the model to (.json or .json.gz)
-            
+
         Returns:
             str: The path the model was saved to
         """
@@ -209,14 +209,13 @@ class UnigramModel:
                     "metadata": self.metadata,
                 },
                 f,
-                indent=2
+                indent=2,
             )
         return file_path
 
-
     def stats(self, n_longest=20) -> dict:
         """Compute and return statistics about the Unigram tokenizer.
-        
+
         Returns:
             dict: Dictionary containing various statistics about the tokenizer
         """
@@ -224,37 +223,35 @@ class UnigramModel:
         num_tokens = len(self.tokens)
         base_tokens = [t for t in self.tokens if len(t.base_tokens) == 1]
         multi_token = [t for t in self.tokens if len(t.base_tokens) > 1]
-        
+
         # Token lengths
         token_lengths = [len(t.base_tokens) for t in self.tokens]
         char_lengths = [len(self.decode([t.id])) for t in self.tokens]
-        
+
         # Find undecodable tokens
         is_undecodable = {
             t.id: "�" in self.pretokenizer.decode(t.base_tokens, errors="replace")
             for t in self.tokens
             if not t.required
         }
-        
+
         return {
             # Basic counts
-            'num_tokens': num_tokens,
-            'num_base_tokens': len(base_tokens),
-            'num_multi_tokens': len(multi_token),
-            'num_undecodable': sum(is_undecodable.values()),
-            
+            "num_tokens": num_tokens,
+            "num_base_tokens": len(base_tokens),
+            "num_multi_tokens": len(multi_token),
+            "num_undecodable": sum(is_undecodable.values()),
             # Length statistics
-            'avg_token_length_bt': sum(token_lengths) / num_tokens if num_tokens > 0 else 0,
-            'avg_char_length': sum(char_lengths) / num_tokens if num_tokens > 0 else 0,
-            
+            "avg_token_length_bt": sum(token_lengths) / num_tokens if num_tokens > 0 else 0,
+            "avg_char_length": sum(char_lengths) / num_tokens if num_tokens > 0 else 0,
             # Longest tokens for reporting
-            'longest_tokens': sorted(self.tokens, key=lambda t: -len(t.base_tokens))[:n_longest],
+            "longest_tokens": sorted(self.tokens, key=lambda t: -len(t.base_tokens))[:n_longest],
         }
 
     def report(self, n_longest=20) -> str:
         """Generate a markdown formatted report about the tokenizer."""
         stats = self.stats(n_longest=n_longest)
-        
+
         report = [
             "# Unigram Tokenizer Report",
             "",
@@ -269,48 +266,60 @@ class UnigramModel:
             f"- **Average characters per token:** {stats['avg_char_length']:.4f}",
             "",
         ]
-        
+
         # Add longest tokens section
         longest_tokens_table = []
-        for token in stats['longest_tokens']:
+        for token in stats["longest_tokens"]:
             token_str = self.pretokenizer.tokens_to_readable_string(token.base_tokens)
-            longest_tokens_table.append({
-                'ID': token.id,
-                'Base Tokens': len(token.base_tokens),
-                'Log Prob': f"{token.log_prob:.3f}",
-                'Text': repr(token_str)
-            })
-        
-        report.extend([
-            "## Longest Tokens (by base tokens)",
-            "",
-            tabulate.tabulate(longest_tokens_table, headers="keys", tablefmt="github"),
-            ""
-        ])
-        
-          # Add non-base tokens by probability
-        tokens_with_prob = [{
-            'ID': token.id,
-            'Log Probability': f"{token.log_prob:.4f}",
-            'Text': repr(self.pretokenizer.tokens_to_readable_string(token.base_tokens))
-        } for token in sorted(self.tokens, key=lambda t: -t.log_prob) if not token.required]
+            longest_tokens_table.append(
+                {
+                    "ID": token.id,
+                    "Base Tokens": len(token.base_tokens),
+                    "Log Prob": f"{token.log_prob:.3f}",
+                    "Text": repr(token_str),
+                }
+            )
 
-        report.extend([
-            "## Non-base tokens by probability",
-            "",
-            tabulate.tabulate(tokens_with_prob, headers="keys", tablefmt="github"),
-            ""
-        ])
+        report.extend(
+            [
+                "## Longest Tokens (by base tokens)",
+                "",
+                tabulate.tabulate(longest_tokens_table, headers="keys", tablefmt="github"),
+                "",
+            ]
+        )
+
+        # Add non-base tokens by probability
+        tokens_with_prob = [
+            {
+                "ID": token.id,
+                "Log Probability": f"{token.log_prob:.4f}",
+                "Text": repr(self.pretokenizer.tokens_to_readable_string(token.base_tokens)),
+            }
+            for token in sorted(self.tokens, key=lambda t: -t.log_prob)
+            if not token.required
+        ]
+
+        report.extend(
+            [
+                "## Non-base tokens by probability",
+                "",
+                tabulate.tabulate(tokens_with_prob, headers="keys", tablefmt="github"),
+                "",
+            ]
+        )
 
         # Add metadata section if available
         if self.metadata and len(self.metadata) > 0:
             metadata_items = [[k, v] for k, v in self.metadata.items() if k != "tokens"]
             if metadata_items:
-                report.extend([
-                    "## Metadata",
-                    "",
-                    tabulate.tabulate(metadata_items, headers=["Key", "Value"], tablefmt="github"),
-                    ""
-                ])
+                report.extend(
+                    [
+                        "## Metadata",
+                        "",
+                        tabulate.tabulate(metadata_items, headers=["Key", "Value"], tablefmt="github"),
+                        "",
+                    ]
+                )
 
         return "\n".join(report)
