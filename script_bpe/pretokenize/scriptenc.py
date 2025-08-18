@@ -107,6 +107,7 @@ class ScriptConfig(BaseModel):
 
     def __post_model_init__(self):
         """builds blocks"""
+        breakpoint()
         if not self.blocks:
             return # we trust blocks when they are provided
         chars_by_sc = defaultdict(list)
