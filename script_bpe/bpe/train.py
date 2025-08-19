@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 
 from script_bpe.bpe.tokenizer import BPETokenizer, MergeRule, Token
 from script_bpe.corpus import PretokenizedCorpus
-from script_bpe.pretokenize import BasePretokenizer
+from script_bpe.pretokenize import Pretokenizer
 from script_bpe.utils import TokenSeq, create_logger, mp_ctx, token_array
 
 
@@ -73,7 +73,7 @@ class TokenPairCounts:
 def worker_process(
     worker_id: int,
     num_workers: int,
-    pretokenizer: BasePretokenizer,
+    pretokenizer: Pretokenizer,
     corpus: PretokenizedCorpus,
     cmd_queue: multiprocessing.Queue,
     results_queue: multiprocessing.Queue,
@@ -155,13 +155,13 @@ def worker_process(
 
 
 # --- Helper Functions ---
-def init_tokens(pretokenizer: BasePretokenizer):
+def init_tokens(pretokenizer: Pretokenizer):
     return {k: Token(id=k, base_tokens=token_array([k])) for k in pretokenizer.base_tokens}
 
 
 # --- Main Training Function ---
 def train_bpe(
-    pretokenizer: BasePretokenizer,
+    pretokenizer: Pretokenizer,
     corpus: PretokenizedCorpus,
     additional_vocab_size: int,
     num_workers: int = 4,

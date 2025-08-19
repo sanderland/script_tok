@@ -1,6 +1,6 @@
 import pytest
 
-from script_bpe.pretokenize import PRETOKENIZER_REGISTRY
+from script_bpe.pretokenize import get_pretokenizer, PRETOKENIZER_REGISTRY
 
 
 @pytest.mark.parametrize("pretokenizer_name", list(PRETOKENIZER_REGISTRY.keys()))
@@ -16,10 +16,10 @@ def test_pretokenizers_in_registry(pretokenizer_name):
         " \u000dCarriage Return",
     ]
 
-    pretokenizer = PRETOKENIZER_REGISTRY[pretokenizer_name]()
+    pretokenizer = get_pretokenizer(pretokenizer_name)
     for s in sample_strings:
         # Encode and chunk the string
-        encoded_chunks = pretokenizer.encode_and_chunk(s)
+        encoded_chunks = pretokenizer.pretokenize(s)
         # Decode the chunks back to a string
         decoded_string = pretokenizer.decode([item for sublist in encoded_chunks for item in sublist])
         # Ensure round-trip consistency

@@ -9,7 +9,7 @@ from dataclasses import dataclass
 import tabulate
 
 from script_bpe.pretokenize import (
-    BasePretokenizer,
+    Pretokenizer,
     export_pretokenizer,
     make_pretokenizer,
 )
@@ -50,7 +50,7 @@ class Token:
 class BPETokenizer:
     VERSION = "sebpe-v1"
 
-    def __init__(self, merge_rules, pretokenizer: BasePretokenizer, metadata=None):
+    def __init__(self, merge_rules, pretokenizer: Pretokenizer, metadata=None):
         self.pretokenizer = pretokenizer
         self.merge_rules = merge_rules
         self.metadata = metadata or {}
@@ -117,7 +117,7 @@ class BPETokenizer:
         return [i for i in ids_arr if i >= 0]
 
     def encode(self, text: str) -> TokenSeq:
-        chunks = self.pretokenizer.encode_and_chunk(text)
+        chunks = self.pretokenizer.pretokenize(text)
         return token_array([t for chunk in chunks for t in self._encode_chunk(chunk)])
 
     def save(self, file_path) -> str:

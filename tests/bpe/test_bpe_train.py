@@ -96,7 +96,7 @@ def test_bpe_train(tmp_path, pretokenizer_name, text_fixture, expected_merge_rul
     # Verify token counts
     metadata_tokens = {t["id"]: t for t in tokenizer.metadata["tokens"]}
     tokens = tokenizer.encode(text)
-    base_tokens = sum(tokenizer.pretokenizer.encode_and_chunk(text), token_array([]))
+    base_tokens = sum(tokenizer.pretokenizer.pretokenize(text), token_array([]))
 
     for token_id, count in Counter(base_tokens).items():
         assert count == metadata_tokens[token_id]["original_count"], (

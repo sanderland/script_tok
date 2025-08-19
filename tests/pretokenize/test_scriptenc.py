@@ -2,13 +2,13 @@ import json
 
 import pytest
 
-from script_bpe.pretokenize import get_pretokenizer
+from script_bpe.pretokenize import export_pretokenizer, get_pretokenizer
 from script_bpe.utils import TokenSeq, token_array
 
 
 def test_se_tokenize(script_encoding_pretokenizer):
     text = "abc def"
-    tokenized = script_encoding_pretokenizer.encode_and_chunk(text)
+    tokenized = script_encoding_pretokenizer.pretokenize(text)
     assert isinstance(tokenized, list)
     assert all(isinstance(group, TokenSeq) for group in tokenized)
 
@@ -56,7 +56,7 @@ VERSION_WITH_TEST_CASES = [(text, expected[i], PRETOKENIZER_NAMES[i]) for text, 
 @pytest.mark.parametrize("text, n_expected, pretokenizer_name", VERSION_WITH_TEST_CASES)
 def test_se_pretokenize_groups(pretokenizer_name, text, n_expected):
     script_encoding_pretokenizer = get_pretokenizer(pretokenizer_name)
-    pretokenized_groups = script_encoding_pretokenizer.encode_and_chunk(text)
+    pretokenized_groups = script_encoding_pretokenizer.pretokenize(text)
     redecoded_groups = [script_encoding_pretokenizer.decode(group) for group in pretokenized_groups]
     assert len(pretokenized_groups) == n_expected, (
         f"Expected {n_expected} groups but found {len(pretokenized_groups)} for {text!r}, got {len(pretokenized_groups)} groups: {redecoded_groups}"
@@ -69,7 +69,7 @@ def test_se_pretokenize_groups(pretokenizer_name, text, n_expected):
 
 @pytest.mark.parametrize("text", [text for text, *_ in TEST_CASES])
 def test_nosplit_pretokenizer(text, script_encoding_nosplit_pretokenizer):
-    pretokenized_groups = script_encoding_nosplit_pretokenizer.encode_and_chunk(text)
+    pretokenized_groups = script_encoding_nosplit_pretokenizer.pretokenize(text)
     assert len(pretokenized_groups) == 1
     assert len(pretokenized_groups[0]) == len(text) * 2
 
@@ -81,4 +81,4 @@ def test_se_hash_identical(script_encoding_pretokenizer):
 
 
 def test_se_can_json(script_encoding_pretokenizer):
-    json.dumps(script_encoding_pretokenizer.config)
+    export_pretokenizer(script_encoding_pretokenizer.config)

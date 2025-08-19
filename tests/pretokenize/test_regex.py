@@ -15,7 +15,7 @@ def test_hash(regex_pretokenizer):
 
 def test_regex_tokenize(regex_pretokenizer):
     text = "Hello world!"
-    tokenized = regex_pretokenizer.encode_and_chunk(text)
+    tokenized = regex_pretokenizer.pretokenize(text)
     assert isinstance(tokenized, list)
     assert all(isinstance(group, TokenSeq) for group in tokenized)
 

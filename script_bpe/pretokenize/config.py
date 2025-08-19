@@ -6,7 +6,7 @@ import regex as re
 import itertools
 import unicodedata
 
-from script_bpe.utils import InputTokenSeq, PretokenizedT
+from script_bpe.utils import InputTokenSeq, PretokenizedT, token_array
 from script_bpe.pretokenize.scriptenc import ScriptConfig, ScriptEncodingV1, ScriptBlock
 
 DigitHandlingT = Literal["RTL3", "SPLIT"] | None
@@ -108,7 +108,7 @@ class Pretokenizer:
         text = self.normalize(text)
         encoded_chunks = self.split_unencoded_and_encode(text)
         encoded_chunks = [subchunk for chunk in encoded_chunks for subchunk in self.split_encoded(chunk)]
-        chunks = [[tid for chr in chunk for tid in chr.atomic_token_ids] for chunk in encoded_chunks]
+        chunks = [token_array([tid for chr in chunk for tid in chr.atomic_token_ids]) for chunk in encoded_chunks]
         return chunks
 
     @abstractmethod
@@ -160,8 +160,15 @@ class Pretokenizer:
         return self.decode(base_token_ids, errors="backslashreplace")
 
     def token_allowed(self, token_seq: InputTokenSeq) -> bool:
+        try:
+            text = self.decode(token_seq, errors="strict")
+        except ValueError:
+            if self.config.enforce_char_boundaries:
+                return [i for i in enumerate(token_seq) if i in self.is_initial_char_tokens] == [0]
         return True
 
+    def bpe_merge_allowed(self, a: InputTokenSeq, b: InputTokenSeq) -> bool:
+        return self.token_allowed(list(a) + list(b))
 
 class UTF8Pretokenizer(Pretokenizer):
     def __init__(self, config: UTF8PretokenizerConfig) -> None:
@@ -170,6 +177,7 @@ class UTF8Pretokenizer(Pretokenizer):
     def _build_atomic_tokens(self):
         self.byte_ids = {b: self._register_token(f"<BYTE_{b:02X}>") for b in range(256)}
         self.token_to_byte = {tid: b for b, tid in self.byte_ids.items()}
+        self.is_initial_char_tokens = {tid for tid, b in self.token_to_byte.items() if b & 0b11000000 != 0b10000000}
 
     def decode(self, base_token_ids: InputTokenSeq, errors="replace") -> str:
         byteseq = bytes([self.token_to_byte[id] for id in base_token_ids])
@@ -191,8 +199,10 @@ class ScriptPretokenizer(Pretokenizer):
         self.detokenize_map = {}
         self.char_encoding = {}
         index_tokens = [self._register_token(f"<|SCRIPT_INDEX_{i}|>") for i in range(self.num_index_tokens)]
+        self.is_initial_char_tokens = set()
         for block in self.config.script_config.blocks:
             block_token = self._register_token(f"<|BLOCK_{block.script}_{block.category}_{block.sub_block_id}|>")
+            self.is_initial_char_tokens.add(block_token)
             for i, c in enumerate(block.chars):
                 token_pair = (block_token, index_tokens[i])
                 self.detokenize_map[token_pair] = c

@@ -2,7 +2,7 @@ import math
 from collections.abc import Iterable
 from dataclasses import dataclass
 from script_bpe.utils import TokenSeq
-from script_bpe.pretokenize import BasePretokenizer, make_pretokenizer, export_pretokenizer
+from script_bpe.pretokenize import Pretokenizer, make_pretokenizer, export_pretokenizer
 import json
 import gzip
 import tabulate
@@ -138,7 +138,7 @@ class UnigramModel:
 
     VERSION = "seunigram-v1"
 
-    def __init__(self, pretokenizer: BasePretokenizer, tokens: list[UnigramToken], metadata: dict = None):
+    def __init__(self, pretokenizer: Pretokenizer, tokens: list[UnigramToken], metadata: dict = None):
         """
         Initialize the Unigram model.
 

@@ -4,7 +4,7 @@ from collections import Counter
 
 import polars as pl
 
-from script_bpe.pretokenize import BasePretokenizer
+from script_bpe.pretokenize import Pretokenizer
 from script_bpe.utils import PROJECT_ROOT, token_array
 
 
@@ -19,7 +19,7 @@ class PretokenizedCorpus:
         self,
         name: str,
         base_path: str,
-        pretokenizer: BasePretokenizer,
+        pretokenizer: Pretokenizer,
         dummy: bool = False,
     ):
         self.name = name
@@ -43,11 +43,11 @@ class PretokenizedCorpus:
         return os.path.join(self.dir_path(), "metadata.json")
 
     @staticmethod
-    def encode_texts(texts: list[str], pretokenizer: BasePretokenizer, max_length: int) -> tuple[dict, dict]:
+    def encode_texts(texts: list[str], pretokenizer: Pretokenizer, max_length: int) -> tuple[dict, dict]:
         metadata = dict(base_tokens=0, chunks=0, chunks_skipped=0)
         chunk_counts = Counter()
         for text in texts:
-            for chunk in pretokenizer.encode_and_chunk(text):
+            for chunk in pretokenizer.pretokenize(text):
                 if len(chunk) > max_length:
                     metadata["chunks_skipped"] += 1
                     continue
@@ -61,7 +61,7 @@ class PretokenizedCorpus:
         cls,
         name: str,
         texts: list[str],
-        pretokenizer: BasePretokenizer,
+        pretokenizer: Pretokenizer,
         base_path=DEFAULT_BASE_PATH,
         num_partitions=DEFAULT_PARTITIONS,
         max_length=DEFAULT_MAX_LENGTH,

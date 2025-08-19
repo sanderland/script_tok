@@ -5,7 +5,7 @@ from collections import Counter, defaultdict
 
 from scipy.special import digamma
 from script_bpe.corpus import PretokenizedCorpus
-from script_bpe.pretokenize import BasePretokenizer
+from script_bpe.pretokenize import Pretokenizer
 from script_bpe.unigram.model import UnigramToken, UnigramModel
 from script_bpe.utils import token_array, create_logger
 
@@ -14,7 +14,7 @@ MIN_EXPECTED_COUNT = 0.01  # in m-step, for avoiding underflows
 
 def log_examples(
     logger,
-    pretokenizer: BasePretokenizer,
+    pretokenizer: Pretokenizer,
     tokens_with_scores: list[tuple[UnigramToken, float]],
     score_label="score",
     n=5,
@@ -35,7 +35,7 @@ def log_examples(
 def make_initial_vocab(
     logger: logging.Logger,
     corpus: PretokenizedCorpus,
-    pretokenizer: BasePretokenizer,
+    pretokenizer: Pretokenizer,
     additional_num_tokens: int,
     max_token_length: int,
 ) -> list[UnigramToken]:
@@ -100,7 +100,7 @@ def run_e_step(
 
 def run_m_step(
     logger: logging.Logger,
-    pretokenizer: BasePretokenizer,
+    pretokenizer: Pretokenizer,
     model: UnigramModel,
     expected_count: dict[int, float],
     dp_smoothing: bool,
@@ -142,7 +142,7 @@ def run_m_step(
 def prune_tokens(
     logger: logging.Logger,
     corpus: PretokenizedCorpus,
-    pretokenizer: BasePretokenizer,
+    pretokenizer: Pretokenizer,
     model: UnigramModel,
     desired_vocab_size: int,
     shrinking_factor: float,
@@ -241,7 +241,7 @@ def prune_tokens(
 
 def finalize_tokens(
     logger: logging.Logger,
-    pretokenizer: BasePretokenizer,
+    pretokenizer: Pretokenizer,
     model: UnigramModel,
     vocab_size: int,
 ) -> tuple[UnigramModel, int]:
@@ -275,7 +275,7 @@ def finalize_tokens(
 
 
 def train_unigram(
-    pretokenizer: BasePretokenizer,
+    pretokenizer: Pretokenizer,
     corpus: PretokenizedCorpus,
     additional_vocab_size: int,
     num_workers: int = 1,  # TODO: unused/ignored for now
