@@ -4,6 +4,7 @@ import math
 import pytest
 
 from script_bpe.corpus import PretokenizedCorpus
+from script_bpe.utils import token_array
 from script_bpe.pretokenize import PRETOKENIZER_REGISTRY, get_pretokenizer
 from script_bpe.unigram import UnigramModel, train_unigram
 
@@ -59,7 +60,9 @@ def test_unigram_train_end_to_end(tmp_path, pretokenizer_name, text_fixture, x_t
     # Encode/decode roundtrip preserves pretokenization
     ids = model.encode(text)
     decoded = model.decode(ids)
-    assert pretokenizer.encode(decoded).tolist() == pretokenizer.encode(text).tolist()
+    orig_atomic = sum(pretokenizer.pretokenize(text), token_array([]))
+    dec_atomic = sum(pretokenizer.pretokenize(decoded), token_array([]))
+    assert dec_atomic.tolist() == orig_atomic.tolist()
 
     # Metadata sanity
     assert "tokens/pretoken" in model.metadata
