@@ -9,7 +9,7 @@ from dataclasses import dataclass
 import tabulate
 
 from script_bpe.pretokenize import Pretokenizer, export_pretokenizer, load_pretokenizer
-from script_bpe.utils import TokenSeq
+from script_bpe.utils import TokenSeq, token_array
 
 
 def logaddexp(a: float, b: float) -> float:
@@ -160,7 +160,9 @@ class UnigramModel:
         return Lattice(atomic_token_seq, tokens_from_pos)
 
     def encode(self, text: str, return_tokens=False) -> list[UnigramToken] | list[int]:
-        atomic_token_seq = self.pretokenizer.encode(text)
+        # Flatten pretokenized chunks into a single atomic token sequence
+        chunks = self.pretokenizer.pretokenize(text)
+        atomic_token_seq = token_array([tid for chunk in chunks for tid in chunk])
         lattice = self.make_lattice(atomic_token_seq)
         tokens = lattice.viterbi()[0]
         if return_tokens:

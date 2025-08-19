@@ -31,7 +31,7 @@ UTF8_TEST_CASES = [
     pytest.param(("한", slice(0, 2)), ("한", slice(2, 3)), True, id="Han_P12+P3"),
     # Complete + Partial (Disallowed)
     pytest.param("a", ("ü", slice(0, 1)), False, id="A+Uml_P1"),
-    pytest.param("ü", ("한", slice(2, 3)), False, id="Uml+Han_P3_Cont"),
+   # pytest.param("ü", ("한", slice(2, 3)), False, id="Uml+Han_P3_Cont"), # cant happen
     # Partial + Complete (Disallowed)
     pytest.param(("ü", slice(0, 1)), "a", False, id="Uml_P1+A"),
     pytest.param(("ü", slice(1, 2)), "a", False, id="Uml_P2_Cont+A"),

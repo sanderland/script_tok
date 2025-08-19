@@ -81,4 +81,4 @@ def test_se_hash_identical(script_encoding_pretokenizer):
 
 
 def test_se_can_json(script_encoding_pretokenizer):
-    export_pretokenizer(script_encoding_pretokenizer.config)
+    export_pretokenizer(script_encoding_pretokenizer)
