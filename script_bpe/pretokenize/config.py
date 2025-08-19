@@ -1,14 +1,13 @@
+from pydantic import BaseModel
+from abc import abstractmethod
 import hashlib
+from typing import Literal
+import regex as re
 import itertools
 import unicodedata
-from abc import abstractmethod
-from typing import Literal
 
-import regex as re
-from pydantic import BaseModel
-
-from script_bpe.pretokenize.scriptenc import ScriptBlock, ScriptConfig, ScriptEncodingV1
 from script_bpe.utils import InputTokenSeq, PretokenizedT, token_array
+from script_bpe.pretokenize.scriptenc import ScriptConfig, ScriptEncodingV1, ScriptBlock
 
 DigitHandlingT = Literal["RTL3", "SPLIT"] | None
 TokenPairT = tuple[int, int]
@@ -101,9 +100,9 @@ class Pretokenizer:
                     self._register_token(str(i).zfill(pad))
 
     def hash(self) -> str:
-        hash = hashlib.sha1()
-        hash.update(str(self.config).encode("utf-8"))
-        return "PT-" + hash.hexdigest()[:8]
+        h = hashlib.sha1()
+        h.update(self.config.model_dump_json(by_alias=True).encode("utf-8"))
+        return "PT-" + h.hexdigest()[:8]
 
     def pretokenize(self, text: str) -> PretokenizedT:
         text = self.normalize(text)
@@ -170,7 +169,6 @@ class Pretokenizer:
 
     def bpe_merge_allowed(self, a: InputTokenSeq, b: InputTokenSeq) -> bool:
         return self.token_allowed(list(a) + list(b))
-
 
 class UTF8Pretokenizer(Pretokenizer):
     def __init__(self, config: UTF8PretokenizerConfig) -> None:

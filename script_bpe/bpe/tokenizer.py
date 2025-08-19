@@ -1,4 +1,3 @@
-import array
 import copy
 import gzip
 import heapq
