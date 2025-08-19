@@ -1,18 +1,14 @@
 from typing import Callable
 
 from .config import (
-    PretokenizerConfig,
     Pretokenizer,
-    UTF8Pretokenizer,
+    PretokenizerConfig,
     ScriptPretokenizer,
-    UTF8PretokenizerConfig,
     ScriptPretokenizerConfig,
+    UTF8Pretokenizer,
+    UTF8PretokenizerConfig,
 )
-from .scriptenc import (
-    ScriptEncodingV1,
-    ScriptEncodingV2,
-)
-
+from .scriptenc import ScriptEncodingV1, ScriptEncodingV2
 
 GPT2_REGEX = r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"
 GPT4_REGEX = (

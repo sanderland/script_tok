@@ -1,12 +1,11 @@
 import functools
 import os
 import unicodedata
-from typing import Any
-from collections import defaultdict, Counter
-from frozendict import frozendict
-import functools
-from pydantic import BaseModel
+from collections import Counter, defaultdict
 from typing import ClassVar, Literal
+
+from frozendict import frozendict
+from pydantic import BaseModel
 
 SCRIPTS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "unicode_scripts.txt")
 END_CODEPOINT = 0xE0FFF  # full cover of non private use code points, excluding surrogates

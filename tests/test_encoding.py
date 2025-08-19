@@ -2,8 +2,7 @@ import unicodedata
 
 import pytest
 
-from script_bpe.encoding import ScriptEncodingV1, ScriptEncodingV2
-from script_bpe.encoding import END_CODEPOINT, unicode_script_map
+from script_bpe.encoding import END_CODEPOINT, ScriptEncodingV1, ScriptEncodingV2, unicode_script_map
 from script_bpe.utils import UNASSIGNED_CATEGORIES
 
 

@@ -1,13 +1,14 @@
-from pydantic import BaseModel
-from abc import abstractmethod
 import hashlib
-from typing import Literal
-import regex as re
 import itertools
 import unicodedata
+from abc import abstractmethod
+from typing import Literal
 
+import regex as re
+from pydantic import BaseModel
+
+from script_bpe.pretokenize.scriptenc import ScriptBlock, ScriptConfig, ScriptEncodingV1
 from script_bpe.utils import InputTokenSeq, PretokenizedT, token_array
-from script_bpe.pretokenize.scriptenc import ScriptConfig, ScriptEncodingV1, ScriptBlock
 
 DigitHandlingT = Literal["RTL3", "SPLIT"] | None
 TokenPairT = tuple[int, int]

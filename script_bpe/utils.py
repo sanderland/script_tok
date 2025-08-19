@@ -6,8 +6,9 @@ import multiprocessing
 import os
 import sys
 import time
-from script_bpe.encoding import unicode_script_map
 from typing import Iterable
+
+from script_bpe.encoding import unicode_script_map
 
 # one dir lower than this script
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

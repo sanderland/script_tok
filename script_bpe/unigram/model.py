@@ -1,13 +1,15 @@
-import math
-from collections.abc import Iterable
-from dataclasses import dataclass
-from script_bpe.utils import TokenSeq
-from script_bpe.pretokenize import Pretokenizer, make_pretokenizer, export_pretokenizer
-import json
 import gzip
-import tabulate
+import json
+import math
 import os
 from collections import defaultdict
+from collections.abc import Iterable
+from dataclasses import dataclass
+
+import tabulate
+
+from script_bpe.pretokenize import Pretokenizer, export_pretokenizer, make_pretokenizer
+from script_bpe.utils import TokenSeq
 
 
 def logaddexp(a: float, b: float) -> float:

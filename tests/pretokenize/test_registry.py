@@ -1,6 +1,6 @@
 import pytest
 
-from script_bpe.pretokenize import get_pretokenizer, PRETOKENIZER_REGISTRY
+from script_bpe.pretokenize import PRETOKENIZER_REGISTRY, get_pretokenizer
 
 
 @pytest.mark.parametrize("pretokenizer_name", list(PRETOKENIZER_REGISTRY.keys()))

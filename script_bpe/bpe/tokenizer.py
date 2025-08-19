@@ -8,11 +8,7 @@ from dataclasses import dataclass
 
 import tabulate
 
-from script_bpe.pretokenize import (
-    Pretokenizer,
-    export_pretokenizer,
-    make_pretokenizer,
-)
+from script_bpe.pretokenize import Pretokenizer, export_pretokenizer, make_pretokenizer
 from script_bpe.utils import InputTokenSeq, TokenSeq, token_array
 
 
