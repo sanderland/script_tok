@@ -7,11 +7,10 @@ import itertools
 import unicodedata
 import json
 
-from script_bpe.utils import InputTokenSeq, PretokenizedT, token_array
-from script_bpe.pretokenize.scriptenc import ScriptConfig, ScriptEncodingV1, ScriptBlock
+from script_bpe.utils import InputTokenSeq, PretokenizedT, token_array, DigitHandlingT, TokenPairT
+from script_bpe.pretokenize.scriptencoding import ScriptConfig, ScriptEncodingV1, ScriptBlock
 
-DigitHandlingT = Literal["RTL3", "SPLIT"] | None
-TokenPairT = tuple[int, int]
+# consolidated in utils
 
 
 class PretokenizerConfig(BaseModel):
@@ -277,15 +276,3 @@ class ScriptPretokenizer(Pretokenizer, config_type=ScriptPretokenizerConfig):
             merged_groups.append(script_groups[i])  # add last group
         return merged_groups
 
-
-if __name__ == "__main__":
-    GPT2_REGEX = r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"
-    ptoks = [
-        UTF8Pretokenizer(UTF8PretokenizerConfig(regex_pattern=GPT2_REGEX)),
-        ScriptPretokenizer(ScriptPretokenizerConfig()),
-    ]
-    for ptok in ptoks:
-        print(ptok.__class__)
-        pretokens = ptok.pretokenize("hello world")
-        for pt in pretokens:
-            print(f"{pt} -> {ptok.decode(pt)!r}")

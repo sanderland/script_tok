@@ -3,7 +3,6 @@ import unicodedata
 import pytest
 
 from script_bpe.encoding import END_CODEPOINT, ScriptEncodingV1, ScriptEncodingV2, unicode_script_map
-from script_bpe.utils import UNASSIGNED_CATEGORIES
 
 
 @pytest.fixture
@@ -51,6 +50,7 @@ def test_unicode_script_map_unknown_script_cat(sc_map):
     for c, entry in sc_map.items():
         assert "script" in entry
         assert "category" in entry
+    UNASSIGNED_CATEGORIES = {"Cn", "Co", "Cs"}
 
     # Check unassigned codepoints are in UNASSIGNED_CATEGORIES
     for i in range(END_CODEPOINT):

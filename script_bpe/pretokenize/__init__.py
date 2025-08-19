@@ -1,6 +1,4 @@
-from typing import Callable
-
-from .config import (
+from .pretokenizer import (
     Pretokenizer,
     PretokenizerConfig,
     ScriptPretokenizer,
@@ -8,7 +6,7 @@ from .config import (
     UTF8Pretokenizer,
     UTF8PretokenizerConfig,
 )
-from .scriptenc import ScriptEncodingV1, ScriptEncodingV2
+from .scriptencoding import ScriptEncodingV1, ScriptEncodingV2
 
 GPT2_REGEX = r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"
 GPT4_REGEX = (
@@ -52,8 +50,7 @@ def get_pretokenizer(name: str) -> Pretokenizer:
     for config_type, pretokenizer_cls in Pretokenizer.REGISTRY.values():
         if config_type is config.__class__:
             return pretokenizer_cls(config)
-    
-    
+            
 def load_pretokenizer(serialized: dict) -> Pretokenizer:
     config_type, pretokenizer_cls = Pretokenizer.REGISTRY[serialized["config_class"]]
     config = config_type.model_validate(serialized['config'])
