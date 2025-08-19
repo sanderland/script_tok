@@ -170,6 +170,7 @@ class Pretokenizer:
     def bpe_merge_allowed(self, a: InputTokenSeq, b: InputTokenSeq) -> bool:
         return self.token_allowed(list(a) + list(b))
 
+
 class UTF8Pretokenizer(Pretokenizer):
     def __init__(self, config: UTF8PretokenizerConfig) -> None:
         super().__init__(config)
@@ -219,7 +220,7 @@ class ScriptPretokenizer(Pretokenizer):
                 i += 2
             else:
                 if errors == "backslashreplace":  # not backslash, but compatible with bytes version
-                    decoded += self.base_tokens[script_tok]
+                    decoded += self.atomic_tokens[script_tok]
                 elif errors == "replace":
                     decoded += "�"
                 elif errors == "strict":

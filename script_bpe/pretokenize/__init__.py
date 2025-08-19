@@ -43,7 +43,9 @@ PRETOKENIZER_REGISTRY: dict[str, Callable[[], Pretokenizer]] = {
     "scriptenc_gpt4o_cb": ScriptPretokenizerConfig(regex_pattern=GPT4O_REGEX, script_split=False),
     "scriptenc_nosplit_cb": ScriptPretokenizerConfig(regex_pattern=None, script_split=False),
     "scriptenc2_cb": ScriptPretokenizerConfig(script_config=ScriptEncodingV2, enforce_char_boundaries=True),
-    "scriptenc2_gpt4o_cb": ScriptPretokenizerConfig(script_config=ScriptEncodingV2, regex=GPT4O_REGEX, script_split=False),
+    "scriptenc2_gpt4o_cb": ScriptPretokenizerConfig(
+        script_config=ScriptEncodingV2, regex=GPT4O_REGEX, script_split=False
+    ),
 }
 
 
@@ -57,6 +59,7 @@ def get_pretokenizer(name: str) -> Pretokenizer:
         raise ValueError(f"Pretokenizer '{name}' is not registered. Available: {list(PRETOKENIZER_REGISTRY.keys())}")
     return config_to_pretokenizer(PRETOKENIZER_REGISTRY[name])
 
+
 def config_to_pretokenizer(config: PretokenizerConfig) -> Pretokenizer:
     if isinstance(config, UTF8PretokenizerConfig):
         return UTF8Pretokenizer(config)
@@ -65,13 +68,14 @@ def config_to_pretokenizer(config: PretokenizerConfig) -> Pretokenizer:
     else:
         raise ValueError(f"Unknown pretokenizer class: {config.__class__.__name__}")
 
+
 def make_pretokenizer(config) -> Pretokenizer:
     cls = globals()[config["class"]]
     config = cls.model_validate(config["config"])
     return config_to_pretokenizer(config)
 
 
-def export_pretokenizer(config: PretokenizerConfig) -> dict:
+def export_pretokenizer(pretokenizer: Pretokenizer) -> dict:
     return {
         "class": config.__class__.__name__,
         "config": config.model_dump(),

@@ -154,13 +154,13 @@ class ScriptConfig(BaseModel):
             supercat = "LM"  # Letter/Non-spacing Mark (like accept modifiers)
         return script, supercat
 
-    def script_category_v2(cls, char_info) -> tuple[str, str]:
+    def script_category_v2(self, char_info) -> tuple[str, str]:
         category, script = char_info["category"], char_info["script"]
         supercat = category[0]
 
         # low resource scripts are (script, *) with no blocks for category
-        if script not in cls.higher_resource_scripts:
-            supercat = cls.ALL  # for low resource script, ignore category
+        if script not in self.higher_resource_scripts:
+            supercat = self.ALL  # for low resource script, ignore category
             return script, supercat
 
         # merge categories into supercategories
@@ -171,11 +171,11 @@ class ScriptConfig(BaseModel):
         elif supercat in {"P", "S"} or category == "Cf":
             supercat = "PSF"  # Punctuation/Symbol/Formatting
             if ord(char_info["char"]) < 128:  # ascii punctuation is its own script, which allows for leading spaces
-                script = cls.ASCII_SCRIPT
+                script = self.ASCII_SCRIPT
 
         # for all non-letters we ignore the script
-        if supercat != "LM" and script != cls.ASCII_SCRIPT:
-            script = cls.ALL  # for non-letters, ignore script
+        if supercat != "LM" and script != self.ASCII_SCRIPT:
+            script = self.ALL  # for non-letters, ignore script
 
         return script, supercat
 
