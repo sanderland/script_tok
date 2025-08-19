@@ -83,15 +83,15 @@ def worker_process(
 
     local_chunks = {}
     local_pair_counts = defaultdict(TokenPairCounts)
-    for base_token_seq, count in corpus.worker_iterate(worker_id, num_workers):  # lazy loading
-        chunk_info = ChunkTokenization(base_token_seq, count=count)
+    for atomic_token_seq, count in corpus.worker_iterate(worker_id, num_workers):  # lazy loading
+        chunk_info = ChunkTokenization(atomic_token_seq, count=count)
         local_chunks[chunk_info.id] = chunk_info
-        for i in range(len(base_token_seq) - 1):  # initial pair counts
-            pair = (base_token_seq[i], base_token_seq[i + 1])
+        for i in range(len(atomic_token_seq) - 1):  # initial pair counts
+            pair = (atomic_token_seq[i], atomic_token_seq[i + 1])
             if pretokenizer.bpe_merge_allowed([pair[0]], [pair[1]]):
                 local_pair_counts[pair].chunk_id_to_count[chunk_info.id] += 1
-            tokens[base_token_seq[i]].original_count += count
-        tokens[base_token_seq[-1]].original_count += count
+            tokens[atomic_token_seq[i]].original_count += count
+        tokens[atomic_token_seq[-1]].original_count += count
     del corpus  # no longer needed
 
     for t in tokens.values():
@@ -113,7 +113,7 @@ def worker_process(
             break
         merge_pair, new_token_id = command
         tokens[new_token_id] = Token(
-            id=new_token_id, base_tokens=tokens[merge_pair[0]].base_tokens + tokens[merge_pair[1]].base_tokens
+            id=new_token_id, atomic_tokens=tokens[merge_pair[0]].atomic_tokens + tokens[merge_pair[1]].atomic_tokens
         )
         local_delta_counts = defaultdict(int)
         local_merge_count = 0
@@ -136,7 +136,7 @@ def worker_process(
                 # Update pair counts
                 pair_count = local_pair_counts.get(pair)
                 if pair_count is None:
-                    if not pretokenizer.bpe_merge_allowed(tokens[pair[0]].base_tokens, tokens[pair[1]].base_tokens):
+                    if not pretokenizer.bpe_merge_allowed(tokens[pair[0]].atomic_tokens, tokens[pair[1]].atomic_tokens):
                         continue
                     local_pair_counts[pair] = pair_count = TokenPairCounts()
 
@@ -156,7 +156,7 @@ def worker_process(
 
 # --- Helper Functions ---
 def init_tokens(pretokenizer: Pretokenizer):
-    return {k: Token(id=k, base_tokens=token_array([k])) for k in pretokenizer.base_tokens}
+    return {k: Token(id=k, atomic_tokens=token_array([k])) for k in pretokenizer.atomic_tokens}
 
 
 # --- Main Training Function ---
@@ -219,7 +219,7 @@ def train_bpe(
         (ta, tb) = most_common_pair
 
         # --- Create New Token and Broadcast Merge ---
-        tokens[next_token_id] = Token(id=next_token_id, base_tokens=tokens[ta].base_tokens + tokens[tb].base_tokens)
+        tokens[next_token_id] = Token(id=next_token_id, atomic_tokens=tokens[ta].atomic_tokens + tokens[tb].atomic_tokens)
         merge_rules.append(MergeRule(tokens_from=(ta, tb), token_to=next_token_id))
         for q in cmd_queues:
             q.put((most_common_pair, next_token_id))

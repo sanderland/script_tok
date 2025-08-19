@@ -1,10 +1,11 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from abc import abstractmethod
 import hashlib
 from typing import Literal
 import regex as re
 import itertools
 import unicodedata
+import json
 
 from script_bpe.utils import InputTokenSeq, PretokenizedT, token_array
 from script_bpe.pretokenize.scriptenc import ScriptConfig, ScriptEncodingV1, ScriptBlock
@@ -14,6 +15,7 @@ TokenPairT = tuple[int, int]
 
 
 class PretokenizerConfig(BaseModel):
+    cls: str
     starting_token_id: int = 1  # 0 reserved for pad
     script_config: ScriptConfig = ScriptEncodingV1
     # normalization
@@ -24,13 +26,16 @@ class PretokenizerConfig(BaseModel):
     digit_handling: DigitHandlingT = None
     # token restrictions
     enforce_char_boundaries: bool = True
+    # disallow extra fields
+    model_config = ConfigDict(extra="forbid")
 
 
 class UTF8PretokenizerConfig(PretokenizerConfig):
-    pass
+    cls: str = "UTF8Pretokenizer"
 
 
 class ScriptPretokenizerConfig(PretokenizerConfig):
+    cls: str = "ScriptPretokenizer"
     script_split: bool = True
 
 
@@ -69,6 +74,11 @@ def group_digits(digits: str, method: DigitHandlingT) -> list[str]:
 
 
 class Pretokenizer:
+    REGISTRY: dict[str, tuple[type[PretokenizerConfig], type["Pretokenizer"]]] = {}
+    def __init_subclass__(cls, config_type: type[PretokenizerConfig]) -> None:
+        cls.REGISTRY[cls.__name__] = (config_type, cls)
+        super().__init_subclass__()
+
     def __init__(self, config: PretokenizerConfig) -> None:
         self.config = config
         if self.config.remove_unassigned:
@@ -101,7 +111,8 @@ class Pretokenizer:
 
     def hash(self) -> str:
         h = hashlib.sha1()
-        h.update(self.config.model_dump_json(by_alias=True).encode("utf-8"))
+        config = self.config.model_copy(deep=True)
+        h.update(json.dumps(config.model_dump(mode="json", by_alias=True), sort_keys=True).encode("utf-8"))
         return "PT-" + h.hexdigest()[:8]
 
     def pretokenize(self, text: str) -> PretokenizedT:
@@ -155,22 +166,22 @@ class Pretokenizer:
     def encode_digits(self, digit_groups: list[str]) -> list[int]:
         return [self.token_to_id[dgroup] for dgroup in digit_groups]
 
-    def token_repr(self, base_token_ids: InputTokenSeq) -> str:
+    def tokens_repr(self, atomic_token_ids: InputTokenSeq) -> str:
         """Representation that is able to handle partial/broken sequences"""
-        return self.decode(base_token_ids, errors="backslashreplace")
+        return self.decode(atomic_token_ids, errors="backslashreplace")
 
     def token_allowed(self, token_seq: InputTokenSeq) -> bool:
         try:
             text = self.decode(token_seq, errors="strict")
         except ValueError:
             if self.config.enforce_char_boundaries:
-                return [i for i in enumerate(token_seq) if i in self.is_initial_char_tokens] == [0]
+                return [i for i, tid in enumerate(token_seq) if tid in self.is_initial_char_tokens] == [0]
         return True
 
     def bpe_merge_allowed(self, a: InputTokenSeq, b: InputTokenSeq) -> bool:
         return self.token_allowed(list(a) + list(b))
 
-class UTF8Pretokenizer(Pretokenizer):
+class UTF8Pretokenizer(Pretokenizer, config_type=UTF8PretokenizerConfig):
     def __init__(self, config: UTF8PretokenizerConfig) -> None:
         super().__init__(config)
 
@@ -179,15 +190,15 @@ class UTF8Pretokenizer(Pretokenizer):
         self.token_to_byte = {tid: b for b, tid in self.byte_ids.items()}
         self.is_initial_char_tokens = {tid for tid, b in self.token_to_byte.items() if b & 0b11000000 != 0b10000000}
 
-    def decode(self, base_token_ids: InputTokenSeq, errors="replace") -> str:
-        byteseq = bytes([self.token_to_byte[id] for id in base_token_ids])
+    def decode(self, atomic_token_ids: InputTokenSeq, errors="replace") -> str:
+        byteseq = bytes([self.token_to_byte[id] for id in atomic_token_ids])
         return byteseq.decode("utf-8", errors=errors)
 
     def encode_text(self, text: str) -> list[UTF8CharEnc]:
         return [UTF8CharEnc(self.byte_ids[c]) for c in text.encode("utf-8")]
 
 
-class ScriptPretokenizer(Pretokenizer):
+class ScriptPretokenizer(Pretokenizer, config_type=ScriptPretokenizerConfig):
     def __init__(self, config: ScriptPretokenizerConfig) -> None:
         if config.script_split and config.regex_pattern is not None:
             raise ValueError("script_split and regex_pattern should probably not be used together")

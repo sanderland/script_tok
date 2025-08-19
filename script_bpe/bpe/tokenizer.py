@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 import tabulate
 
-from script_bpe.pretokenize import Pretokenizer, export_pretokenizer, make_pretokenizer
+from script_bpe.pretokenize import Pretokenizer, export_pretokenizer, load_pretokenizer
 from script_bpe.utils import InputTokenSeq, TokenSeq, token_array
 
 
@@ -23,20 +23,20 @@ class MergeRule:
 @dataclass(slots=True)
 class Token:
     id: int
-    base_tokens: TokenSeq
+    atomic_tokens: TokenSeq
     current_count: int = 0
     original_count: int = 0
 
     def pretty_repr(self, pretokenizer):
         """Return a pretty string for the token, with its base tokens and readable representation"""
-        # {self.base_tokens.tolist()}
-        return f"Token({self.id}, {repr(pretokenizer.tokens_to_readable_string(self.base_tokens))})"
+        # {self.atomic_tokens.tolist()}
+        return f"Token({self.id}, {repr(pretokenizer.tokens_repr(self.atomic_tokens))})"
 
     def report_dict(self, pretokenizer):
         """Return fields for printing to a table for human inspection"""
         return dict(
             id=self.id,
-            vocab=pretokenizer.tokens_to_readable_string(self.base_tokens),
+            vocab=pretokenizer.tokens_repr(self.atomic_tokens),
             original_count=self.original_count,
             final_count=self.current_count,
         )
@@ -59,24 +59,24 @@ class BPETokenizer:
             data = json.load(f)
 
         merge_rules = [MergeRule(**mr) for mr in data["merge_rules"]]
-        pretokenizer = make_pretokenizer(data["pretokenizer"])
+        pretokenizer = load_pretokenizer(data["pretokenizer"])
         return cls(merge_rules=merge_rules, pretokenizer=pretokenizer, metadata=data.get("metadata", {}))
 
     def _build_vocab(self):
         # single bytes
-        self.tokens = {i: Token(i, token_array([i])) for i in self.pretokenizer.base_tokens.copy()}
+        self.tokens = {i: Token(i, token_array([i])) for i in self.pretokenizer.atomic_tokens.copy()}
         # build other tokens from merge rules
         for mi, mr in enumerate(self.merge_rules):
             to_id = mr.token_to
             from_a, from_b = mr.tokens_from
             self.tokens[to_id] = Token(
-                id=to_id, base_tokens=self.tokens[from_a].base_tokens + self.tokens[from_b].base_tokens
+                id=to_id, atomic_tokens=self.tokens[from_a].atomic_tokens + self.tokens[from_b].atomic_tokens
             )
             self._merge_rules_dict[(from_a, from_b)] = (mi, to_id)
 
     def decode(self, ids: InputTokenSeq, errors="replace") -> str:
-        base_tokens = [bt for i in ids for bt in self.tokens[i].base_tokens]
-        return self.pretokenizer.decode(base_tokens, errors=errors)
+        atomic_tokens = [bt for i in ids for bt in self.tokens[i].atomic_tokens]
+        return self.pretokenizer.decode(atomic_tokens, errors=errors)
 
     def _encode_chunk(self, ids_arr: TokenSeq) -> list[int]:
         len_ids = len(ids_arr)
@@ -138,19 +138,19 @@ class BPETokenizer:
         num_tokens = len(self.tokens)
         metadata_tokens = {t["id"]: t for t in copy.deepcopy(self.metadata.get("tokens", []))}
         last_merge_count = metadata_tokens[self.merge_rules[-1].token_to]["original_count"]
-        longest_tokens_base_tokens = sorted(self.tokens.values(), key=lambda t: -len(t.base_tokens))[:n_longest]
+        longest_tokens_atomic_tokens = sorted(self.tokens.values(), key=lambda t: -len(t.atomic_tokens))[:n_longest]
         longest_tokens_chars = sorted(self.tokens.values(), key=lambda t: -len(self.decode([t.id])))[:n_longest]
 
-        avg_token_length_bt = sum(len(t.base_tokens) for t in self.tokens.values()) / num_tokens
+        avg_token_length_bt = sum(len(t.atomic_tokens) for t in self.tokens.values()) / num_tokens
         is_undecodable = {
-            id: "�" in self.pretokenizer.decode(t.base_tokens, errors="replace")
+            id: "�" in self.pretokenizer.decode(t.atomic_tokens, errors="replace")
             and (
-                self.pretokenizer.decode(t.base_tokens, errors="replace").count("�")
-                - self.pretokenizer.tokens_to_readable_string(t.base_tokens).count("�")
+                self.pretokenizer.decode(t.atomic_tokens, errors="replace").count("�")
+                - self.pretokenizer.tokens_repr(t.atomic_tokens).count("�")
             )
             > 0
             for id, t in self.tokens.items()
-            if id not in self.pretokenizer.base_tokens
+            if id not in self.pretokenizer.atomic_tokens
         }
         num_undecodeable = sum(is_undecodable.values())
         return dict(
@@ -158,7 +158,7 @@ class BPETokenizer:
             num_tokens=num_tokens,
             num_undecodeable=num_undecodeable,
             last_merge_count=last_merge_count,
-            longest_tokens_base_tokens=longest_tokens_base_tokens,
+            longest_tokens_atomic_tokens=longest_tokens_atomic_tokens,
             longest_tokens_chars=longest_tokens_chars,
             avg_token_length_bt=avg_token_length_bt,
         )
@@ -178,30 +178,30 @@ class BPETokenizer:
         report += f"- Number of undecodeable tokens: {stats['num_undecodeable']}\n"
 
         for longest_type, longest_tokens in [
-            ("base tokens", stats["longest_tokens_base_tokens"]),
+            ("base tokens", stats["longest_tokens_atomic_tokens"]),
             ("characters", stats["longest_tokens_chars"]),
         ]:
             report += f"\n## Longest tokens by {longest_type}\n\n"
             for t in longest_tokens:
-                report += f"- Token {t.id:6d} consists of {len(t.base_tokens):3d} {longest_type}: {self.pretokenizer.tokens_to_readable_string(t.base_tokens)!r}\n"
+                report += f"- Token {t.id:6d} consists of {len(t.atomic_tokens):3d} {longest_type}: {self.pretokenizer.tokens_repr(t.atomic_tokens)!r}\n"
 
         # Merge rules
         report += f"\n## Details for {len(self.merge_rules):,d} merge rules\n\n"
         merge_rules = [mr.save_dict() for mr in self.merge_rules]
         for mr in merge_rules:
             mr["vocab_from"] = [
-                self.pretokenizer.tokens_to_readable_string(self.tokens[t].base_tokens) for t in mr["tokens_from"]
+                self.pretokenizer.tokens_repr(self.tokens[t].atomic_tokens) for t in mr["tokens_from"]
             ]
-            mr["vocab_to"] = repr(self.pretokenizer.tokens_to_readable_string(self.tokens[mr["token_to"]].base_tokens))
+            mr["vocab_to"] = repr(self.pretokenizer.tokens_repr(self.tokens[mr["token_to"]].atomic_tokens))
             mr["count"] = metadata_tokens[mr["token_to"]]["original_count"]
         report += tabulate.tabulate(merge_rules, headers="keys", tablefmt="github")
 
         # tokens
         for t in metadata_tokens.values():
             t["vocab"] = repr(t["vocab"])
-        non_base_tokens = [t for t in metadata_tokens.values() if t["id"] not in self.pretokenizer.base_tokens]
+        non_atomic_tokens = [t for t in metadata_tokens.values() if t["id"] not in self.pretokenizer.atomic_tokens]
         report += f"\n\n## Details for {len(metadata_tokens):,d} tokens\n\n"
-        report += tabulate.tabulate(non_base_tokens, headers="keys", tablefmt="github")
+        report += tabulate.tabulate(non_atomic_tokens, headers="keys", tablefmt="github")
 
         # Metadata
         report += f"\n\n## Metadata\n\n"

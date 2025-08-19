@@ -50,7 +50,8 @@ def unicode_script_map(filename=SCRIPTS_PATH) -> dict[str, dict[str, str]]:
     return char_infos
 
 
-DEFAULT_SCRIPTS_LM_WITH_SPACES = {
+# Use deterministic lists for config-level data to avoid nondeterministic set ordering
+DEFAULT_SCRIPTS_LM_WITH_SPACES = [
     "Latin",  # Near space 18.0% of time, overall count 296,227,775,159
     "Arabic",  # Near space 18.6% of time, overall count 116,931,857,999
     "Devanagari",  # Near space 23.0% of time, overall count 3,391,578,438
@@ -71,9 +72,18 @@ DEFAULT_SCRIPTS_LM_WITH_SPACES = {
     "Armenian",  # Near space 14.3% of time, overall count 338,586
     "Kannada",  # Near space 13.3% of time, overall count 326,104
     "Georgian",  # Near space 14.1% of time, overall count 277,463
-}
+]
 DEFAULT_SCRIPT_WITH_SPACES = [(s, "LM") for s in DEFAULT_SCRIPTS_LM_WITH_SPACES]
-DEFAULT_SCRIPT_HIGH_RESOURCE_NO_SPACES = {"Common", "Han", "Hiragana", "Katakana", "Thai", "Myanmar", "Khmer", "Lao"}
+DEFAULT_SCRIPT_HIGH_RESOURCE_NO_SPACES = [
+    "Common",
+    "Han",
+    "Hiragana",
+    "Katakana",
+    "Thai",
+    "Myanmar",
+    "Khmer",
+    "Lao",
+]
 DEFAULT_SCRIPT_CAT_OVERRIDE = {
     "\u30fc": ("Inherited", "LM"),  # カー (カ + ー) Katakana-Hiragana Prolonged Sound Mark in Japanese
     "\uff70": ("Inherited", "LM"),  # ﾊﾟｰﾃｨｰ (halfwidth)
@@ -103,11 +113,14 @@ class ScriptConfig(BaseModel):
     merge_hiragana_with_han: bool = True
     script_cat_with_spaces: list[tuple[str, str]] = DEFAULT_SCRIPT_WITH_SPACES + [("Common", "PS")]
     script_cat_override: dict[str, tuple[str, str]] = DEFAULT_SCRIPT_CAT_OVERRIDE
-    # v2 only
-    higher_resource_scripts: set[str] = DEFAULT_SCRIPTS_LM_WITH_SPACES | DEFAULT_SCRIPT_HIGH_RESOURCE_NO_SPACES
+    # v2 only: avoid sets in config; use list for determinism and convert to set internally
+    higher_resource_scripts: list[str] = DEFAULT_SCRIPTS_LM_WITH_SPACES + DEFAULT_SCRIPT_HIGH_RESOURCE_NO_SPACES
 
     def model_post_init(self, __context):
         """builds blocks"""
+        # for fast membership checks, while keeping config deterministic
+        self._higher_resource_scripts_set = set(self.higher_resource_scripts)
+        self._script_cat_with_spaces_set = set(self.script_cat_with_spaces)
         if self.blocks:
             return  # we trust blocks when they are provided
         chars_by_sc = defaultdict(list)
@@ -128,7 +141,7 @@ class ScriptConfig(BaseModel):
         for sc, cps in sorted(chars_by_sc.items(), key=lambda kv: (num_chars_by_script[kv[0][0]], kv[1]), reverse=True):
             sid = len(self.blocks) + 1
             script, supercat = sc
-            combines_with_spaces = (script, supercat) in self.script_cat_with_spaces
+            combines_with_spaces = (script, supercat) in self._script_cat_with_spaces_set
             for sub_block, start in enumerate(range(0, len(cps), num_index_tokens)):
                 self.blocks.append(
                     ScriptBlock(
@@ -158,8 +171,8 @@ class ScriptConfig(BaseModel):
         supercat = category[0]
 
         # low resource scripts are (script, *) with no blocks for category
-        if script not in self.higher_resource_scripts:
-            supercat = self.ALL  # for low resource script, ignore category
+        if script not in self._higher_resource_scripts_set:
+            supercat = self.ALL
             return script, supercat
 
         # merge categories into supercategories

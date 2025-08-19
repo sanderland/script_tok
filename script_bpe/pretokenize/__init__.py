@@ -28,7 +28,7 @@ GPT4O_REGEX = "|".join(
 
 
 # Registry of available pretokenizers
-PRETOKENIZER_REGISTRY: dict[str, Callable[[], Pretokenizer]] = {
+PRETOKENIZER_REGISTRY: dict[str, PretokenizerConfig] = {
     "bytes_gpt4": UTF8PretokenizerConfig(regex_pattern=GPT4_REGEX, enforce_char_boundaries=False),
     "bytes_gpt4_cb": UTF8PretokenizerConfig(regex_pattern=GPT4_REGEX),
     "bytes_gpt4o": UTF8PretokenizerConfig(regex_pattern=GPT4O_REGEX, enforce_char_boundaries=False),
@@ -40,39 +40,24 @@ PRETOKENIZER_REGISTRY: dict[str, Callable[[], Pretokenizer]] = {
     "scriptenc_nosplit_cb": ScriptPretokenizerConfig(regex_pattern=None, script_split=False),
     "scriptenc2_cb": ScriptPretokenizerConfig(script_config=ScriptEncodingV2, enforce_char_boundaries=True),
     "scriptenc2_gpt4o_cb": ScriptPretokenizerConfig(
-        script_config=ScriptEncodingV2, regex=GPT4O_REGEX, script_split=False
+        script_config=ScriptEncodingV2, regex_pattern=GPT4O_REGEX, script_split=False
     ),
 }
 
 
 def get_pretokenizer(name: str) -> Pretokenizer:
-    """
-    Get or initialize a pretokenizer by name.
-    :param name: The name of the pretokenizer (must be in the registry).
-    :return: An instance of the requested pretokenizer.
-    """
     if name not in PRETOKENIZER_REGISTRY:
         raise ValueError(f"Pretokenizer '{name}' is not registered. Available: {list(PRETOKENIZER_REGISTRY.keys())}")
-    return config_to_pretokenizer(PRETOKENIZER_REGISTRY[name])
-
-
-def config_to_pretokenizer(config: PretokenizerConfig) -> Pretokenizer:
-    if isinstance(config, UTF8PretokenizerConfig):
-        return UTF8Pretokenizer(config)
-    elif isinstance(config, ScriptPretokenizerConfig):
-        return ScriptPretokenizer(config)
-    else:
-        raise ValueError(f"Unknown pretokenizer class: {config.__class__.__name__}")
-
-
-def make_pretokenizer(config) -> Pretokenizer:
-    cls = globals()[config["class"]]
-    config = cls.model_validate(config["config"])
-    return config_to_pretokenizer(config)
-
+    config = PRETOKENIZER_REGISTRY[name]
+    for config_type, pretokenizer_cls in Pretokenizer.REGISTRY.values():
+        if config_type is config.__class__:
+            return pretokenizer_cls(config)
+    
+    
+def load_pretokenizer(serialized: dict) -> Pretokenizer:
+    config_type, pretokenizer_cls = Pretokenizer.REGISTRY[serialized["config_class"]]
+    config = config_type.model_validate(serialized['config'])
+    return pretokenizer_cls(config)
 
 def export_pretokenizer(pretokenizer: Pretokenizer) -> dict:
-    return {
-        "class": config.__class__.__name__,
-        "config": config.model_dump(),
-    }
+    return dict(config_class=pretokenizer.__class__.__name__, config=pretokenizer.config.model_dump())

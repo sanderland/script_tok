@@ -44,7 +44,7 @@ class PretokenizedCorpus:
 
     @staticmethod
     def encode_texts(texts: list[str], pretokenizer: Pretokenizer, max_length: int) -> tuple[dict, dict]:
-        metadata = dict(base_tokens=0, chunks=0, chunks_skipped=0)
+        metadata = dict(atomic_tokens=0, chunks=0, chunks_skipped=0)
         chunk_counts = Counter()
         for text in texts:
             for chunk in pretokenizer.pretokenize(text):
@@ -52,7 +52,7 @@ class PretokenizedCorpus:
                     metadata["chunks_skipped"] += 1
                     continue
                 chunk_counts[chunk.tobytes()] += 1
-                metadata["base_tokens"] += len(chunk)
+                metadata["atomic_tokens"] += len(chunk)
                 metadata["chunks"] += 1
         return chunk_counts, metadata
 
@@ -88,7 +88,7 @@ class PretokenizedCorpus:
             max_length=max_length,
             pretokenizer_hash=pretokenizer.hash(),
             docs=len(texts),
-            base_tokens=0,
+            atomic_tokens=0,
             chunks=0,
             chunks_skipped=0,
         )

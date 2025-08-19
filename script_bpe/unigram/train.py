@@ -29,7 +29,7 @@ def log_examples(
                 continue
         list_item = " ├─" if i < len(tokens_with_scores) - 1 else " └─"
         logger.debug(
-            f"   │ {list_item} {repr(pretokenizer.decode(t.base_tokens)):25}  {score_label} = {score:10.3g}  base_tokens = {list(t.base_tokens)}"
+            f"   │ {list_item} {repr(pretokenizer.decode(t.atomic_tokens)):25}  {score_label} = {score:10.3g}  atomic_tokens = {list(t.atomic_tokens)}"
         )
 
 
@@ -40,31 +40,31 @@ def make_initial_vocab(
     additional_num_tokens: int,
     max_token_length: int,
 ) -> list[UnigramToken]:
-    base_tokens = {(t,) for t in pretokenizer.base_tokens}
-    substring_freq = Counter({t: 0 for t in base_tokens})
-    for base_token_seq, count in corpus:
-        for i in range(len(base_token_seq)):  # SentencePiece uses suffix array, this is simpler but more mem intensive
-            for j in range(i + 1, min(len(base_token_seq) + 1, i + max_token_length + 1)):
-                if pretokenizer.token_allowed(base_token_seq[i:j]):  # char boundaries etc enforced here!
-                    substring_freq[tuple(base_token_seq[i:j])] += count
+    atomic_tokens = {(t,) for t in pretokenizer.atomic_tokens}
+    substring_freq = Counter({t: 0 for t in atomic_tokens})
+    for atomic_token_seq, count in corpus:
+        for i in range(len(atomic_token_seq)):  # SentencePiece uses suffix array, this is simpler but more mem intensive
+            for j in range(i + 1, min(len(atomic_token_seq) + 1, i + max_token_length + 1)):
+                if pretokenizer.token_allowed(atomic_token_seq[i:j]):  # char boundaries etc enforced here!
+                    substring_freq[tuple(atomic_token_seq[i:j])] += count
 
     all_tokens = [(max(freq, 1) * len(token), token) for token, freq in substring_freq.items()]
     selected_tokens = heapq.nlargest(
-        len(base_tokens) + additional_num_tokens, all_tokens, key=lambda item: (item[1] in base_tokens, item[0])
+        len(atomic_tokens) + additional_num_tokens, all_tokens, key=lambda item: (item[1] in atomic_tokens, item[0])
     )
     log_sum_scores = math.log(sum(score for score, _ in selected_tokens))
     tokens = [
         UnigramToken(
-            base_tokens=token_array(base_token_seq),
+            atomic_tokens=token_array(atomic_token_seq),
             id=i,
             log_prob=math.log(score) - log_sum_scores,
-            required=base_token_seq in base_tokens,
+            required=atomic_token_seq in atomic_tokens,
         )
-        for i, (score, base_token_seq) in enumerate(selected_tokens)
+        for i, (score, atomic_token_seq) in enumerate(selected_tokens)
     ]
 
     logger.info(
-        f"🌱 Selected {len(pretokenizer.base_tokens):,} + {additional_num_tokens:,} = {len(tokens):,} initial tokens from {len(all_tokens):,} candidates"
+        f"🌱 Selected {len(pretokenizer.atomic_tokens):,} + {additional_num_tokens:,} = {len(tokens):,} initial tokens from {len(all_tokens):,} candidates"
     )
     logger.debug(f"   ├─ Max length: {max_token_length}")
     logger.debug(f"   └─ Source: {corpus.name}: {corpus.metadata}")
@@ -85,10 +85,10 @@ def run_e_step(
     if total_pretoken_freq == 0:
         return expected_count, objective, total_tokens
 
-    for base_token_seq, freq in corpus:
-        lattice = model.make_lattice(base_token_seq)
+    for atomic_token_seq, freq in corpus:
+        lattice = model.make_lattice(atomic_token_seq)
         z, token_prob = lattice.calc_marginal()
-        assert not math.isnan(z), f"NaN likelihood for pretoken {base_token_seq} with freq={freq}."
+        assert not math.isnan(z), f"NaN likelihood for pretoken {atomic_token_seq} with freq={freq}."
         for token_id, prob in token_prob.items():
             expected_count[token_id] += prob * freq
         viterbi_path, _ = lattice.viterbi()
@@ -150,14 +150,14 @@ def prune_tokens(
     defensive: bool,
 ) -> tuple[UnigramModel, int, int, list[tuple[UnigramToken, float]]]:
     # Calculate target size based on vocab size and shrinking factor
-    num_non_base_tokens = len(model.tokens) - len(pretokenizer.base_tokens)
-    shrink_n = int(num_non_base_tokens * (1 - shrinking_factor))
-    target_size = max(desired_vocab_size, num_non_base_tokens - shrink_n)
+    num_non_atomic_tokens = len(model.tokens) - len(pretokenizer.atomic_tokens)
+    shrink_n = int(num_non_atomic_tokens * (1 - shrinking_factor))
+    target_size = max(desired_vocab_size, num_non_atomic_tokens - shrink_n)
 
     # 1. Count occurences of all tokens in optimal tokenization of all pretokens
     token_count = {t.id: 0.0 for t in model.tokens}
-    for base_token_seq, count in corpus:
-        lattice = model.make_lattice(base_token_seq)
+    for atomic_token_seq, count in corpus:
+        lattice = model.make_lattice(atomic_token_seq)
         viterbi_path, _ = lattice.viterbi()
         for token in viterbi_path:
             token_count[token.id] += count
@@ -175,7 +175,7 @@ def prune_tokens(
         if token_count[token.id] == 0:  # never used in an optimal segmentation. includes split viterbi path.
             unused_token_ids.add(token.id)
             continue
-        lattice = model.make_lattice(token.base_tokens)
+        lattice = model.make_lattice(token.atomic_tokens)
         alt_path, _ = lattice.viterbi(allow_single_token=False)
         assert alt_path, f"Token {token.id} has no alternative segmentation"
 
@@ -218,7 +218,7 @@ def prune_tokens(
         f"✂️  Pruning vocabulary from {len(model.tokens):,} to target {target_size:,} -> new vocab size {len(new_tokens):,}"
     )
     logger.debug(
-        f"   ├─ Target size: {target_size:,} based on shrinking factor {shrinking_factor} * non base tokens {num_non_base_tokens:,} and desired vocab size {desired_vocab_size}"
+        f"   ├─ Target size: {target_size:,} based on shrinking factor {shrinking_factor} * non base tokens {num_non_atomic_tokens:,} and desired vocab size {desired_vocab_size}"
     )
     if unused_token_ids:
         unused_tokens_info = [(model.tokens_by_id[tid], token_count[tid]) for tid in unused_token_ids]
@@ -300,8 +300,8 @@ def train_unigram(
         logger, corpus, pretokenizer, additional_vocab_size * initial_vocab_factor, max_token_len
     )
     total_pretokens = sum(freq for _, freq in corpus)
-    prune_to_vocab_size = int(len(pretokenizer.base_tokens) + additional_vocab_size * pre_final_vocab_factor)
-    final_vocab_size = len(pretokenizer.base_tokens) + additional_vocab_size
+    prune_to_vocab_size = int(len(pretokenizer.atomic_tokens) + additional_vocab_size * pre_final_vocab_factor)
+    final_vocab_size = len(pretokenizer.atomic_tokens) + additional_vocab_size
     totals_removed = defaultdict(list)
     defended_token_ids = set()
 
