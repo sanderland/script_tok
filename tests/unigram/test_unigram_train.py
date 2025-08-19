@@ -6,7 +6,7 @@ import pytest
 from script_bpe.corpus import PretokenizedCorpus
 from script_bpe.utils import token_array
 from script_bpe.pretokenize import PRETOKENIZER_REGISTRY, get_pretokenizer
-from script_bpe.unigram import UnigramModel, train_unigram
+from script_bpe.tokenizers.unigram import UnigramModel, train_unigram
 
 
 def taylor_swift_text():

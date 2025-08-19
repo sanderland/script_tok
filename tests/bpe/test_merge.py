@@ -2,7 +2,7 @@ from collections import Counter
 
 import pytest
 
-from script_bpe.bpe.train import ChunkTokenization
+from script_bpe.tokenizers.bpe.train import ChunkTokenization
 from script_bpe.utils import token_array
 
 

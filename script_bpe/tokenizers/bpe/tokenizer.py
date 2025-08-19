@@ -9,6 +9,7 @@ import tabulate
 
 from script_bpe.pretokenize import Pretokenizer, export_pretokenizer, load_pretokenizer
 from script_bpe.utils import InputTokenSeq, TokenSeq, token_array
+from script_bpe.tokenizers import BaseToken
 
 
 @dataclass(slots=True)
@@ -21,9 +22,7 @@ class MergeRule:
 
 
 @dataclass(slots=True)
-class Token:
-    id: int
-    atomic_tokens: TokenSeq
+class Token(BaseToken):
     current_count: int = 0
     original_count: int = 0
 

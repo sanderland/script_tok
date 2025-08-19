@@ -2,8 +2,8 @@ from collections import Counter
 
 import pytest
 
-from script_bpe.bpe import BPETokenizer, train_bpe
-from script_bpe.bpe.tokenizer import MergeRule
+from script_bpe.tokenizers.bpe import BPETokenizer, train_bpe
+from script_bpe.tokenizers.bpe.tokenizer import MergeRule
 from script_bpe.corpus import PretokenizedCorpus
 from script_bpe.pretokenize import PRETOKENIZER_REGISTRY, get_pretokenizer
 from script_bpe.utils import token_array

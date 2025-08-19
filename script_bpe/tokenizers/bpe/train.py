@@ -4,7 +4,7 @@ import multiprocessing
 from collections import defaultdict
 from dataclasses import dataclass, field
 
-from script_bpe.bpe.tokenizer import BPETokenizer, MergeRule, Token
+from script_bpe.tokenizers.bpe.tokenizer import BPETokenizer, MergeRule, Token
 from script_bpe.corpus import PretokenizedCorpus
 from script_bpe.pretokenize import Pretokenizer
 from script_bpe.utils import TokenSeq, create_logger, mp_ctx, token_array

@@ -10,6 +10,7 @@ import tabulate
 
 from script_bpe.pretokenize import Pretokenizer, export_pretokenizer, load_pretokenizer
 from script_bpe.utils import TokenSeq, token_array
+from script_bpe.tokenizers import BaseToken
 
 
 def logaddexp(a: float, b: float) -> float:
@@ -19,12 +20,10 @@ def logaddexp(a: float, b: float) -> float:
     return a + math.log1p(math.exp(b - a))
 
 
-class UnigramToken:
-    def __init__(self, id: int, atomic_tokens: TokenSeq, log_prob: float, required: bool = False, **kwargs):
-        self.id = id
-        self.atomic_tokens = atomic_tokens
-        self.log_prob = log_prob
-        self.required = required
+@dataclass(slots=True)
+class UnigramToken(BaseToken):
+    log_prob: float = 0.0
+    required: bool = False
 
     def to_dict(self):
         """Convert the token to a dictionary for serialization."""

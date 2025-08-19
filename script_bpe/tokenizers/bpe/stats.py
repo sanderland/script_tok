@@ -1,4 +1,4 @@
-from script_bpe.bpe.tokenizer import BPETokenizer
+from script_bpe.tokenizers.bpe.tokenizer import BPETokenizer
 
 
 def compression_curve(tokenizer: BPETokenizer) -> list[int]:

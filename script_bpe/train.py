@@ -5,10 +5,10 @@ import os
 from json import JSONDecodeError
 
 from script_bpe import PRETOKENIZER_REGISTRY, BPETokenizer, get_pretokenizer
-from script_bpe.bpe import BPETokenizer, train_bpe
+from script_bpe.tokenizers.bpe import BPETokenizer, train_bpe
 from script_bpe.corpus.registry import load_corpus_by_name
 from script_bpe.pretokenize import get_pretokenizer
-from script_bpe.unigram import UnigramModel, train_unigram
+from script_bpe.tokenizers.unigram import UnigramModel, train_unigram
 from script_bpe.utils import PROJECT_ROOT, create_logger
 
 logger = create_logger("main")

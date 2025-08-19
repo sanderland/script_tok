@@ -2,7 +2,7 @@ import math
 import pytest
 
 from script_bpe.pretokenize import get_pretokenizer
-from script_bpe.unigram.model import Lattice, Trie, UnigramModel, UnigramToken
+from script_bpe.tokenizers.unigram.model import Lattice, Trie, UnigramModel, UnigramToken
 from script_bpe.utils import token_array
 
 

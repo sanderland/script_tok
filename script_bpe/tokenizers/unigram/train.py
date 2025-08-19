@@ -7,7 +7,7 @@ from scipy.special import digamma
 
 from script_bpe.corpus import PretokenizedCorpus
 from script_bpe.pretokenize import Pretokenizer
-from script_bpe.unigram.model import UnigramModel, UnigramToken
+from script_bpe.tokenizers.unigram.model import UnigramModel, UnigramToken
 from script_bpe.utils import create_logger, token_array
 
 MIN_EXPECTED_COUNT = 0.01  # in m-step, for avoiding underflows
