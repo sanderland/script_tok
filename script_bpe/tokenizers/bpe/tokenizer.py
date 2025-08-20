@@ -9,7 +9,7 @@ import tabulate
 
 from script_bpe.pretokenize import Pretokenizer, export_pretokenizer, load_pretokenizer
 from script_bpe.utils import InputTokenSeq, TokenSeq, token_array
-from script_bpe.tokenizers import BaseToken
+from script_bpe.tokenizers.base import BaseToken, BaseTokenizer
 
 
 @dataclass(slots=True)
@@ -41,7 +41,7 @@ class Token(BaseToken):
         )
 
 
-class BPETokenizer:
+class BPETokenizer(BaseTokenizer):
     VERSION = "sebpe-v1"
 
     def __init__(self, merge_rules, pretokenizer: Pretokenizer, metadata=None):

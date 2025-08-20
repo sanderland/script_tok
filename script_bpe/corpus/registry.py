@@ -66,7 +66,12 @@ def load_corpus_by_name(
         )
     elif corpus_name == "swift":
         with open("tests/data/taylorswift.txt", "r") as f:
-            return PretokenizedCorpus.from_texts(corpus_name, pretokenizer=pretokenizer, texts=[f.read()])
+            return PretokenizedCorpus.from_texts(
+                corpus_name,
+                pretokenizer=pretokenizer,
+                texts=[f.read()],
+                base_path=base_dir,
+            )
     else:
         raise ValueError(f"Unknown dataset: {corpus_name}")
 

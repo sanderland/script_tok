@@ -61,13 +61,33 @@ class UTF8CharEnc:
         return f"UTF8CharEnc(atomic_token_ids={self.atomic_token_ids})"
 
 
-CharEncT = ScriptCharEnc | UTF8CharEnc
+class DigitsEnc:
+    __slots__ = ("script_id", "combines_with_spaces", "atomic_token_ids", "inherited")
+
+    def __init__(self, token_ids: list[int]):
+        # Sentinel script id to ensure it forms its own group in script-based splitting
+        self.script_id = -1
+        self.combines_with_spaces = False
+        self.inherited = False
+        self.atomic_token_ids = token_ids
+
+    def __repr__(self):
+        return f"DigitsEnc(atomic_token_ids={self.atomic_token_ids})"
+
+
+CharEncT = ScriptCharEnc | UTF8CharEnc | DigitsEnc
 
 
 def group_digits(digits: str, method: DigitHandlingT) -> list[str]:
     l = len(digits)
     if method == "RTL3":
-        return [digits[i : i + 3] for i in range(l % 3, l, 3)]
+        # Group digits from the right in chunks of 3, keeping a possible leading remainder
+        remainder = l % 3
+        groups: list[str] = []
+        if remainder:
+            groups.append(digits[:remainder])
+        groups.extend(digits[i : i + 3] for i in range(remainder, l, 3))
+        return groups
     elif method == "SPLIT":
         return list(digits)
 
@@ -104,8 +124,8 @@ class Pretokenizer:
             for d in range(10):
                 self._register_token(str(d))
         elif self.config.digit_handling == "RTL3":
-            for range, pad in [(1000, 3), (100, 2), (10, 1)]:
-                for i in range(range):
+            for upper, pad in [(1000, 3), (100, 2), (10, 1)]:
+                for i in range(upper):
                     self._register_token(str(i).zfill(pad))
 
     def hash(self) -> str:
@@ -138,7 +158,7 @@ class Pretokenizer:
             text = "".join(c for c in text if c in self.valid_chars)
         return text
 
-    def split_unencoded_and_encode(self, text: str) -> list[str]:
+    def split_unencoded_and_encode(self, text: str) -> list[list[CharEncT]]:
         """1. Maybe split off digits, based on method"""
         if self.config.digit_handling is None:
             encoded_chunks = [text]  # is even, so works
@@ -162,12 +182,15 @@ class Pretokenizer:
     def split_encoded(self, text_chunks: list[CharEncT]) -> list[list[CharEncT]]:
         return [text_chunks]
 
-    def encode_digits(self, digit_groups: list[str]) -> list[int]:
-        return [self.token_to_id[dgroup] for dgroup in digit_groups]
+    def encode_digits(self, digit_groups: list[str]) -> list[DigitsEnc]:
+        return [DigitsEnc([self.token_to_id[dgroup]]) for dgroup in digit_groups]
 
     def tokens_repr(self, atomic_token_ids: InputTokenSeq) -> str:
         """Representation that is able to handle partial/broken sequences"""
         return self.decode(atomic_token_ids, errors="backslashreplace")
+
+    def pretokens_repr(self, pretokens: PretokenizedT) -> str:
+        return [self.decode(token_ids) for token_ids in pretokens]
 
     def token_allowed(self, token_seq: InputTokenSeq) -> bool:
         try:
@@ -183,14 +206,15 @@ class Pretokenizer:
 class UTF8Pretokenizer(Pretokenizer, config_type=UTF8PretokenizerConfig):
     def __init__(self, config: UTF8PretokenizerConfig) -> None:
         super().__init__(config)
+        self.token_to_bytes = {tid: bytes([b]) for b, tid in self.byte_ids.items()}
+        self.token_to_bytes.update({tid: text.encode("utf-8") for tid, text in self.atomic_tokens.items() if text.isdigit()})
+        self.is_initial_char_tokens = {tid for tid, bs in self.token_to_bytes.items() if bs[0] & 0b11000000 != 0b10000000}
 
     def _build_atomic_tokens(self):
         self.byte_ids = {b: self._register_token(f"<BYTE_{b:02X}>") for b in range(256)}
-        self.token_to_byte = {tid: b for b, tid in self.byte_ids.items()}
-        self.is_initial_char_tokens = {tid for tid, b in self.token_to_byte.items() if b & 0b11000000 != 0b10000000}
 
     def decode(self, atomic_token_ids: InputTokenSeq, errors="replace") -> str:
-        byteseq = bytes([self.token_to_byte[id] for id in atomic_token_ids])
+        byteseq = b"".join(self.token_to_bytes[tid] for tid in atomic_token_ids)
         return byteseq.decode("utf-8", errors=errors)
 
     def encode_text(self, text: str) -> list[UTF8CharEnc]:

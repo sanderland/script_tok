@@ -5,10 +5,10 @@ import os
 from json import JSONDecodeError
 
 from script_bpe import PRETOKENIZER_REGISTRY, BPETokenizer, get_pretokenizer
-from script_bpe.tokenizers.bpe import BPETokenizer, train_bpe
 from script_bpe.corpus.registry import load_corpus_by_name
-from script_bpe.pretokenize import get_pretokenizer
-from script_bpe.tokenizers.unigram import UnigramModel, train_unigram
+from script_bpe.tokenizers.unigram import UnigramModel
+from script_bpe.tokenizers.bpe.trainer import BPETrainer, BPETrainerConfig
+from script_bpe.tokenizers.unigram.trainer import UnigramTrainer, UnigramTrainerConfig
 from script_bpe.utils import PROJECT_ROOT, create_logger
 
 logger = create_logger("main")
@@ -65,10 +65,12 @@ def train_tokenizer(
 
     if model_name == "bpe":
         tokenizer_class = BPETokenizer
-        train_func = train_bpe
+        trainer_cls = BPETrainer
+        trainer_cfg_cls = BPETrainerConfig
     elif model_name == "unigram":
         tokenizer_class = UnigramModel
-        train_func = train_unigram
+        trainer_cls = UnigramTrainer
+        trainer_cfg_cls = UnigramTrainerConfig
     else:
         raise ValueError(f"Unknown model name: {model_name}")
     tokenizer = None
@@ -89,12 +91,8 @@ def train_tokenizer(
         if additional_vocab_size <= 0:  # allows to just prepare corpus
             logger.warning("Additional vocabulary size is 0, skipping training.")
             return None
-        tokenizer = train_func(
-            pretokenizer=pretokenizer,
-            corpus=corpus,
-            additional_vocab_size=additional_vocab_size,
-            num_workers=n_cpus,
-        )
+        trainer = trainer_cls(pretokenizer, corpus, trainer_cfg_cls(additional_vocab_size=additional_vocab_size, num_workers=n_cpus))
+        tokenizer = trainer.train()
         tokenizer.save(save_path)
         logger.info(f"Saved tokenizer to {save_path}")
 

@@ -11,6 +11,7 @@ import tabulate
 from script_bpe.pretokenize import Pretokenizer, export_pretokenizer, load_pretokenizer
 from script_bpe.utils import TokenSeq, token_array
 from script_bpe.tokenizers import BaseToken
+from script_bpe.tokenizers.base import BaseTokenizer
 
 
 def logaddexp(a: float, b: float) -> float:
@@ -128,7 +129,7 @@ class Lattice:
         return z, token_prob
 
 
-class UnigramModel:
+class UnigramModel(BaseTokenizer):
     """
     A Unigram language model for tokenization.
 

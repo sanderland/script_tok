@@ -2,11 +2,12 @@ from collections import Counter
 
 import pytest
 
-from script_bpe.tokenizers.bpe import BPETokenizer, train_bpe
+from script_bpe.tokenizers.bpe import BPETokenizer
 from script_bpe.tokenizers.bpe.tokenizer import MergeRule
 from script_bpe.corpus import PretokenizedCorpus
 from script_bpe.pretokenize import PRETOKENIZER_REGISTRY, get_pretokenizer
 from script_bpe.utils import token_array
+from script_bpe.tokenizers.bpe.trainer import BPETrainer, BPETrainerConfig
 
 
 def taylor_swift_text():
@@ -75,13 +76,15 @@ EXPECTED_MERGE_RULES = {
         ]
     ],
 )
+
 def test_bpe_train(tmp_path, pretokenizer_name, text_fixture, expected_merge_rules, x_tokens=20):
     text = text_fixture()
     pretokenizer = get_pretokenizer(pretokenizer_name)
     corpus = PretokenizedCorpus.from_texts(
         f"test_bpe_train_{text_fixture}", texts=[text], pretokenizer=pretokenizer, base_path=str(tmp_path)
     )
-    tokenizer = train_bpe(pretokenizer, corpus, additional_vocab_size=x_tokens, verbose=True)
+    trainer = BPETrainer(pretokenizer, corpus, BPETrainerConfig(additional_vocab_size=x_tokens, verbose=True))
+    tokenizer = trainer.train()
 
     # Basic assertions
     assert isinstance(tokenizer, BPETokenizer)

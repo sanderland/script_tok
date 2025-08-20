@@ -6,7 +6,8 @@ import pytest
 from script_bpe.corpus import PretokenizedCorpus
 from script_bpe.utils import token_array
 from script_bpe.pretokenize import PRETOKENIZER_REGISTRY, get_pretokenizer
-from script_bpe.tokenizers.unigram import UnigramModel, train_unigram
+from script_bpe.tokenizers.unigram import UnigramModel
+from script_bpe.tokenizers.unigram.trainer import UnigramTrainer, UnigramTrainerConfig
 
 
 def taylor_swift_text():
@@ -41,12 +42,8 @@ def test_unigram_train_end_to_end(tmp_path, pretokenizer_name, text_fixture, x_t
         f"test_unigram_train_{text_fixture.__name__}", texts=[text], pretokenizer=pretokenizer, base_path=str(tmp_path)
     )
 
-    model = train_unigram(
-        pretokenizer=pretokenizer,
-        corpus=corpus,
-        additional_vocab_size=x_tokens,
-        verbose=True,
-    )
+    trainer = UnigramTrainer(pretokenizer, corpus, UnigramTrainerConfig(additional_vocab_size=x_tokens, verbose=True))
+    model = trainer.train()
 
     # Basic shape
     assert isinstance(model, UnigramModel)
