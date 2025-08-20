@@ -1,4 +1,3 @@
-import math
 import pytest
 
 from script_bpe.corpus import PretokenizedCorpus
@@ -15,7 +14,9 @@ def _tiny_text():
 def test_unigram_stats_and_report(tmp_path, pretokenizer_name):
     pre = get_pretokenizer(pretokenizer_name)
     corpus = PretokenizedCorpus.from_texts("uni_misc", [_tiny_text()], pre, base_path=str(tmp_path))
-    model = UnigramTrainer(pre, corpus, UnigramTrainerConfig(additional_vocab_size=8, num_workers=1, verbose=False)).train()
+    model = UnigramTrainer(
+        pre, corpus, UnigramTrainerConfig(additional_vocab_size=8, num_workers=1, verbose=False)
+    ).train()
 
     stats = model.stats()
     for k in [
@@ -37,5 +38,3 @@ def test_unigram_stats_and_report(tmp_path, pretokenizer_name):
     model.save(path)
     loaded = UnigramModel.load(path)
     assert loaded.encode(_tiny_text()) == model.encode(_tiny_text())
-
-

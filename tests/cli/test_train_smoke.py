@@ -17,5 +17,3 @@ def test_train_smoke_prepares_only(tmp_path):
     # path helper yields a sensible path string
     path = tokenizer_save_path("swift", 10, "scriptenc_cb", "bpe")
     assert path.endswith("swift/n10/scriptenc_cb.json.gz")
-
-

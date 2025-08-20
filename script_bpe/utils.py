@@ -1,5 +1,4 @@
 import array
-import functools
 import gc
 import logging
 import multiprocessing
@@ -27,7 +26,6 @@ InputTokenSeq = array.array | list[int]
 # shared aliases
 DigitHandlingT = Literal["RTL3", "SPLIT"] | None
 TokenPairT = tuple[int, int]
-
 
 
 def token_array(values: Iterable[int]) -> TokenSeq:
@@ -59,5 +57,3 @@ def create_logger(tag: str, verbose: bool = True):
         handler.setFormatter(formatter)
         logger.addHandler(handler)
     return logger
-
-

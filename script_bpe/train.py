@@ -1,4 +1,3 @@
-from script_bpe.utils import mp_ctx  # load first. #isort: skip
 
 import argparse
 import os
@@ -42,7 +41,7 @@ def load_tokenizers_for_dataset(file, n, model_name="bpe"):
             for t in tokenizers[ptok].metadata["tokens"]:
                 if t["final_count"] < 0:
                     print(f"Final count for token '{t}' is negative in tokenizer '{ptok}' for {file} at {path}")
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             pass
         except JSONDecodeError as e:
             print(f"Warning: Tokenizer '{ptok}' at {path} is corrupted or invalid: {e}")
@@ -91,7 +90,9 @@ def train_tokenizer(
         if additional_vocab_size <= 0:  # allows to just prepare corpus
             logger.warning("Additional vocabulary size is 0, skipping training.")
             return None
-        trainer = trainer_cls(pretokenizer, corpus, trainer_cfg_cls(additional_vocab_size=additional_vocab_size, num_workers=n_cpus))
+        trainer = trainer_cls(
+            pretokenizer, corpus, trainer_cfg_cls(additional_vocab_size=additional_vocab_size, num_workers=n_cpus)
+        )
         tokenizer = trainer.train()
         tokenizer.save(save_path)
         logger.info(f"Saved tokenizer to {save_path}")

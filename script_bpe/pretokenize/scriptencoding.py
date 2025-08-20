@@ -16,7 +16,7 @@ def char_name(c: str):
 
 
 @functools.cache
-def unicode_script_map(filename=SCRIPTS_PATH) -> dict[str, dict[str, str]]:
+def unicode_script_map(filename=SCRIPTS_PATH) -> dict[str, frozendict[str, object]]:
     """
     Load Unicode script and category data from a file.
 
@@ -191,7 +191,7 @@ class ScriptConfig(BaseModel):
 
         return script, supercat
 
-    def _merge_hiragana_with_han(self) -> list[dict]:  # recode Hiragana to Han for pretokenizing
+    def _merge_hiragana_with_han(self) -> list[ScriptBlock]:  # recode Hiragana to Han for pretokenizing
         han_lm_script_id = next(b.script_id for b in self.blocks if b.script == "Han" and b.category == "LM")
         for b in self.blocks:
             if b.script == "Hiragana" and b.category == "LM":

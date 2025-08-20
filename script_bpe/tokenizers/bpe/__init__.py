@@ -1,3 +1,1 @@
-from .tokenizer import BPETokenizer
-
-
+from .tokenizer import BPETokenizer as BPETokenizer

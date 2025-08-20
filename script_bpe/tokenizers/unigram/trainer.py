@@ -34,7 +34,9 @@ class UnigramTrainer(BaseTrainer):
         cfg = self.config
         vocab = self.make_initial_vocab()
         total_pretokens = sum(freq for _, freq in self.corpus)
-        prune_to_vocab_size = int(len(self.pretokenizer.atomic_tokens) + cfg.additional_vocab_size * cfg.pre_final_vocab_factor)
+        prune_to_vocab_size = int(
+            len(self.pretokenizer.atomic_tokens) + cfg.additional_vocab_size * cfg.pre_final_vocab_factor
+        )
         final_vocab_size = len(self.pretokenizer.atomic_tokens) + cfg.additional_vocab_size
         totals_removed = defaultdict(list)
         defended_token_ids = set()
@@ -54,7 +56,7 @@ class UnigramTrainer(BaseTrainer):
 
             current_size = len(model.tokens)
             if current_size <= prune_to_vocab_size:
-                self.logger.info(f"🎯 Target vocabulary size for EM iterations reached")
+                self.logger.info("🎯 Target vocabulary size for EM iterations reached")
                 self.logger.debug(f"   ├─ Current: {current_size:,}")
                 self.logger.debug(f"   └─ Target:  {prune_to_vocab_size:,}")
                 break
@@ -79,9 +81,13 @@ class UnigramTrainer(BaseTrainer):
         self.logger.debug(f"   ├─ Objective: {stats['objective']:.4f}")
         self.logger.debug("  📊 Token Removal Statistics:")
         for key, value in totals_removed.items():
-            self.logger.debug(f"   ├─ {key:<20} {sum(value):6,d} tokens" + (f" in steps {value}" if len(value) > 1 else ""))
+            self.logger.debug(
+                f"   ├─ {key:<20} {sum(value):6,d} tokens" + (f" in steps {value}" if len(value) > 1 else "")
+            )
         if cfg.defensive_prune:
-            self.logger.debug(f"   ├─ Defended {num_defended:,} tokens from being removed along with their alternatives.")
+            self.logger.debug(
+                f"   ├─ Defended {num_defended:,} tokens from being removed along with their alternatives."
+            )
             if defended_in_final:
                 self.logger.debug(f"   ├─ {len(defended_in_final):,} defended tokens made it to the final vocabulary.")
                 self.log_examples(defended_in_final, "logprob")
@@ -239,7 +245,9 @@ class UnigramTrainer(BaseTrainer):
             self.log_examples(unused_tokens_info, "count")
         self.logger.debug(f"   ├─ Kept {len(new_tokens)} required tokens")
         if defended_tokens:
-            self.logger.debug(f"   ├─ Defended {len(defended_tokens):,} tokens from being removed along with their alternatives")
+            self.logger.debug(
+                f"   ├─ Defended {len(defended_tokens):,} tokens from being removed along with their alternatives"
+            )
             self.log_examples(defended_tokens, "loss")
         self.logger.debug(f"   ├─ Pruned {len(pruned_tokens):,} tokens from {len(candidates):,} candidates")
         if pruned_tokens:
@@ -270,17 +278,9 @@ class UnigramTrainer(BaseTrainer):
         return new_model, len(model.tokens) - len(new_model.tokens)
 
 
-import heapq
-import logging
-import math
-from collections import Counter, defaultdict
 
-from scipy.special import digamma
 
-from script_bpe.corpus import PretokenizedCorpus
-from script_bpe.pretokenize import Pretokenizer
-from script_bpe.tokenizers.unigram.model import UnigramModel, UnigramToken
-from script_bpe.utils import create_logger, token_array
+from script_bpe.utils import create_logger
 
 MIN_EXPECTED_COUNT = 0.01  # in m-step, for avoiding underflows
 
@@ -315,7 +315,9 @@ def make_initial_vocab(
     atomic_tokens = {(t,) for t in pretokenizer.atomic_tokens}
     substring_freq = Counter({t: 0 for t in atomic_tokens})
     for atomic_token_seq, count in corpus:
-        for i in range(len(atomic_token_seq)):  # SentencePiece uses suffix array, this is simpler but more mem intensive
+        for i in range(
+            len(atomic_token_seq)
+        ):  # SentencePiece uses suffix array, this is simpler but more mem intensive
             for j in range(i + 1, min(len(atomic_token_seq) + 1, i + max_token_length + 1)):
                 if pretokenizer.token_allowed(atomic_token_seq[i:j]):  # char boundaries etc enforced here!
                     substring_freq[tuple(atomic_token_seq[i:j])] += count
@@ -520,7 +522,7 @@ def finalize_tokens(
 ) -> tuple[UnigramModel, int]:
     """Finalizes the vocabulary based on frequency in optimal tokenizations."""
 
-    final_tokens = {}
+    final_tokens: dict[int, UnigramToken] = {}
     # Add required tokens
     for token in model.tokens:
         if token.required:
@@ -602,7 +604,7 @@ def train_unigram(
         # Check Stopping Condition
         current_size = len(model.tokens)
         if current_size <= prune_to_vocab_size:
-            logger.info(f"🎯 Target vocabulary size for EM iterations reached")
+            logger.info("🎯 Target vocabulary size for EM iterations reached")
             logger.debug(f"   ├─ Current: {current_size:,}")
             logger.debug(f"   └─ Target:  {prune_to_vocab_size:,}")
             break

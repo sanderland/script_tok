@@ -3,13 +3,13 @@ import json
 import math
 import os
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Generator
 from dataclasses import dataclass
 
 import tabulate
 
 from script_bpe.pretokenize import Pretokenizer, export_pretokenizer, load_pretokenizer
-from script_bpe.utils import TokenSeq, token_array
+from script_bpe.utils import InputTokenSeq, TokenSeq, token_array
 from script_bpe.tokenizers import BaseToken
 from script_bpe.tokenizers.base import BaseTokenizer
 
@@ -37,7 +37,7 @@ class UnigramToken(BaseToken):
 
 class Trie:
     def __init__(self, tokens: list[UnigramToken]):
-        self.root = {}
+        self.root: dict[int, dict[int | None, UnigramToken]] = {}
         for token in tokens:
             self.insert(token)
 
@@ -65,7 +65,7 @@ class Lattice:
         self.tokens_from_pos = tokens_from_pos
 
     def viterbi(self, allow_single_token=True) -> tuple[list[UnigramToken], float]:
-        best_at_pos = [(None, 0)] + [(None, float("-inf"))] * len(self.atomic_token_seq)
+        best_at_pos = [(None, 0.0)] + [(None, float("-inf"))] * len(self.atomic_token_seq)
         for pos in range(len(self.atomic_token_seq)):
             for token in self.tokens_from_pos[pos]:
                 end = pos + len(token.atomic_tokens)
@@ -85,7 +85,7 @@ class Lattice:
             pos -= len(token.atomic_tokens)
         return path[::-1], best_at_pos[-1][1]
 
-    def all_paths(self, starting_pos: int = 0) -> Iterable[tuple[tuple[UnigramToken], float]]:
+    def all_paths(self, starting_pos: int = 0) -> Generator[tuple[tuple[UnigramToken], float], None, None]:
         if starting_pos == len(self.atomic_token_seq):
             yield (tuple(), 0.0)
             return
@@ -120,7 +120,7 @@ class Lattice:
         assert z != float("-inf"), (
             f"Lattice for {self.atomic_token_seq!r} has no valid paths with tokens_from_pos {self.tokens_from_pos}"
         )
-        token_prob = defaultdict(float)
+        token_prob: dict[int, float] = defaultdict(float)
         for pos in range(len(self.atomic_token_seq)):
             for token in self.tokens_from_pos[pos]:
                 token_logprob = alpha[pos] + token.log_prob + beta[pos + len(token.atomic_tokens)] - z
@@ -140,7 +140,7 @@ class UnigramModel(BaseTokenizer):
 
     VERSION = "seunigram-v1"
 
-    def __init__(self, pretokenizer: Pretokenizer, tokens: list[UnigramToken], metadata: dict = None):
+    def __init__(self, pretokenizer: Pretokenizer, tokens: list[UnigramToken], metadata: dict | None = None):
         """
         Initialize the Unigram model.
 
@@ -152,7 +152,7 @@ class UnigramModel(BaseTokenizer):
         self.pretokenizer = pretokenizer
         # Canonical store: dict[int, UnigramToken]
         self.tokens = {t.id: t for t in (tokens or [])}
-        self.trie = Trie(list(self.tokens.values()))
+        self.trie = Trie(tokens)
         self.metadata = metadata or {}
         self.tokens_by_id = self.tokens
 
@@ -171,7 +171,7 @@ class UnigramModel(BaseTokenizer):
         else:
             return [token.id for token in tokens]
 
-    def decode(self, ids: list[int]) -> str:
+    def decode(self, ids: InputTokenSeq) -> str:
         return self.pretokenizer.decode([tid for token_id in ids for tid in self.tokens_by_id[token_id].atomic_tokens])
 
     @classmethod

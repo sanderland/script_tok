@@ -29,7 +29,6 @@ def delta_counts(original_counts, result_counts):
         ([3, 1, 1, 1, 1, 1, 1, 1, 1, 4], (1, 1), 2, [3, 2, 2, 2, 2, 4]),
     ],
 )
-
 def test_chunk_merge(curr_seq, pair, new_token, expected_seq):
     chunk = ChunkTokenization(curr_seq=token_array(curr_seq))
     pair_delta_from_merge, merge_count = chunk.merge(pair, new_token)

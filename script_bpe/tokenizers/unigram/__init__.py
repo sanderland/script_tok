@@ -1,3 +1,1 @@
-from .model import UnigramModel
-
-
+from .model import UnigramModel as UnigramModel

@@ -1,11 +1,12 @@
 import json
 import os
 from collections import Counter
+from typing import Iterable, Literal
 
 import polars as pl
 
 from script_bpe.pretokenize import Pretokenizer
-from script_bpe.utils import PROJECT_ROOT, token_array
+from script_bpe.utils import PROJECT_ROOT, token_array, TokenSeq
 
 
 class PretokenizedCorpus:
@@ -13,7 +14,7 @@ class PretokenizedCorpus:
     DEFAULT_MAX_LENGTH = 10_000_000  # max chunk length
     DEFAULT_PARTITIONS = 128  # number of partitions to split the corpus into
     DEFAULT_BASE_PATH = os.path.join(PROJECT_ROOT, "results/corpora")  # default path to save the corpus
-    PARQUET_COMPRESSION = "lz4"  # compression algorithm for parquet files, default fast
+    PARQUET_COMPRESSION: Literal["lz4", "uncompressed", "snappy", "gzip", "lzo", "brotli", "zstd"] = "lz4"
 
     def __init__(
         self,
@@ -43,9 +44,9 @@ class PretokenizedCorpus:
         return os.path.join(self.dir_path(), "metadata.json")
 
     @staticmethod
-    def encode_texts(texts: list[str], pretokenizer: Pretokenizer, max_length: int) -> tuple[dict, dict]:
-        metadata = dict(atomic_tokens=0, chunks=0, chunks_skipped=0)
-        chunk_counts = Counter()
+    def encode_texts(texts: list[str], pretokenizer: Pretokenizer, max_length: int) -> tuple[Counter[bytes], dict]:
+        metadata: dict[str, int] = dict(atomic_tokens=0, chunks=0, chunks_skipped=0)
+        chunk_counts: Counter[bytes] = Counter()
         for text in texts:
             for chunk in pretokenizer.pretokenize(text):
                 if len(chunk) > max_length:
@@ -82,8 +83,8 @@ class PretokenizedCorpus:
 
             pool = multiprocessing.dummy.Pool(1)
 
-        total_chunk_counts = Counter()
-        metadata = dict(
+        total_chunk_counts: Counter[bytes] = Counter()
+        metadata: dict[str, int | str] = dict(
             version=cls.VERSION,
             max_length=max_length,
             pretokenizer_hash=pretokenizer.hash(),
@@ -103,7 +104,7 @@ class PretokenizedCorpus:
                 for k, v in part_metadata.items():
                     metadata[k] += v
 
-        flattened_data = [
+        flattened_data: list[dict[str, int | bytes]] = [
             dict(
                 chunk=chunk,
                 count=total_chunk_counts[chunk],
@@ -119,7 +120,7 @@ class PretokenizedCorpus:
             )
         return cls(name, base_path, pretokenizer)
 
-    def worker_iterate(self, worker_id: int, num_workers: int):
+    def worker_iterate(self, worker_id: int, num_workers: int) -> Iterable[tuple[TokenSeq, int]]:
         for i, partition_file in enumerate(self.partitions):
             if i % num_workers == worker_id:  # could be smarter if not evenly divisible
                 partition_path = os.path.join(self.dir_path(), partition_file)
@@ -129,4 +130,5 @@ class PretokenizedCorpus:
                     yield chunk, count
 
     def __iter__(self):  # single process iterate
-        yield from self.worker_iterate(0, 1)
+        for chunk, count in self.worker_iterate(0, 1):
+            yield chunk, count

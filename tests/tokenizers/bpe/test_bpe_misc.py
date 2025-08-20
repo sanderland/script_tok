@@ -53,5 +53,3 @@ def test_compression_curve_monotone(tmp_path):
     curve = compression_curve(tok)
     assert len(curve) == len(tok.merge_rules) + 1
     assert all(curve[i] >= curve[i + 1] for i in range(len(curve) - 1))
-
-

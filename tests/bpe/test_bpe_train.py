@@ -76,7 +76,6 @@ EXPECTED_MERGE_RULES = {
         ]
     ],
 )
-
 def test_bpe_train(tmp_path, pretokenizer_name, text_fixture, expected_merge_rules, x_tokens=20):
     text = text_fixture()
     pretokenizer = get_pretokenizer(pretokenizer_name)

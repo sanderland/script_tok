@@ -31,5 +31,3 @@ def test_regex_split_edges():
     # should not collapse everything into one chunk
     assert len(chunks) >= 3
     assert pt.decode(sum(chunks, token_array([]))) == pt.normalize(text)
-
-

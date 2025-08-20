@@ -1,7 +1,6 @@
 import pytest
 
-from script_bpe.pretokenize import UTF8Pretokenizer, UTF8PretokenizerConfig
-from script_bpe.pretokenize.pretokenizer import group_digits
+from script_bpe.pretokenize.pretokenizer import UTF8Pretokenizer, UTF8PretokenizerConfig, group_digits
 
 
 def _flatten_pretok(chunks):
@@ -44,7 +43,7 @@ def test_roundtrip_and_chunking(digit_handling):
     elif digit_handling == "SPLIT":
         # Expect non-digit, 1,2, non-digit, 0,0,7,8, rest = 9 chunks
         assert len(chunks) == 9
-        for idx in [1, 2, 4,5,6,7]:
+        for idx in [1, 2, 4, 5, 6, 7]:
             for tid in chunks[idx]:
                 # Should be present in token_to_id values
                 assert tid in ptok.token_to_id.values()
@@ -54,7 +53,7 @@ def test_roundtrip_and_chunking(digit_handling):
         # Validate grouping by decoding just the digit chunks roundtrip
         # and comparing with original digit substrings
         # chunks positions 1 and 3 are digit-only
-        digit_subs = ["12", "0","078"]
+        digit_subs = ["12", "0", "078"]
         for idx, original_digits in zip([1, 3, 4], digit_subs):
             decoded = ptok.tokens_repr(chunks[idx])
             assert decoded == original_digits
@@ -75,5 +74,3 @@ def test_registered_digit_tokens_rtl3_samples():
         assert dd in ptok.token_to_id
     for ddd in ["000", "078", "999"]:
         assert ddd in ptok.token_to_id
-
-

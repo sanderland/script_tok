@@ -1,4 +1,3 @@
-from collections import Counter
 
 import math
 import pytest
@@ -71,5 +70,3 @@ def test_unigram_train_end_to_end(tmp_path, pretokenizer_name, text_fixture, x_t
     assert isinstance(loaded, UnigramModel)
     assert len(loaded.tokens) == len(model.tokens)
     assert loaded.encode(text) == ids
-
-

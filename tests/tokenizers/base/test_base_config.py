@@ -15,5 +15,3 @@ def test_trainer_config_and_logger(tmp_path):
     d = Dummy(pre, corpus, cfg)
     # logger exists and has name
     assert d.logger.name == "Dummy"
-
-

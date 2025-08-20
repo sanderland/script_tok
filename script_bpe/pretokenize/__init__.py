@@ -1,12 +1,10 @@
 from .pretokenizer import (
     Pretokenizer,
     PretokenizerConfig,
-    ScriptPretokenizer,
     ScriptPretokenizerConfig,
-    UTF8Pretokenizer,
     UTF8PretokenizerConfig,
 )
-from .scriptencoding import ScriptEncodingV1, ScriptEncodingV2
+from .scriptencoding import ScriptEncodingV1 as ScriptEncodingV1, ScriptEncodingV2 as ScriptEncodingV2
 
 GPT2_REGEX = r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"
 GPT4_REGEX = (
@@ -34,6 +32,9 @@ PRETOKENIZER_REGISTRY: dict[str, PretokenizerConfig] = {
     "bytes_nosplit_cb": UTF8PretokenizerConfig(regex_pattern=None),
     "scriptenc": ScriptPretokenizerConfig(enforce_char_boundaries=False),
     "scriptenc_cb": ScriptPretokenizerConfig(),
+    "scriptenc_gpt4o": ScriptPretokenizerConfig(
+        regex_pattern=GPT4O_REGEX, script_split=False, enforce_char_boundaries=False
+    ),
     "scriptenc_gpt4o_cb": ScriptPretokenizerConfig(regex_pattern=GPT4O_REGEX, script_split=False),
     "scriptenc_nosplit_cb": ScriptPretokenizerConfig(regex_pattern=None, script_split=False),
     "scriptenc2_cb": ScriptPretokenizerConfig(script_config=ScriptEncodingV2, enforce_char_boundaries=True),
@@ -50,11 +51,14 @@ def get_pretokenizer(name: str) -> Pretokenizer:
     for config_type, pretokenizer_cls in Pretokenizer.REGISTRY.values():
         if config_type is config.__class__:
             return pretokenizer_cls(config)
-            
+    raise ValueError(f"config.__class__: {config.__class__} not found in any pretokenizer")
+
+
 def load_pretokenizer(serialized: dict) -> Pretokenizer:
     config_type, pretokenizer_cls = Pretokenizer.REGISTRY[serialized["config_class"]]
-    config = config_type.model_validate(serialized['config'])
+    config = config_type.model_validate(serialized["config"])
     return pretokenizer_cls(config)
+
 
 def export_pretokenizer(pretokenizer: Pretokenizer) -> dict:
     return dict(config_class=pretokenizer.__class__.__name__, config=pretokenizer.config.model_dump())

@@ -8,5 +8,3 @@ def test_token_array_and_logger():
     logger = create_logger("test", verbose=False)
     logger.info("hello")
     assert logger.name == "test"
-
-

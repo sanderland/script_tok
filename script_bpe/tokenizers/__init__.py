@@ -1,1 +1,1 @@
-from .base import BaseToken, BaseTokenizer
+from .base import BaseToken as BaseToken, BaseTokenizer as BaseTokenizer

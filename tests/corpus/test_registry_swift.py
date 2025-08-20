@@ -9,5 +9,3 @@ def test_load_swift(tmp_path):
     assert corpus.metadata["docs"] >= 1
     it = list(corpus.worker_iterate(worker_id=0, num_workers=1))
     assert len(it) > 0
-
-

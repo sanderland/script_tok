@@ -48,7 +48,7 @@ class BPETokenizer(BaseTokenizer):
         self.pretokenizer = pretokenizer
         self.merge_rules = merge_rules
         self.metadata = metadata or {}
-        self._merge_rules_dict = {}
+        self._merge_rules_dict: dict[tuple[int, int], tuple[float, int]] = {}
         self._build_vocab()
 
     @classmethod
@@ -147,8 +147,8 @@ class BPETokenizer(BaseTokenizer):
         metadata_tokens = {t["id"]: t for t in copy.deepcopy(self.metadata.get("tokens", []))}
 
         # Generate report
-        report = f"# Tokenizer report\n"
-        report += f"\n## Statistics\n\n"
+        report = "# Tokenizer report\n"
+        report += "\n## Statistics\n\n"
         report += f"- Number of merge rules trained: {stats['num_merge_rules']}\n"
         report += f"- Total number of tokens: {stats['num_tokens']}\n"
         report += f"- Last merge frequency: {stats['last_merge_count']}\n"
@@ -167,9 +167,7 @@ class BPETokenizer(BaseTokenizer):
         report += f"\n## Details for {len(self.merge_rules):,d} merge rules\n\n"
         merge_rules = [mr.save_dict() for mr in self.merge_rules]
         for mr in merge_rules:
-            mr["vocab_from"] = [
-                self.pretokenizer.tokens_repr(self.tokens[t].atomic_tokens) for t in mr["tokens_from"]
-            ]
+            mr["vocab_from"] = [self.pretokenizer.tokens_repr(self.tokens[t].atomic_tokens) for t in mr["tokens_from"]]
             mr["vocab_to"] = repr(self.pretokenizer.tokens_repr(self.tokens[mr["token_to"]].atomic_tokens))
             mr["count"] = metadata_tokens[mr["token_to"]]["original_count"]
         report += tabulate.tabulate(merge_rules, headers="keys", tablefmt="github")
@@ -182,7 +180,7 @@ class BPETokenizer(BaseTokenizer):
         report += tabulate.tabulate(non_atomic_tokens, headers="keys", tablefmt="github")
 
         # Metadata
-        report += f"\n\n## Metadata\n\n"
+        report += "\n\n## Metadata\n\n"
         report += tabulate.tabulate(
             [[k, v] for k, v in self.metadata.items() if k != "tokens"], headers=["key", "value"], tablefmt="github"
         )

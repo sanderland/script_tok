@@ -2,7 +2,7 @@ import math
 import pytest
 
 from script_bpe.pretokenize import get_pretokenizer
-from script_bpe.tokenizers.unigram.model import Lattice, Trie, UnigramModel, UnigramToken
+from script_bpe.tokenizers.unigram.model import Trie, UnigramModel, UnigramToken
 from script_bpe.utils import token_array
 
 
@@ -102,5 +102,3 @@ def test_unigram_model_encode_prefers_longer_token(tiny_model):
     # Sanity: path should be ["00", "1"] for "001"
     ids = tiny_model.encode("001")
     assert ids == [1, 2]
-
-

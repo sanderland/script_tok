@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 from abc import abstractmethod
 import hashlib
-from typing import Literal
+from typing import Sequence, Literal
 import regex as re
 import itertools
 import unicodedata
@@ -18,7 +18,7 @@ class PretokenizerConfig(BaseModel):
     starting_token_id: int = 1  # 0 reserved for pad
     script_config: ScriptConfig = ScriptEncodingV1
     # normalization
-    normalization: str | None = "NFC"
+    normalization: Literal["NFC", "NFD", "NFKC", "NFKD"] | None = "NFC"
     remove_unassigned: bool = True
     # splitting
     regex_pattern: str | None = None
@@ -79,21 +79,24 @@ CharEncT = ScriptCharEnc | UTF8CharEnc | DigitsEnc
 
 
 def group_digits(digits: str, method: DigitHandlingT) -> list[str]:
-    l = len(digits)
+    num_digits = len(digits)
     if method == "RTL3":
         # Group digits from the right in chunks of 3, keeping a possible leading remainder
-        remainder = l % 3
+        remainder = num_digits % 3
         groups: list[str] = []
         if remainder:
             groups.append(digits[:remainder])
-        groups.extend(digits[i : i + 3] for i in range(remainder, l, 3))
+        groups.extend(digits[i : i + 3] for i in range(remainder, num_digits, 3))
         return groups
     elif method == "SPLIT":
         return list(digits)
+    else:
+        return [digits]
 
 
 class Pretokenizer:
     REGISTRY: dict[str, tuple[type[PretokenizerConfig], type["Pretokenizer"]]] = {}
+
     def __init_subclass__(cls, config_type: type[PretokenizerConfig]) -> None:
         cls.REGISTRY[cls.__name__] = (config_type, cls)
         super().__init_subclass__()
@@ -106,6 +109,7 @@ class Pretokenizer:
         self.atomic_tokens: dict[int, str] = {}  # not to be confused with kittens
         self.token_to_id: dict[str, int] = {}
         self._next_token_id = self.config.starting_token_id
+        self.is_initial_char_tokens: set[int] = set()
         self._build_atomic_tokens()
         if self.config.digit_handling is not None:
             self._build_digit_tokens()
@@ -146,7 +150,7 @@ class Pretokenizer:
         """decodes a list of base tokens back to string"""
         raise NotImplementedError
 
-    def encode_text(self, text: str) -> list[CharEncT]:
+    def encode_text(self, text: str) -> Sequence[CharEncT]:
         """encodes a string to a list of base tokens, without any other pretokenization"""
         raise NotImplementedError
 
@@ -158,28 +162,25 @@ class Pretokenizer:
             text = "".join(c for c in text if c in self.valid_chars)
         return text
 
-    def split_unencoded_and_encode(self, text: str) -> list[list[CharEncT]]:
+    def split_unencoded_and_encode(self, text: str) -> list[Sequence[CharEncT]]:
         """1. Maybe split off digits, based on method"""
-        if self.config.digit_handling is None:
-            encoded_chunks = [text]  # is even, so works
-        else:
-            encoded_chunks = re.split("([0-9]+)", text)
-        for i in range(len(encoded_chunks)):
+        parts = [text] if self.config.digit_handling is None else re.split("([0-9]+)", text)
+        output_chunks: list[Sequence[CharEncT]] = []
+        for i, part in enumerate(parts):
             if i % 2 == 0 or self.config.digit_handling is None:  # non-digits
-                encoded_chunks[i] = [self.encode_text(c) for c in self.regex_split(encoded_chunks[i])]
+                for token in self.regex_split(part):
+                    output_chunks.append(self.encode_text(token))
             else:  # only digits
-                encoded_chunks[i] = [
-                    self.encode_digits(c) for c in group_digits(encoded_chunks[i], self.config.digit_handling)
-                ]
-
-        return [g for chunk in encoded_chunks for g in chunk]
+                for group in group_digits(part, self.config.digit_handling):
+                    output_chunks.append(self.encode_digits([group]))
+        return output_chunks
 
     def regex_split(self, text: str) -> list[str]:
         if self.config.regex_pattern is None:
             return [text]
         return re.findall(self.config.regex_pattern, text)
 
-    def split_encoded(self, text_chunks: list[CharEncT]) -> list[list[CharEncT]]:
+    def split_encoded(self, text_chunks: Sequence[CharEncT]) -> list[Sequence[CharEncT]]:
         return [text_chunks]
 
     def encode_digits(self, digit_groups: list[str]) -> list[DigitsEnc]:
@@ -189,12 +190,12 @@ class Pretokenizer:
         """Representation that is able to handle partial/broken sequences"""
         return self.decode(atomic_token_ids, errors="backslashreplace")
 
-    def pretokens_repr(self, pretokens: PretokenizedT) -> str:
+    def pretokens_repr(self, pretokens: PretokenizedT) -> list[str]:
         return [self.decode(token_ids) for token_ids in pretokens]
 
     def token_allowed(self, token_seq: InputTokenSeq) -> bool:
         try:
-            text = self.decode(token_seq, errors="strict")
+            self.decode(token_seq, errors="strict")
         except ValueError:
             if self.config.enforce_char_boundaries:
                 return [i for i, tid in enumerate(token_seq) if tid in self.is_initial_char_tokens] == [0]
@@ -203,12 +204,17 @@ class Pretokenizer:
     def bpe_merge_allowed(self, a: InputTokenSeq, b: InputTokenSeq) -> bool:
         return self.token_allowed(list(a) + list(b))
 
+
 class UTF8Pretokenizer(Pretokenizer, config_type=UTF8PretokenizerConfig):
     def __init__(self, config: UTF8PretokenizerConfig) -> None:
         super().__init__(config)
         self.token_to_bytes = {tid: bytes([b]) for b, tid in self.byte_ids.items()}
-        self.token_to_bytes.update({tid: text.encode("utf-8") for tid, text in self.atomic_tokens.items() if text.isdigit()})
-        self.is_initial_char_tokens = {tid for tid, bs in self.token_to_bytes.items() if bs[0] & 0b11000000 != 0b10000000}
+        self.token_to_bytes.update(
+            {tid: text.encode("utf-8") for tid, text in self.atomic_tokens.items() if text.isdigit()}
+        )
+        self.is_initial_char_tokens = {
+            tid for tid, bs in self.token_to_bytes.items() if bs[0] & 0b11000000 != 0b10000000
+        }
 
     def _build_atomic_tokens(self):
         self.byte_ids = {b: self._register_token(f"<BYTE_{b:02X}>") for b in range(256)}
@@ -217,7 +223,7 @@ class UTF8Pretokenizer(Pretokenizer, config_type=UTF8PretokenizerConfig):
         byteseq = b"".join(self.token_to_bytes[tid] for tid in atomic_token_ids)
         return byteseq.decode("utf-8", errors=errors)
 
-    def encode_text(self, text: str) -> list[UTF8CharEnc]:
+    def encode_text(self, text: str) -> Sequence[CharEncT]:
         return [UTF8CharEnc(self.byte_ids[c]) for c in text.encode("utf-8")]
 
 
@@ -226,6 +232,7 @@ class ScriptPretokenizer(Pretokenizer, config_type=ScriptPretokenizerConfig):
         if config.script_split and config.regex_pattern is not None:
             raise ValueError("script_split and regex_pattern should probably not be used together")
         super().__init__(config)
+        self._script_split: bool = config.script_split
         self.space_group = self.encode_text(" ")
 
     def _build_atomic_tokens(self):
@@ -263,22 +270,25 @@ class ScriptPretokenizer(Pretokenizer, config_type=ScriptPretokenizerConfig):
                 i += 1
         return decoded
 
-    def encode_text(self, text: str) -> list[ScriptCharEnc]:
+    def encode_text(self, text: str) -> Sequence[CharEncT]:
         return [self.char_encoding[c] for c in text]
 
-    def split_encoded(self, encoding: list[ScriptCharEnc]) -> list[list[ScriptCharEnc]]:
+    def split_encoded(self, encoding: Sequence[CharEncT]) -> list[Sequence[CharEncT]]:
         """
         Pretokenize the encoding by grouping adjacent tokens with the same script.
         Special cases:
         - If a script combines with spaces, it will be merged with the space group.
         - Inherited scripts are merged with the previous group, and do not split the group.
         """
-        if not self.config.script_split:
+        if not self._script_split:
             return [encoding]
         space_group = self.space_group
-        script_groups = [list(g) for _, g in itertools.groupby(encoding, key=lambda x: x.script_id)]
+        script_encoding = [c for c in encoding if isinstance(c, ScriptCharEnc)]
+        script_groups: list[list[ScriptCharEnc]] = [
+            list(g) for _, g in itertools.groupby(script_encoding, key=lambda x: x.script_id)
+        ]
 
-        merged_groups = []
+        merged_groups: list[Sequence[CharEncT]] = []
         i = 0
         while i < len(script_groups) - 1:
             current_group, next_group = script_groups[i], script_groups[i + 1]
@@ -299,4 +309,3 @@ class ScriptPretokenizer(Pretokenizer, config_type=ScriptPretokenizerConfig):
         if i < len(script_groups):
             merged_groups.append(script_groups[i])  # add last group
         return merged_groups
-
