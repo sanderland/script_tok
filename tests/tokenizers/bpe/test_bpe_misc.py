@@ -34,10 +34,10 @@ def test_bpe_io_stats_and_report(tmp_path, pretokenizer_name):
     for k in [
         "num_merge_rules",
         "num_tokens",
-        "num_undecodeable",
+        "num_undecodable",
         "last_merge_count",
-        "longest_tokens_atomic_tokens",
-        "longest_tokens_chars",
+        "longest_tokens_by_atomic",
+        "longest_tokens_by_chars",
         "avg_token_length_bt",
     ]:
         assert k in stats

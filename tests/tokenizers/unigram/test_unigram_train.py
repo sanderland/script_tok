@@ -51,7 +51,7 @@ def test_unigram_train_end_to_end(tmp_path, pretokenizer_name, text_fixture, x_t
     assert len(pretokenizer.atomic_tokens) <= len(model.tokens) <= len(pretokenizer.atomic_tokens) + x_tokens
 
     # Probabilities are a proper distribution over kept tokens (can be < 1 after pruning)
-    prob_sum = sum(math.exp(t.log_prob) for t in model.tokens)
+    prob_sum = sum(math.exp(t.log_prob) for t in model.tokens.values())
     assert 0.8 <= prob_sum <= 1.0001
 
     # Encode/decode roundtrip preserves pretokenization

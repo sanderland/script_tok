@@ -133,34 +133,13 @@ class BPETokenizer(BaseTokenizer):
 
     def stats(self, n_longest=50) -> dict:
         """Compute and return statistics about the tokenizer."""
-        num_merge_rules = len(self.merge_rules)
-        num_tokens = len(self.tokens)
-        metadata_tokens = {t["id"]: t for t in copy.deepcopy(self.metadata.get("tokens", []))}
-        last_merge_count = metadata_tokens[self.merge_rules[-1].token_to]["original_count"]
-        longest_tokens_atomic_tokens = sorted(self.tokens.values(), key=lambda t: -len(t.atomic_tokens))[:n_longest]
-        longest_tokens_chars = sorted(self.tokens.values(), key=lambda t: -len(self.decode([t.id])))[:n_longest]
-
-        avg_token_length_bt = sum(len(t.atomic_tokens) for t in self.tokens.values()) / num_tokens
-        is_undecodable = {
-            id: "�" in self.pretokenizer.decode(t.atomic_tokens, errors="replace")
-            and (
-                self.pretokenizer.decode(t.atomic_tokens, errors="replace").count("�")
-                - self.pretokenizer.tokens_repr(t.atomic_tokens).count("�")
-            )
-            > 0
-            for id, t in self.tokens.items()
-            if id not in self.pretokenizer.atomic_tokens
-        }
-        num_undecodeable = sum(is_undecodable.values())
-        return dict(
-            num_merge_rules=num_merge_rules,
-            num_tokens=num_tokens,
-            num_undecodeable=num_undecodeable,
-            last_merge_count=last_merge_count,
-            longest_tokens_atomic_tokens=longest_tokens_atomic_tokens,
-            longest_tokens_chars=longest_tokens_chars,
-            avg_token_length_bt=avg_token_length_bt,
+        s = super().stats(n_longest=n_longest)
+        s["num_merge_rules"] = len(self.merge_rules)
+        tokens_meta = {t["id"]: t for t in copy.deepcopy(self.metadata.get("tokens", []))}
+        s["last_merge_count"] = (
+            tokens_meta.get(self.merge_rules[-1].token_to, {}).get("original_count", 0) if self.merge_rules else 0
         )
+        return s
 
     def report(self):
         """Return markdown formatted report with info."""
@@ -174,11 +153,11 @@ class BPETokenizer(BaseTokenizer):
         report += f"- Total number of tokens: {stats['num_tokens']}\n"
         report += f"- Last merge frequency: {stats['last_merge_count']}\n"
         report += f"- Average token length: {stats['avg_token_length_bt']:.4f} base tokens\n"
-        report += f"- Number of undecodeable tokens: {stats['num_undecodeable']}\n"
+        report += f"- Number of undecodable tokens: {stats['num_undecodable']}\n"
 
         for longest_type, longest_tokens in [
-            ("base tokens", stats["longest_tokens_atomic_tokens"]),
-            ("characters", stats["longest_tokens_chars"]),
+            ("base tokens", stats["longest_tokens_by_atomic"]),
+            ("characters", stats["longest_tokens_by_chars"]),
         ]:
             report += f"\n## Longest tokens by {longest_type}\n\n"
             for t in longest_tokens:

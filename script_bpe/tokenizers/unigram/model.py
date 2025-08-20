@@ -150,10 +150,11 @@ class UnigramModel(BaseTokenizer):
             metadata: Additional metadata to store with the model
         """
         self.pretokenizer = pretokenizer
-        self.tokens = tokens or []
-        self.trie = Trie(self.tokens)
+        # Canonical store: dict[int, UnigramToken]
+        self.tokens = {t.id: t for t in (tokens or [])}
+        self.trie = Trie(list(self.tokens.values()))
         self.metadata = metadata or {}
-        self.tokens_by_id = {t.id: t for t in self.tokens} if self.tokens else {}
+        self.tokens_by_id = self.tokens
 
     def make_lattice(self, atomic_token_seq: TokenSeq) -> Lattice:
         tokens_from_pos = [self.trie.find_prefixes(atomic_token_seq[i:]) for i in range(len(atomic_token_seq))]
@@ -209,7 +210,7 @@ class UnigramModel(BaseTokenizer):
                 {
                     "info": {"version": self.VERSION},
                     "pretokenizer": export_pretokenizer(self.pretokenizer),
-                    "tokens": [t.to_dict() for t in self.tokens],
+                    "tokens": [t.to_dict() for t in self.tokens.values()],
                     "metadata": self.metadata,
                 },
                 f,
@@ -218,39 +219,7 @@ class UnigramModel(BaseTokenizer):
         return file_path
 
     def stats(self, n_longest=20) -> dict:
-        """Compute and return statistics about the Unigram tokenizer.
-
-        Returns:
-            dict: Dictionary containing various statistics about the tokenizer
-        """
-        # Basic counts
-        num_tokens = len(self.tokens)
-        atomic_tokens = [t for t in self.tokens if len(t.atomic_tokens) == 1]
-        multi_token = [t for t in self.tokens if len(t.atomic_tokens) > 1]
-
-        # Token lengths
-        token_lengths = [len(t.atomic_tokens) for t in self.tokens]
-        char_lengths = [len(self.decode([t.id])) for t in self.tokens]
-
-        # Find undecodable tokens
-        is_undecodable = {
-            t.id: "�" in self.pretokenizer.decode(t.atomic_tokens, errors="replace")
-            for t in self.tokens
-            if not t.required
-        }
-
-        return {
-            # Basic counts
-            "num_tokens": num_tokens,
-            "num_atomic_tokens": len(atomic_tokens),
-            "num_multi_tokens": len(multi_token),
-            "num_undecodable": sum(is_undecodable.values()),
-            # Length statistics
-            "avg_token_length_bt": sum(token_lengths) / num_tokens if num_tokens > 0 else 0,
-            "avg_char_length": sum(char_lengths) / num_tokens if num_tokens > 0 else 0,
-            # Longest tokens for reporting
-            "longest_tokens": sorted(self.tokens, key=lambda t: -len(t.atomic_tokens))[:n_longest],
-        }
+        return super().stats(n_longest=n_longest)
 
     def report(self, n_longest=20) -> str:
         """Generate a markdown formatted report about the tokenizer."""
@@ -273,7 +242,7 @@ class UnigramModel(BaseTokenizer):
 
         # Add longest tokens section
         longest_tokens_table = []
-        for token in stats["longest_tokens"]:
+        for token in stats["longest_tokens_by_atomic"]:
             token_str = self.pretokenizer.tokens_repr(token.atomic_tokens)
             longest_tokens_table.append(
                 {
@@ -300,7 +269,7 @@ class UnigramModel(BaseTokenizer):
                 "Log Probability": f"{token.log_prob:.4f}",
                 "Text": repr(self.pretokenizer.tokens_repr(token.atomic_tokens)),
             }
-            for token in sorted(self.tokens, key=lambda t: -t.log_prob)
+            for token in sorted(self.tokens.values(), key=lambda t: -t.log_prob)
             if not token.required
         ]
 

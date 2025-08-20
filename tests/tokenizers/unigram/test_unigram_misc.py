@@ -25,7 +25,7 @@ def test_unigram_stats_and_report(tmp_path, pretokenizer_name):
         "num_undecodable",
         "avg_token_length_bt",
         "avg_char_length",
-        "longest_tokens",
+        "longest_tokens_by_atomic",
     ]:
         assert k in stats
 

@@ -74,7 +74,7 @@ class UnigramTrainer(BaseTrainer):
             "tokens/pretoken": total_tokens / total_pretokens,
         }
         num_defended = len(defended_token_ids)
-        defended_in_final = [(t, t.log_prob) for t in model.tokens if t.id in defended_token_ids]
+        defended_in_final = [(t, t.log_prob) for t in model.tokens.values() if t.id in defended_token_ids]
         self.logger.info(f"🎉 Training completed successfully! Avg tokens/pretoken: {stats['tokens/pretoken']:.4f}")
         self.logger.debug(f"   ├─ Objective: {stats['objective']:.4f}")
         self.logger.debug("  📊 Token Removal Statistics:")
@@ -159,24 +159,26 @@ class UnigramTrainer(BaseTrainer):
     def run_m_step(self, model: UnigramModel, expected_count: dict[int, float]) -> tuple[UnigramModel, int]:
         dp_smoothing = self.config.m_step_dp_smoothing
         k_expected_frequency_threshold = self.config.m_step_low_count_threshold
-        filtered_tokens = [t for t in model.tokens if expected_count[t.id] >= k_expected_frequency_threshold or t.required]
+        filtered_tokens = [
+            t for t in model.tokens.values() if expected_count[t.id] >= k_expected_frequency_threshold or t.required
+        ]
         num_removed = len(model.tokens) - len(filtered_tokens)
         if num_removed > 0:
             filtered_ids = {t.id for t in filtered_tokens}
-            removed_tokens = [(t, expected_count[t.id]) for t in model.tokens if t.id not in filtered_ids]
+            removed_tokens = [(t, expected_count[t.id]) for t in model.tokens.values() if t.id not in filtered_ids]
             self.logger.debug(
                 f"   ├─ Removed {num_removed:,} low-frequency tokens below threshold {k_expected_frequency_threshold} - examples:"
             )
             self.log_examples(removed_tokens, "expected count")
             model = UnigramModel(self.pretokenizer, filtered_tokens)
         expected_count = {k: max(0.01, v) for k, v in expected_count.items()}
-        total_freq = sum(expected_count[t.id] for t in model.tokens)
+        total_freq = sum(expected_count[t.id] for t in model.tokens.values())
         if dp_smoothing:
             log_total = digamma(total_freq)
-            for t in model.tokens:
+            for t in model.tokens.values():
                 t.log_prob = digamma(expected_count[t.id]) - log_total
         else:
-            for t in model.tokens:
+            for t in model.tokens.values():
                 t.log_prob = math.log(expected_count[t.id] / total_freq)
         return model, num_removed
 
@@ -184,7 +186,7 @@ class UnigramTrainer(BaseTrainer):
         num_non_atomic_tokens = len(model.tokens) - len(self.pretokenizer.atomic_tokens)
         shrink_n = int(num_non_atomic_tokens * (1 - self.config.pruning_shrinking_factor))
         target_size = max(desired_vocab_size, num_non_atomic_tokens - shrink_n)
-        token_count = {t.id: 0.0 for t in model.tokens}
+        token_count = {t.id: 0.0 for t in model.tokens.values()}
         for atomic_token_seq, count in self.corpus:
             lattice = model.make_lattice(atomic_token_seq)
             viterbi_path, _ = lattice.viterbi()
@@ -195,7 +197,7 @@ class UnigramTrainer(BaseTrainer):
         candidates = []
         new_tokens = []
         unused_token_ids = set()
-        for token in model.tokens:
+        for token in model.tokens.values():
             if token.required:
                 new_tokens.append(token)
                 continue
@@ -250,16 +252,16 @@ class UnigramTrainer(BaseTrainer):
 
     def finalize_tokens(self, model: UnigramModel, vocab_size: int) -> tuple[UnigramModel, int]:
         final_tokens = {}
-        for token in model.tokens:
+        for token in model.tokens.values():
             if token.required:
                 final_tokens[token.id] = token
-        for token in sorted(model.tokens, key=lambda x: -x.log_prob):
+        for token in sorted(model.tokens.values(), key=lambda x: -x.log_prob):
             if token.id in final_tokens:
                 continue
             if len(final_tokens) >= vocab_size:
                 break
             final_tokens[token.id] = token
-        removed_tokens = [(t, t.log_prob) for t in model.tokens if t.id not in final_tokens]
+        removed_tokens = [(t, t.log_prob) for t in model.tokens.values() if t.id not in final_tokens]
         self.logger.info(f"✨ Finalizing vocabulary from {len(model.tokens):,} to target {vocab_size:,}")
         self.logger.info(f" ├─ Kept {len(final_tokens):,} tokens")
         self.logger.info(f" └─ Removed {len(removed_tokens):,} tokens")
