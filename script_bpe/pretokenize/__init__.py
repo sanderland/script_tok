@@ -31,6 +31,9 @@ PRETOKENIZER_REGISTRY: dict[str, PretokenizerConfig] = {
     "bytes_gpt4o_cb": UTF8PretokenizerConfig(regex_pattern=GPT4O_REGEX),
     "bytes_gpt4o_cbi": UTF8PretokenizerConfig(regex_pattern=GPT4O_REGEX, enforce_inherited=True),
     "bytes_nosplit_cb": UTF8PretokenizerConfig(regex_pattern=None),
+    # Backward-compatible alias names expected by tests
+    "bytes_nosplit_cbi": UTF8PretokenizerConfig(regex_pattern=None, enforce_inherited=True),
+    "bytes_gpt4_cbi": UTF8PretokenizerConfig(regex_pattern=GPT4_REGEX, enforce_inherited=True),
     "scriptenc": ScriptPretokenizerConfig(enforce_char_boundaries=False),
     "scriptenc_cb": ScriptPretokenizerConfig(),
     "scriptenc_cbi": ScriptPretokenizerConfig(enforce_inherited=True),
@@ -38,6 +41,7 @@ PRETOKENIZER_REGISTRY: dict[str, PretokenizerConfig] = {
         regex_pattern=GPT4O_REGEX, script_split=False, enforce_char_boundaries=False
     ),
     "scriptenc_gpt4o_cb": ScriptPretokenizerConfig(regex_pattern=GPT4O_REGEX, script_split=False),
+    "scriptenc_gpt4o_cbi": ScriptPretokenizerConfig(regex_pattern=GPT4O_REGEX, script_split=False, enforce_inherited=True),
     "scriptenc_nosplit_cb": ScriptPretokenizerConfig(regex_pattern=None, script_split=False),
     "scriptenc2_cb": ScriptPretokenizerConfig(script_config=ScriptEncodingV2, enforce_char_boundaries=True),
     "scriptenc2_cbi": ScriptPretokenizerConfig(script_config=ScriptEncodingV2, enforce_inherited=True),
