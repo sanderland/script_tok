@@ -244,8 +244,8 @@ class BPETrainer(BaseTrainer):
             metadata=dict(
                 settings=dict(num_workers=cfg.num_workers),
                 corpus=corpus.metadata,
-                tokens=[t.report_dict(pretokenizer) for t in tokens.values()],
             ),
+            tokens=tokens,
         )
 
 

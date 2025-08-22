@@ -51,6 +51,7 @@ def unicode_script_map(filename=SCRIPTS_PATH) -> dict[str, frozendict[str, objec
 
 
 # Use deterministic lists for config-level data to avoid nondeterministic set ordering
+ALL = "✭"
 DEFAULT_SCRIPTS_LM_WITH_SPACES = [
     "Latin",  # Near space 18.0% of time, overall count 296,227,775,159
     "Arabic",  # Near space 18.6% of time, overall count 116,931,857,999
@@ -84,14 +85,18 @@ DEFAULT_SCRIPT_HIGH_RESOURCE_NO_SPACES = [
     "Khmer",
     "Lao",
 ]
-DEFAULT_SCRIPT_CAT_OVERRIDE = {
-    "\u30fc": ("Inherited", "LM"),  # カー (カ + ー) Katakana-Hiragana Prolonged Sound Mark in Japanese
-    "\uff70": ("Inherited", "LM"),  # ﾊﾟｰﾃｨｰ (halfwidth)
+ARABIC_SCRIPT_CAT_OVERRIDE = {
     "\u0640": ("Arabic", "LM"),  # ـــمــر (used in Arabic script shaping)
 }
-V1_SCRIPT_CAT_OVERRIDE = {
+V1_SCRIPT_CAT_OVERRIDE = ARABIC_SCRIPT_CAT_OVERRIDE | {
     "\n": ("Common", "Z"),  # Newline – whitespace
     "\t": ("Common", "Z"),  # Tab – whitespace
+    "\u30fc": ("Inherited", "LM"),  # カー (カ + ー) Katakana-Hiragana Prolonged Sound Mark in Japanese
+    "\uff70": ("Inherited", "LM"),  # ﾊﾟｰﾃｨｰ (halfwidth)
+}
+V2_SCRIPT_CAT_OVERRIDE = ARABIC_SCRIPT_CAT_OVERRIDE | {
+    "\u30fc": ("Inherited", ALL),  # カー (カ + ー) Katakana-Hiragana Prolonged Sound Mark in Japanese
+    "\uff70": ("Inherited", ALL),  # ﾊﾟｰﾃｨｰ (halfwidth)
 }
 
 
@@ -105,14 +110,14 @@ class ScriptBlock(BaseModel):
 
 
 class ScriptConfig(BaseModel):
-    ALL: ClassVar[str] = "✭"
+    ALL: ClassVar[str] = ALL
     ASCII_SCRIPT: ClassVar[str] = "ASCII"
     blocks: list[ScriptBlock] = []
     supercategory_type: Literal["V1", "V2"]
     largest_block: tuple[str, str] = ("Latin", "LM")
     merge_hiragana_with_han: bool = True
     script_cat_with_spaces: list[tuple[str, str]] = DEFAULT_SCRIPT_WITH_SPACES + [("Common", "PS")]
-    script_cat_override: dict[str, tuple[str, str]] = DEFAULT_SCRIPT_CAT_OVERRIDE
+    script_cat_override: dict[str, tuple[str, str]] = ARABIC_SCRIPT_CAT_OVERRIDE
     # v2 only: avoid sets in config; use list for determinism and convert to set internally
     higher_resource_scripts: list[str] = DEFAULT_SCRIPTS_LM_WITH_SPACES + DEFAULT_SCRIPT_HIGH_RESOURCE_NO_SPACES
 
@@ -200,8 +205,8 @@ class ScriptConfig(BaseModel):
 
 
 ScriptEncodingV1 = ScriptConfig(
-    supercategory_type="V1", script_cat_override=V1_SCRIPT_CAT_OVERRIDE | DEFAULT_SCRIPT_CAT_OVERRIDE
+    supercategory_type="V1", script_cat_override=V1_SCRIPT_CAT_OVERRIDE
 )
 ScriptEncodingV2 = ScriptConfig(
-    supercategory_type="V2", script_cat_with_spaces=DEFAULT_SCRIPT_WITH_SPACES + [(ScriptConfig.ASCII_SCRIPT, "PSF")]
+    supercategory_type="V2", script_cat_override=V2_SCRIPT_CAT_OVERRIDE, script_cat_with_spaces=DEFAULT_SCRIPT_WITH_SPACES + [(ScriptConfig.ASCII_SCRIPT, "PSF")]
 )

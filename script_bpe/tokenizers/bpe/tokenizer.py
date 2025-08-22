@@ -40,16 +40,40 @@ class Token(BaseToken):
             final_count=self.current_count,
         )
 
+    def to_dict(self) -> dict:
+        return dict(
+            id=self.id,
+            atomic_tokens=list(self.atomic_tokens),
+            original_count=self.original_count,
+            current_count=self.current_count,
+        )
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "Token":
+        return cls(
+            id=d["id"],
+            atomic_tokens=token_array(d["atomic_tokens"]),
+            original_count=d.get("original_count", 0),
+            current_count=d.get("current_count", 0),
+        )
+
 
 class BPETokenizer(BaseTokenizer):
     VERSION = "sebpe-v1"
+    REPORT_TITLE = "BPE Tokenizer Report"
 
-    def __init__(self, merge_rules, pretokenizer: Pretokenizer, metadata=None):
+    def __init__(self, merge_rules, pretokenizer: Pretokenizer, metadata=None, tokens: dict[int, Token] | None = None):
         self.pretokenizer = pretokenizer
         self.merge_rules = merge_rules
         self.metadata = metadata or {}
         self._merge_rules_dict: dict[tuple[int, int], tuple[float, int]] = {}
-        self._build_vocab()
+        if tokens is not None:
+            self.tokens = tokens
+            # build merge rule index
+            for mi, mr in enumerate(self.merge_rules):
+                self._merge_rules_dict[(mr.tokens_from[0], mr.tokens_from[1])] = (mi, mr.token_to)
+        else:
+            self._build_vocab()
 
     @classmethod
     def load(cls, file):
@@ -59,7 +83,11 @@ class BPETokenizer(BaseTokenizer):
 
         merge_rules = [MergeRule(**mr) for mr in data["merge_rules"]]
         pretokenizer = load_pretokenizer(data["pretokenizer"])
-        return cls(merge_rules=merge_rules, pretokenizer=pretokenizer, metadata=data.get("metadata", {}))
+        tokens = None
+        if "tokens" in data:
+            toks = [Token.from_dict(t) for t in data["tokens"]]
+            tokens = {t.id: t for t in toks}
+        return cls(merge_rules=merge_rules, pretokenizer=pretokenizer, metadata=data.get("metadata", {}), tokens=tokens)
 
     def _build_vocab(self):
         # single bytes
@@ -123,7 +151,8 @@ class BPETokenizer(BaseTokenizer):
                 dict(
                     info=dict(version=self.VERSION),
                     merge_rules=[mr.save_dict() for mr in self.merge_rules],
-                    metadata=self.metadata,
+                    tokens=[t.to_dict() for t in self.tokens.values()],
+                    metadata={k: v for k, v in self.metadata.items() if k != "tokens"},
                     pretokenizer=export_pretokenizer(self.pretokenizer),
                 ),
                 f,
@@ -135,53 +164,58 @@ class BPETokenizer(BaseTokenizer):
         """Compute and return statistics about the tokenizer."""
         s = super().stats(n_longest=n_longest)
         s["num_merge_rules"] = len(self.merge_rules)
-        tokens_meta = {t["id"]: t for t in copy.deepcopy(self.metadata.get("tokens", []))}
+        # Last merge original count from tokens
         s["last_merge_count"] = (
-            tokens_meta.get(self.merge_rules[-1].token_to, {}).get("original_count", 0) if self.merge_rules else 0
+            self.tokens[self.merge_rules[-1].token_to].original_count if self.merge_rules else 0
         )
+        # Optional: derive entropy-like metrics from current counts
+        counts = [t.current_count for t in self.tokens.values() if t.current_count > 0]
+        n = sum(counts)
+        if n > 0:
+            import math as _math
+            probs = [c / n for c in counts]
+            shannon = -sum(p * _math.log2(p) for p in probs)
+            def _renyi(ps: list[float], alpha: float) -> float:
+                if alpha == 1.0:
+                    return shannon
+                if alpha == float("inf"):
+                    maxp = max(ps) if ps else 0.0
+                    return -_math.log2(maxp) if maxp > 0.0 else 0.0
+                if alpha == 0.0:
+                    k = len(ps)
+                    return _math.log2(k) if k > 0 else 0.0
+                ssum = sum(p ** alpha for p in ps)
+                return _math.log2(ssum) / (1.0 - alpha) if ssum > 0.0 else 0.0
+            alphas = (0.5, 1.0, 2.0, float("inf"))
+            s["train_renyi_bits"] = {("inf" if a == float("inf") else str(a)): _renyi(probs, a) for a in alphas}
+            s["train_shannon_bits"] = shannon
         return s
 
-    def report(self):
-        """Return markdown formatted report with info."""
-        stats = self.stats()
-        metadata_tokens = {t["id"]: t for t in copy.deepcopy(self.metadata.get("tokens", []))}
-
-        # Generate report
-        report = "# Tokenizer report\n"
-        report += "\n## Statistics\n\n"
-        report += f"- Number of merge rules trained: {stats['num_merge_rules']}\n"
-        report += f"- Total number of tokens: {stats['num_tokens']}\n"
-        report += f"- Last merge frequency: {stats['last_merge_count']}\n"
-        report += f"- Average token length: {stats['avg_token_length_bt']:.4f} base tokens\n"
-        report += f"- Number of undecodable tokens: {stats['num_undecodable']}\n"
-
-        for longest_type, longest_tokens in [
-            ("base tokens", stats["longest_tokens_by_atomic"]),
-            ("characters", stats["longest_tokens_by_chars"]),
-        ]:
-            report += f"\n## Longest tokens by {longest_type}\n\n"
-            for t in longest_tokens:
-                report += f"- Token {t.id:6d} consists of {len(t.atomic_tokens):3d} {longest_type}: {self.pretokenizer.tokens_repr(t.atomic_tokens)!r}\n"
-
-        # Merge rules
-        report += f"\n## Details for {len(self.merge_rules):,d} merge rules\n\n"
-        merge_rules = [mr.save_dict() for mr in self.merge_rules]
-        for mr in merge_rules:
-            mr["vocab_from"] = [self.pretokenizer.tokens_repr(self.tokens[t].atomic_tokens) for t in mr["tokens_from"]]
-            mr["vocab_to"] = repr(self.pretokenizer.tokens_repr(self.tokens[mr["token_to"]].atomic_tokens))
-            mr["count"] = metadata_tokens[mr["token_to"]]["original_count"]
-        report += tabulate.tabulate(merge_rules, headers="keys", tablefmt="github")
-
-        # tokens
-        for t in metadata_tokens.values():
-            t["vocab"] = repr(t["vocab"])
-        non_atomic_tokens = [t for t in metadata_tokens.values() if t["id"] not in self.pretokenizer.atomic_tokens]
-        report += f"\n\n## Details for {len(metadata_tokens):,d} tokens\n\n"
-        report += tabulate.tabulate(non_atomic_tokens, headers="keys", tablefmt="github")
-
-        # Metadata
-        report += "\n\n## Metadata\n\n"
-        report += tabulate.tabulate(
-            [[k, v] for k, v in self.metadata.items() if k != "tokens"], headers=["key", "value"], tablefmt="github"
-        )
-        return report
+    def report_details(self, n_longest: int = 20) -> dict[str, list[dict]]:
+        merge_rows = []
+        for mr in (mr.save_dict() for mr in self.merge_rules):
+            merge_rows.append(
+                {
+                    "tokens_from": mr["tokens_from"],
+                    "token_to": mr["token_to"],
+                    "vocab_from": [
+                        self.pretokenizer.tokens_repr(self.tokens[t].atomic_tokens) for t in mr["tokens_from"]
+                    ],
+                    "vocab_to": repr(self.pretokenizer.tokens_repr(self.tokens[mr["token_to"]].atomic_tokens)),
+                    "count": self.tokens[mr["token_to"]].original_count,
+                }
+            )
+        token_rows = [
+            {
+                "id": t.id,
+                "vocab": repr(self.pretokenizer.tokens_repr(t.atomic_tokens)),
+                "original_count": t.original_count,
+                "final_count": t.current_count,
+            }
+            for t in self.tokens.values()
+            if t.id not in self.pretokenizer.atomic_tokens
+        ]
+        return {
+            f"Details for {len(self.merge_rules):,d} merge rules": merge_rows,
+            f"Details for {len(token_rows):,d} tokens": token_rows,
+        }

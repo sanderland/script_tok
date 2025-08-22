@@ -95,19 +95,19 @@ def test_bpe_train(tmp_path, pretokenizer_name, text_fixture, expected_merge_rul
         f"Expected {len(tokenizer.tokens)}"
     )
 
-    # Verify token counts
-    metadata_tokens = {t["id"]: t for t in tokenizer.metadata["tokens"]}
+    # Verify token counts against model tokens
+    tokens_by_id = tokenizer.tokens
     tokens = tokenizer.encode(text)
     atomic_tokens = sum(tokenizer.pretokenizer.pretokenize(text), token_array([]))
 
     for token_id, count in Counter(atomic_tokens).items():
-        assert count == metadata_tokens[token_id]["original_count"], (
-            f"Base token {token_id} original count mismatch: manual count {count} does not match metadata {metadata_tokens[token_id]}"
+        assert count == tokens_by_id[token_id].original_count, (
+            f"Base token {token_id} original count mismatch: manual count {count} does not match model {tokens_by_id[token_id]}"
         )
 
     for token_id, count in Counter(tokens).items():
-        assert count == metadata_tokens[token_id]["final_count"], (
-            f"Token {token_id} final count mismatch: manual count {count} does not match metadata {metadata_tokens[token_id]}"
+        assert count == tokens_by_id[token_id].current_count, (
+            f"Token {token_id} final count mismatch: manual count {count} does not match model {tokens_by_id[token_id]}"
         )
 
     # Optional merge rules check

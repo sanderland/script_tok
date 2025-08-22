@@ -18,6 +18,7 @@ dependencies = [
     "scipy>=1.16.1",
     "frozendict>=2.4.6",
     "pydantic>=2.11.7",
+    "matplotlib>=3.10.5",
 ]
 
 [project.scripts]
@@ -31,6 +32,7 @@ dev = [
     "scalene>=1.5.51", # profiler
     "jinja2>=3.1.6",
     "mypy>=1.17.1",
+    "ipykernel>=6.30.1",
 ]
 
 

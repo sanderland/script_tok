@@ -8,7 +8,7 @@ import unicodedata
 import json
 
 from script_bpe.utils import InputTokenSeq, PretokenizedT, token_array, DigitHandlingT, TokenPairT
-from script_bpe.pretokenize.scriptencoding import ScriptConfig, ScriptEncodingV1, ScriptBlock
+from script_bpe.pretokenize.scriptencoding import ScriptConfig, ScriptEncodingV1, ScriptBlock, unicode_script_map
 
 # consolidated in utils
 
@@ -25,6 +25,7 @@ class PretokenizerConfig(BaseModel):
     digit_handling: DigitHandlingT = None
     # token restrictions
     enforce_char_boundaries: bool = True
+    enforce_inherited: bool = False
     # disallow extra fields
     model_config = ConfigDict(extra="forbid")
 
@@ -113,6 +114,11 @@ class Pretokenizer:
         self._build_atomic_tokens()
         if self.config.digit_handling is not None:
             self._build_digit_tokens()
+        self.inherited_chars: set[str] = (
+            {c for c, info in unicode_script_map().items() if info["script"] == "Inherited"}
+            if self.config.enforce_inherited
+            else set()
+        )
 
     def _register_token(self, text) -> int:
         self.atomic_tokens[self._next_token_id] = text
@@ -195,10 +201,13 @@ class Pretokenizer:
 
     def token_allowed(self, token_seq: InputTokenSeq) -> bool:
         try:
-            self.decode(token_seq, errors="strict")
+            decoded = self.decode(token_seq, errors="strict")
         except ValueError:
             if self.config.enforce_char_boundaries:
                 return [i for i, tid in enumerate(token_seq) if tid in self.is_initial_char_tokens] == [0]
+            return True
+        if self.config.enforce_inherited and len(decoded) > 1 and decoded[0] in self.inherited_chars:
+            return False
         return True
 
     def bpe_merge_allowed(self, a: InputTokenSeq, b: InputTokenSeq) -> bool:

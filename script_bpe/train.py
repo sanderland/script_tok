@@ -19,7 +19,7 @@ logger = create_logger("main")
 def tokenizer_save_path(file: str, n: int, pretokenizer_name: str, model_name: str) -> str:
     """Get the save path for a tokenizer"""
     if model_name == "bpe":
-        dir = "tokenizers"
+        dir = "bpe_tokenizers"
     elif model_name == "unigram":
         dir = "unigram_tokenizers"
     else:
@@ -38,9 +38,12 @@ def load_tokenizers_for_dataset(file, n, model_name="bpe"):
                 tokenizers[ptok] = BPETokenizer.load(path)
             elif model_name == "unigram":
                 tokenizers[ptok] = UnigramModel.load(path)
-            for t in tokenizers[ptok].metadata["tokens"]:
-                if t["final_count"] < 0:
-                    print(f"Final count for token '{t}' is negative in tokenizer '{ptok}' for {file} at {path}")
+            if model_name == "bpe":
+                for t in tokenizers[ptok].tokens.values():
+                    if t.current_count < 0:
+                        print(
+                            f"Final count for token '{t.id}' is negative in tokenizer '{ptok}' for {file} at {path}"
+                        )
         except FileNotFoundError:
             pass
         except JSONDecodeError as e:
