@@ -19,6 +19,7 @@ dependencies = [
     "frozendict>=2.4.6",
     "pydantic>=2.11.7",
     "matplotlib>=3.10.5",
+    "python-dotenv>=1.1.1",
 ]
 
 [project.scripts]

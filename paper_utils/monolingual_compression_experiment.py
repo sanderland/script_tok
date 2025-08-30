@@ -70,7 +70,7 @@ if __name__ == "__main__":
     results = run_experiment(
         corpus_names=["eng_latn_300mb", "zho_hans_300mb", "kor_hang_300mb"],
         pretokenizer_name="scriptenc_cb",
-        additional_vocab_size=1000,
+        additional_vocab_size=16384,
         init_algorithms=["simple", "spm", "spm_repair"],
     )
     for r in results:

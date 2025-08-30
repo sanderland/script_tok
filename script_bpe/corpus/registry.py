@@ -4,6 +4,9 @@ from datasets import load_dataset
 
 from script_bpe.corpus import PretokenizedCorpus
 from script_bpe.utils import create_logger
+import dotenv
+
+dotenv.load_dotenv() # support .env with HF_TOKEN
 
 
 def create_huggingface_corpus(

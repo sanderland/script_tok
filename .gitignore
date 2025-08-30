@@ -17,6 +17,11 @@ results/training_timing_logs/
 results/tokenizers/**/*.md
 huggingface/
 
+# secrets
+.env
+.env.*
+.env.local
+
 # Python-generated files
 __pycache__/
 *.py[oc]
