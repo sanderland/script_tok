@@ -62,7 +62,8 @@ class BaseTokenizer:
                 f"- Average characters per token: {stats['avg_char_length']:.4f}",
                 f"- Atomic tokens (single token): {stats['num_atomic_tokens']}",
                 f"- Multi-token sequences: {stats['num_multi_tokens']}",
-                f"- Undecodable tokens (excluding atomic): {stats['num_undecodable']}",
+                f"- Undecodable tokens (strict; excluding atomic): {stats['num_undecodable']}",
+                f"- Inherited-start multi-char tokens: {stats.get('num_inherited_start_violations', 0)}",
             ]
         )
         # Optional statistics (if present)
@@ -106,18 +107,24 @@ class BaseTokenizer:
     def stats(self, n_longest: int = 20) -> dict:
         num_tokens = len(self.tokens)
 
-        def _is_undecodable(token: "BaseToken") -> bool:
-            decoded = self.pretokenizer.decode(token.atomic_tokens, errors="replace")
-            robust = self.pretokenizer.tokens_repr(token.atomic_tokens)
-            return decoded.count("�") > robust.count("�")
-
         num_atomic_tokens = sum(1 for t in self.tokens.values() if len(t.atomic_tokens) == 1)
         num_multi_tokens = sum(1 for t in self.tokens.values() if len(t.atomic_tokens) > 1)
         avg_token_length_bt = sum(len(t.atomic_tokens) for t in self.tokens.values()) / num_tokens
         char_lengths = [len(self.decode([t.id])) for t in self.tokens.values()]
         avg_char_length = sum(char_lengths) / num_tokens if num_tokens else 0.0
-        # Exclude atomic tokens from undecodable count
-        num_undecodable = sum(1 for t in self.tokens.values() if len(t.atomic_tokens) > 1 and _is_undecodable(t))
+
+        # Strict undecodable and inherited-start violations in a single pass
+        num_undecodable = 0
+        num_inherited_start_violations = 0
+        for t in self.tokens.values():
+            if len(t.atomic_tokens) <= 1:
+                continue
+            text = self.pretokenizer.try_decode_strict(t.atomic_tokens)
+            if text is None:
+                num_undecodable += 1
+                continue
+            if self.pretokenizer.violates_inherited_order(text):
+                num_inherited_start_violations += 1
 
         longest_by_atomic = sorted(self.tokens.values(), key=lambda t: -len(t.atomic_tokens))[:n_longest]
         longest_by_chars = sorted(self.tokens.values(), key=lambda t: -len(self.decode([t.id])))[:n_longest]
@@ -127,6 +134,7 @@ class BaseTokenizer:
             num_atomic_tokens=num_atomic_tokens,
             num_multi_tokens=num_multi_tokens,
             num_undecodable=num_undecodable,
+            num_inherited_start_violations=num_inherited_start_violations,
             avg_token_length_bt=avg_token_length_bt,
             avg_char_length=avg_char_length,
             longest_tokens_by_atomic=longest_by_atomic,

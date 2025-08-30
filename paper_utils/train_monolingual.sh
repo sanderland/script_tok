@@ -9,7 +9,7 @@ corpora=( deu_latn_300mb arb_arab_300mb kor_hang_300mb zho_hans_300mb \
 
 ns=(64000)
 
-MAX_JOBS=4
+MAX_JOBS=2
 N_CPUS=4
 
 parallel --progress -j $MAX_JOBS -v \

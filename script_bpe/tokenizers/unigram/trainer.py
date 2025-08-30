@@ -10,6 +10,10 @@ from script_bpe.corpus import PretokenizedCorpus
 from script_bpe.pretokenize import Pretokenizer
 from script_bpe.tokenizers.base import BaseTrainer, TrainerConfig
 from script_bpe.tokenizers.unigram.model import UnigramModel, UnigramToken
+from script_bpe.tokenizers.unigram.init_algorithms import (
+    compute_substring_frequencies_simple,
+    compute_substring_frequencies_spm,
+)
 from script_bpe.utils import token_array
 
 
@@ -23,6 +27,7 @@ class UnigramTrainerConfig(TrainerConfig):
 	defensive_prune: bool = False
 	max_iterations: int = 100
 	num_sub_iterations: int = 2
+	init_vocab_algo: str = "spm_repair"  # one of {"simple", "spm", "spm_repair"}
 
 
 class UnigramTrainer(BaseTrainer):
@@ -123,12 +128,21 @@ class UnigramTrainer(BaseTrainer):
 		additional_num_tokens = self.config.additional_vocab_size * self.config.initial_vocab_factor
 		max_token_length = self.config.max_token_len
 		atomic_tokens = {(t,) for t in self.pretokenizer.atomic_tokens}
-		substring_freq = Counter({t: 0 for t in atomic_tokens})
-		for atomic_token_seq, count in self.corpus:
-			for i in range(len(atomic_token_seq)):
-				for j in range(i + 1, min(len(atomic_token_seq) + 1, i + max_token_length + 1)):
-					if self.pretokenizer.token_allowed(atomic_token_seq[i:j]):
-						substring_freq[tuple(atomic_token_seq[i:j])] += count
+
+		algo = (self.config.init_vocab_algo or "spm").lower().strip()
+		if algo == "simple":
+			substring_freq = compute_substring_frequencies_simple(self.pretokenizer, self.corpus, max_token_length)
+		elif algo == "spm":
+			substring_freq = compute_substring_frequencies_spm(self.pretokenizer, self.corpus, max_token_length, repair=False)
+		elif algo == "spm_repair":
+			substring_freq = compute_substring_frequencies_spm(self.pretokenizer, self.corpus, max_token_length, repair=True)
+		else:
+			raise ValueError(f"Unknown init_vocab_algo: {self.config.init_vocab_algo}. Use one of 'simple', 'spm', 'spm_repair'.")
+
+		# Ensure atomic tokens are present (with at least frequency 0)
+		for t in atomic_tokens:
+			if t not in substring_freq:
+				substring_freq[t] = 0
 		all_tokens = [(max(freq, 1) * len(token), token) for token, freq in substring_freq.items()]
 		selected_tokens = heapq.nlargest(
 			len(atomic_tokens) + additional_num_tokens, all_tokens, key=lambda item: (item[1] in atomic_tokens, item[0])

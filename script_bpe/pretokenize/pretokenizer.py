@@ -199,15 +199,30 @@ class Pretokenizer:
     def pretokens_repr(self, pretokens: PretokenizedT) -> list[str]:
         return [self.decode(token_ids) for token_ids in pretokens]
 
-    def token_allowed(self, token_seq: InputTokenSeq) -> bool:
+    # ---- Helper checks for token policies ----
+    def try_decode_strict(self, token_seq: InputTokenSeq) -> str | None:
+        """Return decoded text if the base token sequence decodes without errors under strict mode, otherwise None."""
         try:
-            decoded = self.decode(token_seq, errors="strict")
+            return self.decode(token_seq, errors="strict")
         except ValueError:
-            if self.config.enforce_char_boundaries:
-                return [i for i, tid in enumerate(token_seq) if tid in self.is_initial_char_tokens] == [0]
-            return True
-        if self.config.enforce_inherited and len(decoded) > 1 and decoded[0] in self.inherited_chars:
-            return False
+            return None
+
+    def char_boundary_ok(self, token_seq: InputTokenSeq) -> bool:
+        """Return True if the sequence respects the char-boundary policy when decoding fails."""
+        return [i for i, tid in enumerate(token_seq) if tid in self.is_initial_char_tokens] == [0]
+
+    def violates_inherited_order(self, text: str) -> bool:
+        """Return True if text does not start with an Inherited char."""
+        return len(text) == 1 or text[0] not in self.inherited_chars
+
+    def token_allowed(self, token_seq: InputTokenSeq) -> bool:
+        # Strict decodable sequences are allowed unless they violate inherited-start policy
+        if self.config.enforce_char_boundaries:
+            text = self.try_decode_strict(token_seq)
+            if text is None and not self.char_boundary_ok(token_seq):
+                return False
+            elif self.config.enforce_inherited and text is not None and self.violates_inherited_order(token_seq):
+                return False
         return True
 
     def bpe_merge_allowed(self, a: InputTokenSeq, b: InputTokenSeq) -> bool:
