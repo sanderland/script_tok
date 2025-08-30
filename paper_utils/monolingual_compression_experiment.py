@@ -41,11 +41,12 @@ def run_experiment(
             total_tokens = 0
             total_chars = 0
             for token_seq, freq in corpus:
-                encoded = model.encode_atomic(token_seq)
-                total_tokens += len(encoded) * freq
-                total_chars += sum(len(str(x)) for x in token_seq) * freq
-                # bytes proxy: sum UTF-8 lengths of decoded string
+                # Reconstruct text from atomic token sequence, then encode with the model
                 decoded_text = pretokenizer.decode(token_seq)
+                encoded_ids = model.encode(decoded_text)
+                total_tokens += len(encoded_ids) * freq
+                total_chars += len(decoded_text) * freq
+                # bytes proxy: UTF-8 length of the original text
                 total_bytes += len(decoded_text.encode("utf-8")) * freq
             bytes_per_token = total_bytes / total_tokens if total_tokens else 0.0
 
