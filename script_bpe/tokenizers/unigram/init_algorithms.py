@@ -4,7 +4,7 @@ from collections import Counter
 from typing import Iterable
 
 from script_bpe.pretokenize import Pretokenizer
-
+from script_bpe.corpus import PretokenizedCorpus
 
 def _suffix_array(token_ids: list[int]) -> list[int]:
     """Suffix array over a list of integers using a doubling algorithm.
@@ -97,6 +97,15 @@ def _emit_from_lcp(
                 if offset + length <= n:
                     span = concatenated_token_ids[offset : offset + length]
                     if delimiter_id in span:
+                        k = span.index(delimiter_id)
+                        if 1 < k <= max_token_length:
+                            candidate: tuple[int, ...] = tuple(id_to_token[t] for t in span[:k])
+                            if repair_with is not None and not repair_with.token_allowed(candidate):
+                                # shrink to longest valid prefix
+                                while len(candidate) > 1 and not repair_with.token_allowed(candidate):
+                                    candidate = candidate[:-1]
+                            if len(candidate) > 1 and (repair_with is None or repair_with.token_allowed(candidate)):
+                                out[candidate] += freq
                         start_pos = top["start_pos"]
                         continue
                     if length <= max_token_length:
@@ -106,7 +115,7 @@ def _emit_from_lcp(
                             while len(candidate) > 1 and not repair_with.token_allowed(candidate):
                                 candidate = candidate[:-1]
                         if len(candidate) > 1 and (repair_with is None or repair_with.token_allowed(candidate)):
-                            out[candidate] = max(out.get(candidate, 0), freq)
+                            out[candidate] += freq
             start_pos = top["start_pos"]
         if not stack or stack[-1]["height"] < height:
             stack.append({"height": height, "start_pos": start_pos})
@@ -123,20 +132,29 @@ def _emit_from_lcp(
             offset = suffix_array[top["start_pos"]]
             if offset + length <= n:
                 span = concatenated_token_ids[offset : offset + length]
-                if delimiter_id not in span and length <= max_token_length:
+                if delimiter_id in span:
+                    k = span.index(delimiter_id)
+                    if 1 < k <= max_token_length:
+                        candidate = tuple(id_to_token[t] for t in span[:k])
+                        if repair_with is not None and not repair_with.token_allowed(candidate):
+                            while len(candidate) > 1 and not repair_with.token_allowed(candidate):
+                                candidate = candidate[:-1]
+                        if len(candidate) > 1 and (repair_with is None or repair_with.token_allowed(candidate)):
+                            out[candidate] += freq
+                elif length <= max_token_length:
                     candidate = tuple(id_to_token[t] for t in span)
                     if repair_with is not None and not repair_with.token_allowed(candidate):
                         while len(candidate) > 1 and not repair_with.token_allowed(candidate):
                             candidate = candidate[:-1]
                     if len(candidate) > 1 and (repair_with is None or repair_with.token_allowed(candidate)):
-                        out[candidate] = max(out.get(candidate, 0), freq)
+                        out[candidate] += freq
         start_pos = top["start_pos"]
     return out
 
 
 def compute_substring_frequencies_simple(
     pretokenizer: Pretokenizer,
-    corpus: Iterable[tuple[tuple[int, ...], int]],
+    corpus: PretokenizedCorpus,
     max_token_length: int,
 ) -> Counter:
     """Simple local enumeration over each pretokenized sequence.
@@ -156,7 +174,7 @@ def compute_substring_frequencies_simple(
 
 def compute_substring_frequencies_spm(
     pretokenizer: Pretokenizer,
-    corpus: Iterable[tuple[tuple[int, ...], int]],
+    corpus: PretokenizedCorpus,
     max_token_length: int,
     *,
     repair: bool = False,

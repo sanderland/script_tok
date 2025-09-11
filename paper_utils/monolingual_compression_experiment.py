@@ -4,6 +4,7 @@ import os
 import time
 from typing import Iterable
 
+from tabulate import tabulate
 from script_bpe import get_pretokenizer
 from script_bpe.corpus.registry import load_corpus_by_name
 from script_bpe.tokenizers.unigram.trainer import UnigramTrainer, UnigramTrainerConfig
@@ -69,12 +70,10 @@ def run_experiment(
 if __name__ == "__main__":
     # Example: compare en/zh/ko with all three algorithms
     results = run_experiment(
-        corpus_names=["eng_latn_300mb", "zho_hans_300mb", "kor_hang_300mb"],
+        corpus_names=["swift"], #eng_latn_300mb", "zho_hans_300mb", "kor_hang_300mb"],
         pretokenizer_name="scriptenc_cb",
-        additional_vocab_size=16384,
-        init_algorithms=["simple", "spm", "spm_repair"],
+        additional_vocab_size=512,
+        init_algorithms=["corpus", "corpus_intermediate", "simple", "spm", "spm_repair"],
     )
-    for r in results:
-        print(r)
-
-
+    # tabulate results
+    print(tabulate(results, headers="keys", tablefmt="grid"))

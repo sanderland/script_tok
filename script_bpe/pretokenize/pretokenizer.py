@@ -213,7 +213,7 @@ class Pretokenizer:
 
     def violates_inherited_order(self, text: str) -> bool:
         """Return True if text does not start with an Inherited char."""
-        return len(text) == 1 or text[0] not in self.inherited_chars
+        return len(text) > 1 and text[0] in self.inherited_chars
 
     def token_allowed(self, token_seq: InputTokenSeq) -> bool:
         # Strict decodable sequences are allowed unless they violate inherited-start policy
@@ -221,7 +221,7 @@ class Pretokenizer:
             text = self.try_decode_strict(token_seq)
             if text is None and not self.char_boundary_ok(token_seq):
                 return False
-            elif self.config.enforce_inherited and text is not None and self.violates_inherited_order(token_seq):
+            elif self.config.enforce_inherited and text is not None and self.violates_inherited_order(text):
                 return False
         return True
 
