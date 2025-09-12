@@ -41,7 +41,7 @@ class UnigramTrainer(BaseTrainer):
 
 	def train(self) -> UnigramModel:
 		cfg = self.config
-		vocab = self.make_initial_vocab()
+		vocab, initial_vocab_size = self.make_initial_vocab()
 		total_pretokens = sum(freq for _, freq in self.corpus)
 		prune_to_vocab_size = int(
 			len(self.pretokenizer.atomic_tokens) + cfg.additional_vocab_size * cfg.pre_final_vocab_factor
@@ -89,6 +89,7 @@ class UnigramTrainer(BaseTrainer):
 			"totals_removed": totals_removed,
 			"num_defended": num_defended,
 			"defended_in_final": defended_in_final,
+			"initial_vocab_size": initial_vocab_size,
 		}
 		self.logger.info(f"🎉 Training completed successfully! Avg tokens/pretoken: {stats['tokens/pretoken']:.4f}")
 		self.logger.debug(f"   ├─ Objective: {stats['objective']:.4f}")
@@ -127,7 +128,7 @@ class UnigramTrainer(BaseTrainer):
 				f"   │ {list_item} {repr(self.pretokenizer.decode(t.atomic_tokens)):25}  {score_label} = {score:10.3g}  atomic_tokens = {list(t.atomic_tokens)}"
 			)
 
-	def make_initial_vocab(self) -> list[UnigramToken]:
+	def make_initial_vocab(self) -> tuple[list[UnigramToken], int]:
 		additional_num_tokens = self.config.additional_vocab_size * self.config.initial_vocab_factor
 		max_token_length = self.config.max_token_len
 		atomic_tokens = {(t,) for t in self.pretokenizer.atomic_tokens}
@@ -178,7 +179,7 @@ class UnigramTrainer(BaseTrainer):
 		)
 		self.logger.debug(f"   ├─ Max length: {max_token_length}")
 		self.logger.debug(f"   └─ Source: {self.corpus.name}: {self.corpus.metadata}")
-		return tokens
+		return tokens, len(all_tokens)
 
 	def run_e_step(self, model: UnigramModel) -> tuple[dict[int, float], float, int]:
 		expected_count = defaultdict(float)

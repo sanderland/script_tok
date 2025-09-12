@@ -54,8 +54,8 @@ def load_corpus_by_name(
             pretokenizer=pretokenizer,
             logger=logger,
             split="train",
-            data_files=[f"{corpus_name}.txt"],
-            subsample=10 if corpus_name.startswith("smol") else None,
+            data_files=[f"{corpus_name.removeprefix('smol_')}.txt"],
+            subsample=10 if corpus_name.startswith("smol_") else None,
         )
         return corpus
     elif "OSCAR" in corpus_name or "CulturaX" in corpus_name:
