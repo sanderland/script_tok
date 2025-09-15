@@ -151,5 +151,11 @@ def compute_substring_frequencies_corpus(
     for _tid, suffix_array in _suffix_array_corpus(corpus):
       patterns_i = extract_frequent_patterns_lcp(corpus, suffix_array, max_token_length, intermediate_patterns)
       init_patterns.update(patterns_i)
+
+    # Add all corpus items with frequency >= 2 as candidates
+    for word_tokens, freq in corpus:
+        if freq >= 2 and 1 < len(word_tokens) <= max_token_length:
+            init_patterns[word_tokens] += freq
+            
     return init_patterns
 

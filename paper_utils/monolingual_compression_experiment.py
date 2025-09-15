@@ -19,17 +19,22 @@ def _train_and_evaluate(
     pretokenizer_name: str,
     additional_vocab_size: int,
     init_algorithm: str,
-    parallel_workers: int,
+    initial_vocab_factor: int | None = None,
+    max_token_len: int | None = None,
 ) -> dict[str, object]:
     # Construct resources in the worker to avoid pickling issues
     pretokenizer = get_pretokenizer(pretokenizer_name)
     corpus = load_corpus_by_name(corpus_name, pretokenizer)
 
-    cfg = UnigramTrainerConfig(
-        additional_vocab_size=additional_vocab_size,
-        num_workers=parallel_workers,
-        init_vocab_algo=init_algorithm,
-    )
+    cfg_kwargs: dict[str, object] = {
+        "additional_vocab_size": additional_vocab_size,
+        "init_vocab_algo": init_algorithm,
+    }
+    if initial_vocab_factor is not None:
+        cfg_kwargs["initial_vocab_factor"] = initial_vocab_factor
+    if max_token_len is not None:
+        cfg_kwargs["max_token_len"] = max_token_len
+    cfg = UnigramTrainerConfig(**cfg_kwargs)
     trainer = UnigramTrainer(pretokenizer, corpus, cfg)
 
     t0 = time.perf_counter()
@@ -62,6 +67,7 @@ def _train_and_evaluate(
         "tokens_per_char": stats.get("tokens/pretoken", 0.0),
         "bytes_per_char": total_bytes / total_chars if total_chars else 0.0,
         "initial_vocab_size": stats.get("initial_vocab_size", 0),
+        "objective": stats.get("objective", 0.0),
     }
 
 
@@ -95,7 +101,17 @@ def _heartbeat_worker(event_queue: Queue, start_time: float, logger, all_jobs: l
                         "corpus": corpus,
                         "algo": algo,
                     })
-            
+
+            # Sort rows by (corpus, objective); pending rows (no objective) go last
+            def _obj_val(row: dict) -> float:
+                val = row.get("objective")
+                try:
+                    return float(val)
+                except Exception:
+                    return float("inf")
+
+            table_rows = sorted(table_rows, key=lambda r: (str(r.get("corpus", "")), _obj_val(r)))
+
             table = tabulate(table_rows, headers="keys", tablefmt="grid")
             finished_count = len(finished_results)
             total_count = len(all_jobs)
@@ -126,7 +142,8 @@ def run_experiment(
     pretokenizer_name: str,
     additional_vocab_size: int,
     init_algorithms: list[str],
-    parallel_workers: int = 4,
+    initial_vocab_factor: int | None = None,
+    max_token_len: int | None = None,
 ) -> list[dict[str, object]]:
     """Run parallel training experiments and return results with live progress updates."""
     logger = create_logger("experiment", verbose=True)
@@ -145,20 +162,58 @@ def run_experiment(
     )
     heartbeat_thread.start()
 
+    # Normalize algorithm aliases that tweak config
+    def normalize_algo(algo: str) -> tuple[str, dict[str, int]]:
+        base = algo
+        overrides: dict[str, int] = {}
+        if algo == "simple_many":
+            base = "simple"
+            overrides = {"initial_vocab_factor": 40}
+        elif algo == "simple_short":
+            base = "simple"
+            overrides = {"max_token_len": 8}
+        elif algo == "simple_few":
+            base = "simple"
+            overrides = {"initial_vocab_factor": 2}
+        elif algo == "corpus_intermediate_many":
+            base = "corpus_intermediate"
+            overrides = {"initial_vocab_factor": 40}
+        elif algo == "corpus_intermediate_short":
+            base = "corpus_intermediate"
+            overrides = {"max_token_len": 16}
+        elif algo == "corpus_intermediate_few":
+            base = "corpus_intermediate"
+            overrides = {"initial_vocab_factor": 2}
+        return base, overrides
+
     # Submit all jobs to process pool
     max_workers = len(init_algorithms) * len(corpus_names)
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
         futures = {}
         for corpus_name in corpus_names:
             for algo in init_algorithms:
-                logger.info(f"▶️ Starting {algo} on {corpus_name} (n={additional_vocab_size})")
+                base_algo, alias_overrides = normalize_algo(algo)
+                eff_initial_vocab_factor = (
+                    alias_overrides.get("initial_vocab_factor", initial_vocab_factor)
+                    if initial_vocab_factor is not None or "initial_vocab_factor" in alias_overrides
+                    else None
+                )
+                eff_max_token_len = (
+                    alias_overrides.get("max_token_len", max_token_len)
+                    if max_token_len is not None or "max_token_len" in alias_overrides
+                    else None
+                )
+                logger.info(
+                    f"▶️  Starting {algo} (base={base_algo}) on {corpus_name} (n={additional_vocab_size})"
+                )
                 future = executor.submit(
                     _train_and_evaluate,
                     corpus_name=corpus_name,
                     pretokenizer_name=pretokenizer_name,
                     additional_vocab_size=additional_vocab_size,
-                    init_algorithm=algo,
-                    parallel_workers=parallel_workers,
+                    init_algorithm=base_algo,
+                    initial_vocab_factor=eff_initial_vocab_factor,
+                    max_token_len=eff_max_token_len,
                 )
                 futures[future] = (corpus_name, algo)
 
@@ -166,25 +221,38 @@ def run_experiment(
         while futures:
             done, _ = wait(futures.keys(), timeout=1.0, return_when=FIRST_COMPLETED)
             for future in done:
-                futures.pop(future)
+                corpus_name, alias_algo = futures.pop(future)
                 result = future.result()
+                # Ensure the table shows the original alias/tag, not the normalized base algo
+                result["algo"] = alias_algo
                 results.append(result)
                 event_queue.put({"result": result})
 
     # Clean shutdown
     event_queue.put(None)
     heartbeat_thread.join(timeout=2.0)
-    
+
+    # Sort results by (corpus, objective)
+    results.sort(key=lambda r: (str(r.get("corpus", "")), float(r.get("objective", float("inf")))))
+
     return results
 
 
 if __name__ == "__main__":
     # Example: compare en/zh/ko with all three algorithms
     results = run_experiment(
-        corpus_names=["smol_eng_latn_300mb"], #, "zho_hans_300mb", "kor_hang_300mb"],
+        corpus_names=[
+            "smol_eng_latn_300mb",
+            "eng_latn_300mb",
+            "deu_latn_300mb",
+            "arb_arab_300mb",
+            "hin_deva_300mb",
+            "zho_hans_300mb",
+            "kor_hang_300mb",
+        ],
         pretokenizer_name="scriptenc_cb",
-        additional_vocab_size=8192,
-       init_algorithms=["corpus", "corpus_intermediate", "simple"],
+        additional_vocab_size=16384,
+       init_algorithms=["corpus", "corpus_intermediate", "simple", "simple_many", "simple_short", "corpus_intermediate_many", "corpus_intermediate_short", "simple_few", "corpus_intermediate_few"],
        #init_algorithms=["spm"],
     )
     # tabulate results

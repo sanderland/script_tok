@@ -64,7 +64,7 @@ def human_bytes(n_bytes: int) -> str:
 def main() -> None:
     p = argparse.ArgumentParser(description="Compare unigram init-vocab strategies: counts, Jaccard, time/mem")
     p.add_argument("--corpus", default="swift", help="Corpus name from registry (default: swift)")
-    p.add_argument("--max-token-len", type=int, default=16, dest="max_token_len")
+    p.add_argument("--max-token-len", type=int, default=32, dest="max_token_len")
     p.add_argument("--pretokenizer", choices=["script", "utf8"], default="script")
     p.add_argument(
         "--algos",
@@ -72,6 +72,13 @@ def main() -> None:
         default=["simple", "spm", "spm_repair", "corpus", "corpus_intermediate"],
         help="Subset of algos to run",
     )
+    p.add_argument(
+        "--diff",
+        nargs=2,
+        metavar=("A", "B"),
+        help="Show tokens present in A but not in B, ranked by initial score (freq*len)",
+    )
+    p.add_argument("--top", type=int, default=10, help="Top-K results to show for --diff (default: 10)")
     args = p.parse_args()
 
     if args.pretokenizer == "script":
@@ -81,6 +88,56 @@ def main() -> None:
 
     corpus = load_corpus_by_name(args.corpus, pretokenizer=pt)
 
+    # If diff requested, focus workflow on the two specified algos
+    if args.diff:
+        algo_a, algo_b = args.diff
+        if algo_a == algo_b:
+            raise SystemExit("--diff requires two different algorithms")
+
+        print(f"Corpus: {args.corpus}")
+        print(f"Pretokenizer: {pt.__class__.__name__} ({pt.hash()})")
+        print(f"Total pretokens: {sum(freq for _, freq in corpus):,}")
+        print(f"Max token length: {args.max_token_len}")
+        print(f"Diff: {algo_a} minus {algo_b}")
+
+        # Build counts for both
+        tracemalloc.start()
+        t0 = time.perf_counter()
+        counts_a = build_candidate_counts(algo_a, pt, corpus, args.max_token_len)
+        t1 = time.perf_counter()
+        counts_b = build_candidate_counts(algo_b, pt, corpus, args.max_token_len)
+        elapsed_a = t1 - t0
+        elapsed_b = time.perf_counter() - t1
+        _, peak = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+
+        set_a = set(counts_a.keys())
+        set_b = set(counts_b.keys())
+        only_a = set_a - set_b
+
+        # Score per trainer logic: max(freq,1) * len(token)
+        def score(tok: tuple[int, ...]) -> int:
+            return max(1, counts_a[tok]) * len(tok)
+
+        ranked = sorted(only_a, key=lambda t: score(t), reverse=True)
+        topk = ranked[: args.top]
+
+        print("\nTop tokens present in A but not in B (by initial score):")
+        print("rank  score   freq  len  text")
+        for i, tok in enumerate(topk, 1):
+            s = score(tok)
+            f = counts_a[tok]
+            text = pt.decode(list(tok))
+            print(f"{i:>4}  {s:>6}  {f:>5}  {len(tok):>3}  {repr(text)}")
+
+        # Small footer with stats
+        print("\nStats:")
+        print(f"A={algo_a}: {len(set_a):,} candidates in {elapsed_a:.3f}s")
+        print(f"B={algo_b}: {len(set_b):,} candidates in {elapsed_b:.3f}s")
+        print(f"Only in A: {len(only_a):,}; Peak mem: {human_bytes(peak)}")
+        return
+
+    # Default: report per-strategy counts + Jaccard
     algo_to_set: dict[str, set[tuple[int, ...]]] = {}
     timings: dict[str, float] = {}
     mem_peaks: dict[str, int] = {}
@@ -101,14 +158,12 @@ def main() -> None:
         timings[algo] = elapsed
         mem_peaks[algo] = peak
 
-    # Sizes and timing/mem
     print("\nPer-strategy stats:")
     print("algo               count        time (s)    peak mem")
     for algo in args.algos:
         count = len(algo_to_set[algo])
         print(f"{algo:<18} {count:10,d}   {timings[algo]:10.3f}   {human_bytes(mem_peaks[algo])}")
 
-    # Jaccard matrix
     print("\nJaccard overlap (%), candidate sets:")
     header = ["algo"] + args.algos
     print(" ".join(f"{h:>16}" for h in header))
