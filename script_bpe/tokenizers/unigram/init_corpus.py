@@ -1,12 +1,18 @@
 from __future__ import annotations
 
 from collections import Counter, defaultdict
+from typing import Literal
+
+from script_bpe.pretokenize import Pretokenizer
 
 # Type definitions
 FlatCorpusT = list[tuple[tuple[int, ...], int]]  # List of tokenized words (each word is tuple of token IDs) with frequency
 CorpusSuffixArrayT = list[tuple[int, int]]  # (word_index, position_in_word)
 
-    
+
+STRATEGY = Literal["long", "intermediate", "repair"]
+
+
 def _suffix_array_corpus(corpus: FlatCorpusT) -> CorpusSuffixArrayT:
     """Build grouped suffix arrays for a flat corpus.
 
@@ -40,27 +46,29 @@ def _suffix_array_corpus(corpus: FlatCorpusT) -> CorpusSuffixArrayT:
 
 
 def extract_frequent_patterns_lcp(
+    pretokenizer: Pretokenizer,
     corpus: FlatCorpusT,
     suffix_array: CorpusSuffixArrayT,
     max_token_length: int,
-    intermediate_patterns: bool = False,
+    strategy: STRATEGY = "long",
 ) -> Counter[tuple[int, ...]]:
     """Extract repeated substrings using an LCP stack over a grouped suffix array.
 
     Processes a single group of suffixes that all start with the same token and
     returns total frequencies for repeated substrings up to ``max_token_length``.
     Frequencies are computed by summing the corpus word frequencies across the
-    ranks in each LCP interval. If ``intermediate_patterns`` is True, counts for
+    ranks in each LCP interval. If ``strategy`` is "intermediate" or "repair", counts for
     all strict prefixes of each discovered pattern are also included starting at
     the appropriate LCP height; otherwise only the full pattern length is
-    counted.
+    counted ("long").
+    The "repair" strategy iterates from longest to shortest valid prefix and stops.
 
     Args:
         corpus: Flat corpus of (word_token_ids, frequency).
         suffix_array: Sorted list of (word_index, position_in_word) for one
             initial token.
         max_token_length: Maximum allowed pattern length in tokens.
-        intermediate_patterns: Whether to also count intermediate prefixes of
+        strategy: Whether to also count intermediate prefixes of
             each pattern.
 
     Returns:
@@ -106,13 +114,17 @@ def extract_frequent_patterns_lcp(
                 # Calculate total frequency by summing frequencies of words within the interval ranks
                 frequency = sum(corpus[suffix_array[suffix_rank][0]][1] for suffix_rank in range(interval_start_rank, rank))     
                 if frequency > 1:  # Save the found pattern
-                    if intermediate_patterns: # Major change from sentencepiece
-                        intermediate_start_rank = stack[-1][0]+1 if stack else height + 1  # previous height + 1
+                    if strategy in ("intermediate", "repair"):  # Major change from sentencepiece
+                        intermediate_start_rank = stack[-1][0] + 1 if stack else height + 1  # previous height + 1
                     else:
                         intermediate_start_rank = pattern_length
-
-                    for e in range(intermediate_start_rank, pattern_length+1):
-                        patterns[pattern_tokens[:e]] += frequency
+                
+                    for e in reversed(range(intermediate_start_rank, pattern_length + 1)):
+                        sub_pattern = pattern_tokens[:e]
+                        if pretokenizer.token_allowed(sub_pattern):
+                            patterns[sub_pattern] += frequency
+                            if strategy == "repair":
+                                break
                 
             # Crucial Step: The start rank of the popped interval becomes the new candidate start rank,
             # because this interval is merging with the current or subsequent interval defined by height 'h'.
@@ -127,9 +139,10 @@ def extract_frequent_patterns_lcp(
     return patterns
 
 def compute_substring_frequencies_corpus(
+    pretokenizer: Pretokenizer,
     corpus: FlatCorpusT,
     max_token_length: int,
-    intermediate_patterns: bool = False,
+    strategy: STRATEGY = "long",
 ) -> Counter[tuple[int, ...]]:
     """Compute substring frequencies for the entire corpus.
 
@@ -139,23 +152,35 @@ def compute_substring_frequencies_corpus(
     Args:
         corpus: Flat corpus of (word_token_ids, frequency).
         max_token_length: Maximum pattern length to count (in tokens).
-        intermediate_patterns: Whether to include intermediate prefixes for
-            each discovered pattern.
+        strategy: Pattern counting strategy.
 
     Returns:
         Counter mapping token-id tuples to integer frequencies.
     """
-   
+    assert strategy in ("long", "intermediate", "repair")
     init_patterns = Counter()
     # Step 1: Build suffix arrays grouped by first token
     for _tid, suffix_array in _suffix_array_corpus(corpus):
-      patterns_i = extract_frequent_patterns_lcp(corpus, suffix_array, max_token_length, intermediate_patterns)
-      init_patterns.update(patterns_i)
+        patterns_i = extract_frequent_patterns_lcp(
+            pretokenizer, corpus, suffix_array, max_token_length, strategy
+        )
+        init_patterns.update(patterns_i)
 
     # Add all corpus items with frequency >= 2 as candidates
     for word_tokens, freq in corpus:
         if freq >= 2 and 1 < len(word_tokens) <= max_token_length:
-            init_patterns[word_tokens] += freq
-            
+            if word_tokens not in init_patterns:
+                init_patterns[word_tokens] = freq
+            else:
+                assert init_patterns[word_tokens] > freq # this plus others
+
+    # Add single characters, which are not always counted by the LCP algorithm
+    single_token_count = Counter()
+    for word_tokens, freq in corpus:
+        for token in word_tokens:
+            single_token_count[token] += freq
+    for token, freq in single_token_count.items():
+        init_patterns[(token,)] = freq # overwrite if already present
+           
     return init_patterns
 

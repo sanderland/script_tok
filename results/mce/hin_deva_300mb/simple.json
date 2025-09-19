@@ -1,0 +1,15 @@
+{
+  "corpus": "hin_deva_300mb",
+  "algo": "simple",
+  "n": 16384,
+  "seconds": 1089.53729462903,
+  "tokens": 31289306,
+  "bytes": 300032880,
+  "chars": 119371576,
+  "bytes_per_token": 9.588991203576072,
+  "chars_per_token": 3.8150918400043774,
+  "tokens_per_char": 1.1680699994445105,
+  "bytes_per_char": 2.5134365319931775,
+  "initial_vocab_size": 4745098,
+  "objective": 8.71655667185259
+}

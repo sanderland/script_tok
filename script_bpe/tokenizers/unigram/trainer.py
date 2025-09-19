@@ -30,7 +30,7 @@ class UnigramTrainerConfig(TrainerConfig):
 	defensive_prune: bool = False
 	max_iterations: int = 100
 	num_sub_iterations: int = 2
-	init_vocab_algo: str = "spm_repair"  # one of {"simple", "spm", "spm_repair", "corpus", "corpus_intermediate"}
+	init_vocab_algo: str = "spm_repair"  # one of {"simple", "spm", "spm_repair", "corpus_long", "corpus_intermediate", "corpus_repair"}
 
 
 class UnigramTrainer(BaseTrainer):
@@ -140,21 +140,18 @@ class UnigramTrainer(BaseTrainer):
 			substring_freq = compute_substring_frequencies_spm(self.pretokenizer, self.corpus, max_token_length, repair=False)
 		elif algo == "spm_repair":
 			substring_freq = compute_substring_frequencies_spm(self.pretokenizer, self.corpus, max_token_length, repair=True)
-		elif algo in ["corpus", "corpus_intermediate"]:
+		elif algo in ["corpus_long", "corpus_intermediate", "corpus_repair"]:
 			# Convert to flat corpus of (tuple[int,...], int)
 			flat_corpus = [(tuple(seq), freq) for seq, freq in self.corpus]
 			substring_freq = compute_substring_frequencies_corpus(
+				self.pretokenizer,
 				flat_corpus,
 				max_token_length,
-				intermediate_patterns=algo == "corpus_intermediate",
+				strategy=algo.removeprefix("corpus_"),
 			)
-			# Filter to only allow tokens permitted by the pretokenizer (if available)
-			pre_filter = len(substring_freq)
-			substring_freq = Counter({tok: cnt for tok, cnt in substring_freq.items() if self.pretokenizer.token_allowed(tok)})
-			post_filter = len(substring_freq)
-			self.logger.info(f"🔍 Corpus based init vocab {algo!r}. Pre-filter: {pre_filter:,} tokens, Post-filter: {post_filter:,} tokens")
+			self.logger.info(f"🔍 Corpus based init vocab {algo!r}. Number of tokens: {len(substring_freq):,} tokens")
 		else:
-			raise ValueError(f"Unknown init_vocab_algo: {self.config.init_vocab_algo}. Use one of 'simple', 'spm', 'spm_repair', 'corpus', 'corpus_intermediate'.")
+			raise ValueError(f"Unknown init_vocab_algo: {self.config.init_vocab_algo}. Use one of 'simple', 'spm', 'spm_repair', 'corpus_long', 'corpus_intermediate', 'corpus_repair'.")
 
 		# Ensure atomic tokens are present (with at least frequency 0)
 		for t in atomic_tokens:
