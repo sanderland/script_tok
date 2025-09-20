@@ -34,6 +34,8 @@ dev = [
     "jinja2>=3.1.6",
     "mypy>=1.17.1",
     "ipykernel>=6.30.1",
+    "matplotlib>=3.10.5",
+    "statsmodels>=0.14.5",
 ]
 
 

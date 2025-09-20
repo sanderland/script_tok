@@ -2,14 +2,14 @@
   "corpus": "deu_latn_300mb",
   "algo": "corpus_intermediate_few",
   "n": 16384,
-  "seconds": 2444.926134355832,
-  "tokens": 76569951,
+  "seconds": 2429.188121070154,
+  "tokens": 76566956,
   "bytes": 299090633,
   "chars": 294067250,
-  "bytes_per_token": 3.9061097609948843,
-  "chars_per_token": 3.840504612573149,
-  "tokens_per_char": 1.4957113472545074,
+  "bytes_per_token": 3.906262552738808,
+  "chars_per_token": 3.840654838100133,
+  "tokens_per_char": 1.495652843162151,
   "bytes_per_char": 1.0170824292742562,
   "initial_vocab_size": 7735744,
-  "objective": 11.075309347759738
+  "objective": 11.075294414320423
 }

@@ -1,0 +1,15 @@
+{
+  "corpus": "hin_deva_300mb",
+  "algo": "corpus_repair",
+  "n": 16384,
+  "seconds": 987.1618708660826,
+  "tokens": 31260989,
+  "bytes": 300032880,
+  "chars": 119371576,
+  "bytes_per_token": 9.597677156023439,
+  "chars_per_token": 3.8185476473569024,
+  "tokens_per_char": 1.1670128894474312,
+  "bytes_per_char": 2.5134365319931775,
+  "initial_vocab_size": 969019,
+  "objective": 8.711899380382903
+}

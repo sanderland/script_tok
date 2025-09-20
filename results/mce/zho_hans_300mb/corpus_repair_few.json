@@ -1,0 +1,15 @@
+{
+  "corpus": "zho_hans_300mb",
+  "algo": "corpus_repair_few",
+  "n": 16384,
+  "seconds": 6509.893944806885,
+  "tokens": 73459820,
+  "bytes": 299494267,
+  "chars": 111224802,
+  "bytes_per_token": 4.076980681411961,
+  "chars_per_token": 1.5140903149504041,
+  "tokens_per_char": 2.6814010979243803,
+  "bytes_per_char": 2.692693190858636,
+  "initial_vocab_size": 13535149,
+  "objective": 21.76697249080649
+}

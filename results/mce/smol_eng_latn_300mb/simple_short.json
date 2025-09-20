@@ -2,7 +2,7 @@
   "corpus": "smol_eng_latn_300mb",
   "algo": "simple_short",
   "n": 16384,
-  "seconds": 242.3940327889286,
+  "seconds": 245.58090632082894,
   "tokens": 10770856,
   "bytes": 30312796,
   "chars": 30124937,

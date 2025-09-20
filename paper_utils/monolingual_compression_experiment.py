@@ -85,24 +85,15 @@ def run_experiment(
     def normalize_algo(algo: str) -> tuple[str, dict[str, int]]:
         base = algo
         overrides: dict[str, int] = {}
-        if algo == "simple_many":
-            base = "simple"
+        if algo.endswith("_many"):
+            base = algo.removesuffix("_many")
             overrides = {"initial_vocab_factor": 40}
-        elif algo == "simple_short":
-            base = "simple"
-            overrides = {"max_token_len": 8}
-        elif algo == "simple_few":
-            base = "simple"
+        elif algo.endswith("_few"):
+            base = algo.removesuffix("_few")
             overrides = {"initial_vocab_factor": 2}
-        elif algo == "corpus_intermediate_many":
-            base = "corpus_intermediate"
-            overrides = {"initial_vocab_factor": 40}
-        elif algo == "corpus_intermediate_short":
-            base = "corpus_intermediate"
-            overrides = {"max_token_len": 16}
-        elif algo == "corpus_intermediate_few":
-            base = "corpus_intermediate"
-            overrides = {"initial_vocab_factor": 2}
+        elif algo.endswith("_short"):
+            base = algo.removesuffix("_short")
+            overrides = {"max_token_len": 8 if base == "simple" else 16}
         return base, overrides
 
     for corpus_name, alias_algo in all_jobs:
@@ -172,7 +163,7 @@ if __name__ == "__main__":
         ],
         pretokenizer_name="scriptenc_cb",
         additional_vocab_size=16384,
-#        init_algorithms=["corpus_repair", "corpus_repair_many", "corpus_repair_short", "corpus_repair_few"],
-        init_algorithms=["corpus_long", "corpus_intermediate", "simple", "simple_many", "simple_short", "corpus_intermediate_many", "corpus_intermediate_short", "simple_few", "corpus_intermediate_few"],
+        init_algorithms=["corpus_repair", "corpus_repair_many", "corpus_repair_short", "corpus_repair_few"],
+#        init_algorithms=["corpus_long", "corpus_intermediate", "simple", "simple_many", "simple_short", "corpus_intermediate_many", "corpus_intermediate_short", "simple_few", "corpus_intermediate_few"],
     )
     print(tabulate(results, headers="keys", tablefmt="grid"))

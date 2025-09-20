@@ -2,7 +2,7 @@
   "corpus": "arb_arab_300mb",
   "algo": "simple_few",
   "n": 16384,
-  "seconds": 1253.0238004820421,
+  "seconds": 1276.4034938460682,
   "tokens": 48125136,
   "bytes": 299335389,
   "chars": 166851565,

@@ -2,7 +2,7 @@
   "corpus": "eng_latn_300mb",
   "algo": "simple",
   "n": 16384,
-  "seconds": 1575.8692587071564,
+  "seconds": 1583.119199031964,
   "tokens": 70587749,
   "bytes": 299152424,
   "chars": 297279735,

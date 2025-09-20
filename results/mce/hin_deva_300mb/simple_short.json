@@ -2,7 +2,7 @@
   "corpus": "hin_deva_300mb",
   "algo": "simple_short",
   "n": 16384,
-  "seconds": 880.4563840210903,
+  "seconds": 892.2147109389771,
   "tokens": 42371900,
   "bytes": 300032880,
   "chars": 119371576,

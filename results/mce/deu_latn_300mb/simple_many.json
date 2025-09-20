@@ -2,7 +2,7 @@
   "corpus": "deu_latn_300mb",
   "algo": "simple_many",
   "n": 16384,
-  "seconds": 7923.187822693959,
+  "seconds": 8033.811075720005,
   "tokens": 68877639,
   "bytes": 299090633,
   "chars": 294067250,

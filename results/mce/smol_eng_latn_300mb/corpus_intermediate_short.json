@@ -2,14 +2,14 @@
   "corpus": "smol_eng_latn_300mb",
   "algo": "corpus_intermediate_short",
   "n": 16384,
-  "seconds": 347.38435514993034,
-  "tokens": 7663331,
+  "seconds": 338.56533430097625,
+  "tokens": 7663479,
   "bytes": 30312796,
   "chars": 30124937,
-  "bytes_per_token": 3.9555639708111263,
-  "chars_per_token": 3.9310499572574904,
-  "tokens_per_char": 1.253561487046082,
+  "bytes_per_token": 3.955487579466193,
+  "chars_per_token": 3.9309740393364425,
+  "tokens_per_char": 1.253585696766383,
   "bytes_per_char": 1.0062359964437435,
   "initial_vocab_size": 364769,
-  "objective": 8.943193379371692
+  "objective": 8.943335655929907
 }
