@@ -62,6 +62,7 @@ def train_tokenizer(
     n_cpus: int,
     retrain=False,
     report=False,
+    trainer_config_kwargs: dict | None = None,
 ) -> BPETokenizer | UnigramModel | None:
     save_path = tokenizer_save_path(corpus_name, additional_vocab_size, pretokenizer_name, model_name)
 
@@ -93,9 +94,14 @@ def train_tokenizer(
         if additional_vocab_size <= 0:  # allows to just prepare corpus
             logger.warning("Additional vocabulary size is 0, skipping training.")
             return None
-        trainer = trainer_cls(
-            pretokenizer, corpus, trainer_cfg_cls(additional_vocab_size=additional_vocab_size, num_workers=n_cpus)
-        )
+
+        cfg_kwargs = trainer_config_kwargs or {}
+        cfg_kwargs["additional_vocab_size"] = additional_vocab_size
+        if model_name == "bpe":
+            cfg_kwargs["num_workers"] = n_cpus
+        trainer_config = trainer_cfg_cls(**cfg_kwargs)
+
+        trainer = trainer_cls(pretokenizer, corpus, trainer_config)
         tokenizer = trainer.train()
         tokenizer.save(save_path)
         logger.info(f"Saved tokenizer to {save_path}")

@@ -99,14 +99,6 @@ def run_experiment(
     for corpus_name, alias_algo in all_jobs:
         cache_dir = Path("results") / "mce" / corpus_name
         cache_dir.mkdir(parents=True, exist_ok=True)
-        cache_file = cache_dir / f"{alias_algo}.json"
-
-        if use_cache and cache_file.exists():
-            logger.info(f"💾 Loading cached result for {corpus_name}:{alias_algo}")
-            with open(cache_file, "r") as f:
-                result = json.load(f)
-            results.append(result)
-            continue
 
         base_algo, alias_overrides = normalize_algo(alias_algo)
         eff_initial_vocab_factor = (
@@ -119,6 +111,22 @@ def run_experiment(
             if max_token_len is not None or "max_token_len" in alias_overrides
             else None
         )
+
+        experiment_parts = [base_algo, f"n{additional_vocab_size}"]
+        if eff_initial_vocab_factor is not None:
+            experiment_parts.append(f"f{eff_initial_vocab_factor}")
+        if eff_max_token_len is not None:
+            experiment_parts.append(f"mtl{eff_max_token_len}")
+        experiment_name = "_".join(experiment_parts)
+        cache_file = cache_dir / f"{experiment_name}.json"
+
+
+        if use_cache and cache_file.exists():
+            logger.info(f"💾 Loading cached result for {corpus_name}:{alias_algo} from {cache_file}")
+            with open(cache_file, "r") as f:
+                result = json.load(f)
+            results.append(result)
+            continue
 
         logger.info(f"▶️  Starting {alias_algo} (base={base_algo}) on {corpus_name} (n={additional_vocab_size})")
         
@@ -151,19 +159,19 @@ def run_experiment(
 
 
 if __name__ == "__main__":
+    init_alg = ["corpus_repair", "corpus_repair_many", "corpus_repair_short", "corpus_repair_few","corpus_long", "corpus_intermediate", "simple", "simple_many", "simple_short", "corpus_intermediate_many", "corpus_intermediate_short", "simple_few", "corpus_intermediate_few"]
     results = run_experiment(
         corpus_names=[
-            "smol_eng_latn_300mb",
-            "eng_latn_300mb",
-            "deu_latn_300mb",
-            "arb_arab_300mb",
-            "hin_deva_300mb",
-            "zho_hans_300mb",
+        #    "smol_eng_latn_300mb",
+       #     "eng_latn_300mb",
+       #     "deu_latn_300mb",
+      #      "arb_arab_300mb",
+      #      "hin_deva_300mb",
+     #       "zho_hans_300mb",
             "kor_hang_300mb",
         ],
         pretokenizer_name="scriptenc_cb",
         additional_vocab_size=16384,
-        init_algorithms=["corpus_repair", "corpus_repair_many", "corpus_repair_short", "corpus_repair_few"],
-#        init_algorithms=["corpus_long", "corpus_intermediate", "simple", "simple_many", "simple_short", "corpus_intermediate_many", "corpus_intermediate_short", "simple_few", "corpus_intermediate_few"],
+        init_algorithms=init_alg[::-1],
     )
     print(tabulate(results, headers="keys", tablefmt="grid"))

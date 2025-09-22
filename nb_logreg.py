@@ -147,8 +147,6 @@ def _show_plots(result, metric_label: str):
     if len(modifier_values):
         _plot_bars(modifier_labels, modifier_values, f"Modifier effects on {metric_label}")
         plt.show()
-
-    # Dataset plot
     if len(dataset_values):
         _plot_bars(dataset_labels, dataset_values, f"Dataset effects on {metric_label}")
         plt.show()
@@ -205,6 +203,23 @@ def _style_df(df: pd.DataFrame) -> Styler:
     )
 
 
+def _display_pivot_table(df: pd.DataFrame):
+    """Create and display a styled pivot table of results."""
+    pivot_df = df.pivot_table(index="dataset", columns="algorithm", values=METRIC)
+
+    # Add mean row and sort columns by it
+    pivot_df.loc["mean"] = pivot_df.mean()
+    sorted_algos = pivot_df.loc["mean"].sort_values().index
+    pivot_df = pivot_df[sorted_algos]
+
+    styled_pivot = (
+        pivot_df.style.background_gradient(cmap="viridis_r", axis=1)
+        .format("{:.3f}", na_rep="-")
+        .set_caption("Objective score by dataset and algorithm (sorted by mean)")
+    )
+    display(styled_pivot)
+
+
 def main():
     """Main analysis function."""
     # Load and process data
@@ -246,19 +261,26 @@ def main():
         print(result.summary())
 
         # Generate tables
-        for name, var, col in [
-            ("Family", "family", "family"),
-            ("Subtype", "subtype", "subtype"),
-            ("Modifier", "modifier", "modifier"),
-            ("Dataset", "dataset", "dataset"),
-        ]:
+        tables = {
+            name: _style_df(_make_table(result, var, col))
+            for name, var, col in [
+                ("Family", "family", "family"),
+                ("Subtype", "subtype", "subtype"),
+                ("Modifier", "modifier", "modifier"),
+                ("Dataset", "dataset", "dataset"),
+            ]
+        }
+        for name, table in tables.items():
             display(HTML(f"<h2>{name} Coefficients</h2>"))
-            display(_style_df(_make_table(result, var, col)))
+            display(table)
 
         # Show plots
         _show_plots(result, metric_label)
     except (ValueError, Exception) as e:
         print(f"Could not fit model or generate plots: {e}")
+
+    display(HTML("<h2>Individual Results (Objective)</h2>"))
+    _display_pivot_table(df)
 
 
 if __name__ == "__main__":
