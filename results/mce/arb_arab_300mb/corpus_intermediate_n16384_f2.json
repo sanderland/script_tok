@@ -1,0 +1,15 @@
+{
+  "corpus": "arb_arab_300mb",
+  "algo": "corpus_intermediate_few",
+  "n": 16384,
+  "seconds": 723.1587602428626,
+  "tokens": 49054579,
+  "bytes": 299335389,
+  "chars": 166851565,
+  "bytes_per_token": 6.102088634783717,
+  "chars_per_token": 3.4013453667597475,
+  "tokens_per_char": 1.4784801160274015,
+  "bytes_per_char": 1.7940220638625715,
+  "initial_vocab_size": 2220676,
+  "objective": 1.133713459444831
+}

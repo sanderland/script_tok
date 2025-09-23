@@ -12,7 +12,7 @@ dotenv.load_dotenv() # support .env with HF_TOKEN
 def create_huggingface_corpus(
     dataset_name: str, corpus_name: str, pretokenizer, base_dir: str, logger, subsample: int | None = None, **kwargs
 ) -> PretokenizedCorpus:
-    num_cpus = os.cpu_count() or 4
+    num_cpus = min(os.cpu_count() or 4, 16)
     dataset = load_dataset(dataset_name, **kwargs)
     if subsample:
         dataset = dataset.select(range(0, len(dataset), subsample))

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Sequence
 
 import heapq
 import math
@@ -18,6 +19,7 @@ from script_bpe.tokenizers.unigram.init_corpus import (
     compute_substring_frequencies_corpus,
 )
 from script_bpe.utils import token_array
+from pydantic import ConfigDict
 
 
 class UnigramTrainerConfig(TrainerConfig):
@@ -31,6 +33,8 @@ class UnigramTrainerConfig(TrainerConfig):
 	max_iterations: int = 100
 	num_sub_iterations: int = 2
 	init_vocab_algo: str = "spm_repair"  # one of {"simple", "spm", "spm_repair", "corpus_long", "corpus_intermediate", "corpus_repair"}
+	forced_initial_vocab: Sequence[UnigramToken] | None = None
+	model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class UnigramTrainer(BaseTrainer):
@@ -43,6 +47,7 @@ class UnigramTrainer(BaseTrainer):
 		cfg = self.config
 		vocab, initial_vocab_size = self.make_initial_vocab()
 		total_pretokens = sum(freq for _, freq in self.corpus)
+		corpus_atomic_length = sum(len(atomic_token_seq) * freq for atomic_token_seq, freq in self.corpus)
 		prune_to_vocab_size = int(
 			len(self.pretokenizer.atomic_tokens) + cfg.additional_vocab_size * cfg.pre_final_vocab_factor
 		)
@@ -55,7 +60,7 @@ class UnigramTrainer(BaseTrainer):
 		for iter in range(cfg.max_iterations):
 			for sub_iter in range(cfg.num_sub_iterations):
 				self.logger.info(f"🔄 EM Iteration {iter + 1}.{sub_iter + 1}. Model size {len(model.tokens):,}")
-				expected_count, objective, total_tokens = self.run_e_step(model)
+				expected_count, objective, total_tokens = self.run_e_step(model, corpus_atomic_length)
 				model, m_step_removed = self.run_m_step(model, expected_count)
 				totals_removed["M Step Low Count"].append(m_step_removed)
 				avg_tokens_per_pretoken = 1.0 * total_tokens / total_pretokens
@@ -78,7 +83,7 @@ class UnigramTrainer(BaseTrainer):
 		model, finalize_removed = self.finalize_tokens(model, final_vocab_size)
 		totals_removed["Finalize"].append(finalize_removed)
 
-		expected_count, objective, total_tokens = self.run_e_step(model)
+		expected_count, objective, total_tokens = self.run_e_step(model, corpus_atomic_length)
 		num_defended = len(defended_token_ids)
 		defended_in_final = [(t, t.log_prob) for t in model.tokens.values() if t.id in defended_token_ids]
 		stats = {
@@ -129,6 +134,11 @@ class UnigramTrainer(BaseTrainer):
 			)
 
 	def make_initial_vocab(self) -> tuple[list[UnigramToken], int]:
+		if self.config.forced_initial_vocab:
+			self.logger.info(f"🌱 Using {len(self.config.forced_initial_vocab)} forced initial tokens.")
+			# The second element of the tuple is the number of candidates, which is not applicable here.
+			return list(self.config.forced_initial_vocab), len(self.config.forced_initial_vocab)
+
 		additional_num_tokens = self.config.additional_vocab_size * self.config.initial_vocab_factor
 		max_token_length = self.config.max_token_len
 		atomic_tokens = {(t,) for t in self.pretokenizer.atomic_tokens}
@@ -178,12 +188,9 @@ class UnigramTrainer(BaseTrainer):
 		self.logger.debug(f"   └─ Source: {self.corpus.name}: {self.corpus.metadata}")
 		return tokens, len(all_tokens)
 
-	def run_e_step(self, model: UnigramModel) -> tuple[dict[int, float], float, int]:
+	def run_e_step(self, model: UnigramModel, corpus_atomic_length: int) -> tuple[dict[int, float], float, int]:
 		expected_count = defaultdict(float)
 		objective = total_tokens = 0
-		total_pretoken_freq = sum(freq for _, freq in self.corpus)
-		if total_pretoken_freq == 0:
-			return expected_count, objective, total_tokens
 		for atomic_token_seq, freq in self.corpus:
 			lattice = model.make_lattice(atomic_token_seq)
 			z, token_prob = lattice.calc_marginal()
@@ -192,7 +199,8 @@ class UnigramTrainer(BaseTrainer):
 				expected_count[token_id] += prob * freq
 			viterbi_path, _ = lattice.viterbi()
 			total_tokens += len(viterbi_path) * freq
-			objective -= (z * freq) / total_pretoken_freq
+			objective -= (z * freq)
+		objective /= corpus_atomic_length # objective is per atomic token, to make it independent of corpus size and splitting into pretokens
 		return expected_count, objective, total_tokens
 
 	def run_m_step(self, model: UnigramModel, expected_count: dict[int, float]) -> tuple[UnigramModel, int]:

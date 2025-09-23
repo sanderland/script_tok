@@ -132,3 +132,8 @@ class PretokenizedCorpus:
     def __iter__(self):  # single process iterate
         for chunk, count in self.worker_iterate(0, 1):
             yield chunk, count
+
+
+from .registry import load_corpus_by_name
+
+__all__ = ["PretokenizedCorpus", "load_corpus_by_name"]

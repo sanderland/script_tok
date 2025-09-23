@@ -87,7 +87,7 @@ def train_tokenizer(
 
     if not tokenizer:
         logger.info(
-            f"Training tokenizer with {pretokenizer_name} on {corpus_name} with additional vocab size {additional_vocab_size}"
+            f"Training tokenizer with {pretokenizer_name} on {corpus_name} with additional vocab size {additional_vocab_size:,}"
         )
         pretokenizer = get_pretokenizer(pretokenizer_name)
         corpus = load_corpus_by_name(corpus_name, pretokenizer)

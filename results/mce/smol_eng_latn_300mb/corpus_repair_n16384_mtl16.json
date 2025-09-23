@@ -1,0 +1,15 @@
+{
+  "corpus": "smol_eng_latn_300mb",
+  "algo": "corpus_repair_short",
+  "n": 16384,
+  "seconds": 235.13908040779643,
+  "tokens": 7702621,
+  "bytes": 30312796,
+  "chars": 30124937,
+  "bytes_per_token": 3.9353871883349836,
+  "chars_per_token": 3.910998217360039,
+  "tokens_per_char": 1.25272268757774,
+  "bytes_per_char": 1.0062359964437435,
+  "initial_vocab_size": 288618,
+  "objective": 0.9081661017871646
+}

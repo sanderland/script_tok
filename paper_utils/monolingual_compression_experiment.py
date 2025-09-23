@@ -162,15 +162,15 @@ if __name__ == "__main__":
     init_alg = ["corpus_repair", "corpus_repair_many", "corpus_repair_short", "corpus_repair_few","corpus_long", "corpus_intermediate", "simple", "simple_many", "simple_short", "corpus_intermediate_many", "corpus_intermediate_short", "simple_few", "corpus_intermediate_few"]
     results = run_experiment(
         corpus_names=[
-        #    "smol_eng_latn_300mb",
-       #     "eng_latn_300mb",
-       #     "deu_latn_300mb",
-      #      "arb_arab_300mb",
-      #      "hin_deva_300mb",
-     #       "zho_hans_300mb",
+             "zho_hans_300mb",
+            "smol_eng_latn_300mb",
+            "eng_latn_300mb",
+            "deu_latn_300mb",
+            "arb_arab_300mb",
+            "hin_deva_300mb",
             "kor_hang_300mb",
         ],
-        pretokenizer_name="scriptenc_cb",
+        pretokenizer_name="scriptenc2_cbi",
         additional_vocab_size=16384,
         init_algorithms=init_alg[::-1],
     )
