@@ -1,0 +1,16 @@
+{
+  "corpus": "kor_hang_300mb",
+  "algo": "corpus_repair",
+  "n": 16384,
+  "seconds": 2888.0818796569947,
+  "tokens": 62513780,
+  "bytes": 299384940,
+  "chars": 128353355,
+  "bytes_per_token": 4.789103138540015,
+  "chars_per_token": 2.0532009902456707,
+  "tokens_per_char": 1.6387282706655755,
+  "bytes_per_char": 2.3325057611466407,
+  "initial_vocab_size": 3556199,
+  "objective": 1.9211416978927436,
+  "pre_final_vocab_factor": 1.0
+}

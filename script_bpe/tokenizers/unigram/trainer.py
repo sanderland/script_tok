@@ -30,6 +30,13 @@ class UnigramTrainerConfig(TrainerConfig):
 	m_step_dp_smoothing: bool = True
 	m_step_low_count_threshold: float = 0.5
 	defensive_prune: bool = False
+	# Use score-based pruning (like finalize) instead of Viterbi-based pruning during training.
+	# This is faster but may be less effective at preserving a diverse, useful vocabulary.
+	# The Viterbi approach considers alternative segmentations when deciding what to prune,
+	# while score-based pruning only looks at token probabilities. In theory, score-based
+	# pruning might work well if the M-step scores are already well-calibrated, but it risks
+	# keeping redundant high-probability tokens while removing diverse lower-probability ones.
+	final_style_prune: bool = False
 	max_iterations: int = 100
 	num_sub_iterations: int = 2
 	init_vocab_algo: str = "spm_repair"  # one of {"simple", "spm", "spm_repair", "corpus_long", "corpus_intermediate", "corpus_repair"}
@@ -130,8 +137,23 @@ class UnigramTrainer(BaseTrainer):
 					continue
 			list_item = " ├─" if i < len(tokens_with_scores) - 1 else " └─"
 			self.logger.debug(
-				f"   │ {list_item} {repr(self.pretokenizer.decode(t.atomic_tokens)):25}  {score_label} = {score:10.3g}  atomic_tokens = {list(t.atomic_tokens)}"
+				f"   │ {list_item} {repr(self.pretokenizer.decode(t.atomic_tokens,errors='backslashreplace')):25}  {score_label} = {score:10.3g}  atomic_tokens = {list(t.atomic_tokens)}"
 			)
+
+
+	@staticmethod
+	def init_vocab_normalize_scores(all_tokens: list[tuple[float, tuple[int,...]]], n) -> list[UnigramToken]:
+		selected_tokens = heapq.nlargest(n, all_tokens, key=lambda item: (len(item[1]) == 1, item[0]))
+		log_sum_scores = math.log(sum(score for score, _ in selected_tokens))
+		return [
+			UnigramToken(
+				atomic_tokens=token_array(atomic_token_seq),
+				id=i,
+				log_prob=math.log(score) - log_sum_scores,
+				required=len(atomic_token_seq) == 1,
+			)
+			for i, (score, atomic_token_seq) in enumerate(selected_tokens)
+		]
 
 	def make_initial_vocab(self) -> tuple[list[UnigramToken], int]:
 		if self.config.forced_initial_vocab:
@@ -168,19 +190,7 @@ class UnigramTrainer(BaseTrainer):
 			if t not in substring_freq:
 				substring_freq[t] = 0
 		all_tokens = [(max(freq, 1) * len(token), token) for token, freq in substring_freq.items()]
-		selected_tokens = heapq.nlargest(
-			len(atomic_tokens) + additional_num_tokens, all_tokens, key=lambda item: (item[1] in atomic_tokens, item[0])
-		)
-		log_sum_scores = math.log(sum(score for score, _ in selected_tokens))
-		tokens = [
-			UnigramToken(
-				atomic_tokens=token_array(atomic_token_seq),
-				id=i,
-				log_prob=math.log(score) - log_sum_scores,
-				required=atomic_token_seq in atomic_tokens,
-			)
-			for i, (score, atomic_token_seq) in enumerate(selected_tokens)
-		]
+		tokens = self.init_vocab_normalize_scores(all_tokens, len(atomic_tokens) + additional_num_tokens)
 		self.logger.info(
 			f"🌱 Selected {len(self.pretokenizer.atomic_tokens):,} + {self.config.additional_vocab_size * self.config.initial_vocab_factor:,} = {len(tokens):,} initial tokens from {len(all_tokens):,} candidates"
 		)
@@ -229,10 +239,59 @@ class UnigramTrainer(BaseTrainer):
 				t.log_prob = math.log(expected_count[t.id] / total_freq)
 		return model, num_removed
 
+	def score_based_prune(self, model: UnigramModel, target_size: int) -> tuple[UnigramModel, int]:
+		"""
+		Prune tokens based purely on their log probability scores.
+		
+		This is a simpler alternative to the Viterbi-based pruning that doesn't 
+		consider alternative segmentations. Simply keeps the top-N tokens by log probability.
+		
+		Merit discussion:
+		- PROS: Much faster (O(n log n) vs O(n * corpus_size)), simpler, deterministic
+		- CONS: Ignores token redundancy and alternative segmentations
+		
+		The Viterbi-based approach is theoretically superior because it estimates the 
+		*loss* from removing each token by comparing against alternative segmentations.
+		This helps avoid removing tokens that are critical despite lower probability.
+		
+		However, score-based pruning might still work reasonably well if:
+		1. The M-step has already calibrated probabilities well
+		2. Speed is critical (e.g., very large vocabularies or corpora)
+		3. The vocab is far from final size (early iterations)
+		
+		In practice, using score-based pruning during training iterations and Viterbi-based
+		for final pruning might be a good compromise for speed vs quality.
+		"""
+		final_tokens = {}
+		for token in model.tokens.values():
+			if token.required:
+				final_tokens[token.id] = token
+		for token in sorted(model.tokens.values(), key=lambda x: -x.log_prob):
+			if token.id in final_tokens:
+				continue
+			if len(final_tokens) >= target_size:
+				break
+			final_tokens[token.id] = token
+		removed_tokens = [(t, t.log_prob) for t in model.tokens.values() if t.id not in final_tokens]
+		self.logger.info(f"✂️  Score-based pruning from {len(model.tokens):,} to target {target_size:,}")
+		self.logger.info(f"   ├─ Kept {len(final_tokens):,} tokens")
+		self.logger.info(f"   └─ Removed {len(removed_tokens):,} tokens")
+		self.log_examples(removed_tokens, "logprob")
+		new_model = UnigramModel(model.pretokenizer, list(final_tokens.values()))
+		return new_model, len(removed_tokens)
+
 	def prune_tokens(self, model: UnigramModel, desired_vocab_size: int):
 		num_non_atomic_tokens = len(model.tokens) - len(self.pretokenizer.atomic_tokens)
 		shrink_n = int(num_non_atomic_tokens * (1 - self.config.pruning_shrinking_factor))
 		target_size = max(desired_vocab_size, num_non_atomic_tokens - shrink_n)
+		
+		# Use score-based pruning if configured
+		if self.config.final_style_prune:
+			new_model, num_removed = self.score_based_prune(model, target_size)
+			# Return with zero defended tokens since score-based pruning doesn't use that concept
+			return new_model, 0, num_removed, []
+		
+		# Otherwise use the Viterbi-based pruning approach
 		token_count = {t.id: 0.0 for t in model.tokens.values()}
 		for atomic_token_seq, count in self.corpus:
 			lattice = model.make_lattice(atomic_token_seq)
@@ -300,20 +359,7 @@ class UnigramTrainer(BaseTrainer):
 		return UnigramModel(model.pretokenizer, new_tokens), len(unused_token_ids), len(pruned_tokens), defended_tokens
 
 	def finalize_tokens(self, model: UnigramModel, vocab_size: int) -> tuple[UnigramModel, int]:
-		final_tokens = {}
-		for token in model.tokens.values():
-			if token.required:
-				final_tokens[token.id] = token
-		for token in sorted(model.tokens.values(), key=lambda x: -x.log_prob):
-			if token.id in final_tokens:
-				continue
-			if len(final_tokens) >= vocab_size:
-				break
-			final_tokens[token.id] = token
-		removed_tokens = [(t, t.log_prob) for t in model.tokens.values() if t.id not in final_tokens]
+		"""Finalize the vocabulary using score-based pruning."""
 		self.logger.info(f"✨ Finalizing vocabulary from {len(model.tokens):,} to target {vocab_size:,}")
-		self.logger.info(f" ├─ Kept {len(final_tokens):,} tokens")
-		self.logger.info(f" └─ Removed {len(removed_tokens):,} tokens")
-		self.log_examples(removed_tokens, "logprob")
-		new_model = UnigramModel(self.pretokenizer, list(final_tokens.values()))
-		return new_model, len(model.tokens) - len(new_model.tokens)
+		new_model, num_removed = self.score_based_prune(model, vocab_size)
+		return new_model, num_removed

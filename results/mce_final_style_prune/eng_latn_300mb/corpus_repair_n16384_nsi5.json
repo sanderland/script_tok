@@ -1,0 +1,17 @@
+{
+  "corpus": "eng_latn_300mb",
+  "algo": "corpus_repair",
+  "n": 16384,
+  "seconds": 2266.71591852601,
+  "tokens": 70493508,
+  "bytes": 299152424,
+  "chars": 297279735,
+  "bytes_per_token": 4.243687574748018,
+  "chars_per_token": 4.21712216393033,
+  "tokens_per_char": 1.1607968627868395,
+  "bytes_per_char": 1.0062994169447843,
+  "initial_vocab_size": 1402843,
+  "objective": 0.8791116350317562,
+  "num_sub_iterations": 5,
+  "final_style_prune": true
+}

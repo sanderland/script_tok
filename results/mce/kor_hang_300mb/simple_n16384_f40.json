@@ -1,0 +1,15 @@
+{
+  "corpus": "kor_hang_300mb",
+  "algo": "simple_many",
+  "n": 16384,
+  "seconds": 4771.747997996863,
+  "tokens": 62489773,
+  "bytes": 299384940,
+  "chars": 128353355,
+  "bytes_per_token": 4.790942991583599,
+  "chars_per_token": 2.053989778455428,
+  "tokens_per_char": 1.6380989542237627,
+  "bytes_per_char": 2.3325057611466407,
+  "initial_vocab_size": 18187137,
+  "objective": 1.9295260376048535
+}

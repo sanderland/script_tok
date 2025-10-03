@@ -3,7 +3,7 @@ from typing import Iterable, Mapping
 from collections import Counter
 import math
 
-
+from tabulate import tabulate
 from pydantic import BaseModel
 
 from script_bpe.utils import InputTokenSeq, TokenSeq, create_logger
@@ -49,8 +49,6 @@ class BaseTokenizer:
         return {}
 
     def report(self, n_longest: int = 20) -> str:
-        from tabulate import tabulate as _tab
-
         stats = self.stats(n_longest=n_longest)
         report_lines: list[str] = [f"# {self.REPORT_TITLE}", "", "## Statistics", ""]
 
@@ -85,11 +83,11 @@ class BaseTokenizer:
             "",
             "## Longest tokens by atomic tokens",
             "",
-            _tab(longest_atomic_rows, headers="keys", tablefmt="github"),
+            tabulate(longest_atomic_rows, headers="keys", tablefmt="github"),
             "",
             "## Longest tokens by characters",
             "",
-            _tab(longest_chars_rows, headers="keys", tablefmt="github"),
+            tabulate(longest_chars_rows, headers="keys", tablefmt="github"),
         ])
 
         # Detailed sections provided by subclass
@@ -99,7 +97,7 @@ class BaseTokenizer:
             report_lines.append(f"## {title}")
             report_lines.append("")
             if rows:
-                report_lines.append(_tab(rows, headers="keys", tablefmt="github"))
+                report_lines.append(tabulate(rows, headers="keys", tablefmt="github"))
                 report_lines.append("")
 
         return "\n".join(report_lines)

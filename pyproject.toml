@@ -20,6 +20,7 @@ dependencies = [
     "pydantic>=2.11.7",
     "matplotlib>=3.10.5",
     "python-dotenv>=1.1.1",
+    "cyclopts>=3.24.0",
 ]
 
 [project.scripts]

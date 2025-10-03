@@ -1,0 +1,16 @@
+{
+  "corpus": "arb_arab_300mb",
+  "algo": "corpus_repair",
+  "n": 16384,
+  "seconds": 1688.581324551953,
+  "tokens": 46819921,
+  "bytes": 299335389,
+  "chars": 166851565,
+  "bytes_per_token": 6.393333918696702,
+  "chars_per_token": 3.5636874526123186,
+  "tokens_per_char": 1.4111286579887634,
+  "bytes_per_char": 1.7940220638625715,
+  "initial_vocab_size": 1873636,
+  "objective": 1.093887511585446,
+  "m_step_low_count_threshold": 0.0
+}

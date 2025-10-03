@@ -1,0 +1,16 @@
+{
+  "corpus": "deu_latn_300mb",
+  "algo": "bpe",
+  "n": 16384,
+  "seconds": 100.74826704501174,
+  "tokens": 69776340,
+  "bytes": 299090633,
+  "chars": 294067250,
+  "bytes_per_token": 4.286419049781058,
+  "chars_per_token": 4.214426408722498,
+  "tokens_per_char": 0.23728021396466284,
+  "bytes_per_char": 1.0170824292742562,
+  "initial_vocab_size": 1710,
+  "num_merge_rules": 16384,
+  "objective": 0.0
+}
