@@ -78,8 +78,6 @@ def _filter_metadata_for_comparison(metadata: dict[str, object]) -> dict[str, ob
         if key not in excluded_keys and "supertoken" not in key and "ngram" not in key
     }
 
-corpus_name = "eng_latn_300mb"
-
 # --- Configuration ---
 pretokenizer_name = "scriptenc2_cbi"
 retrain = False
@@ -111,13 +109,13 @@ class Variant:
     max_ngram: int
 
 
-INITIAL_100K_MODEL: UnigramModel | None = None
-BASELINE_64K_MODEL: UnigramModel | None = None
+INITIAL_100K_MODEL: dict[str, UnigramModel] = {}
+BASELINE_64K_MODEL: dict[str, UnigramModel] = {}
 
 
-def _get_initial_model() -> UnigramModel:
+def _get_initial_model(corpus_name: str) -> UnigramModel:
     global INITIAL_100K_MODEL
-    if INITIAL_100K_MODEL is None:
+    if corpus_name not in INITIAL_100K_MODEL:
         model = train_tokenizer(
             pretokenizer_name=pretokenizer_name,
             model_name="unigram",
@@ -129,13 +127,13 @@ def _get_initial_model() -> UnigramModel:
             trainer_config_kwargs=trainer_config_kwargs,
         )
         assert model, "Could not train or load the initial 100k model."
-        INITIAL_100K_MODEL = model
-    return INITIAL_100K_MODEL
+        INITIAL_100K_MODEL[corpus_name] = model
+    return INITIAL_100K_MODEL[corpus_name]
 
 
-def _get_baseline_model() -> UnigramModel:
+def _get_baseline_model(corpus_name: str) -> UnigramModel:
     global BASELINE_64K_MODEL
-    if BASELINE_64K_MODEL is None:
+    if corpus_name not in BASELINE_64K_MODEL:
         baseline = train_tokenizer(
             pretokenizer_name=pretokenizer_name,
             model_name="unigram",
@@ -147,19 +145,18 @@ def _get_baseline_model() -> UnigramModel:
             trainer_config_kwargs=trainer_config_kwargs,
         )
         assert baseline, "Could not train or load the baseline 64k model."
-        BASELINE_64K_MODEL = baseline
-    return BASELINE_64K_MODEL
+        BASELINE_64K_MODEL[corpus_name] = baseline
+    return BASELINE_64K_MODEL[corpus_name]
 
 
-def run_experiment(variant: Variant, single_token_span: bool, view: bool = False) -> dict[str, object] | None:
+def run_experiment(variant: Variant, corpus_name: str, view: bool = False) -> dict[str, object] | None:
     logger = create_logger("superscript", verbose=True)
     logger.info(f"Variant: filter={variant.filter_name}, max_ngram={variant.max_ngram}")
 
-    model = _get_initial_model()
-    baseline_64k_model = _get_baseline_model()
+    model = _get_initial_model(corpus_name)
+    baseline_64k_model = _get_baseline_model(corpus_name)
 
-    span_suffix = "_singlespan" if single_token_span else ""
-    final_model_tag = f"scriptenc2_cbi_supertokens_{variant.filter_name}_n{variant.max_ngram}{span_suffix}"
+    final_model_tag = f"scriptenc2_cbi_supertokens_{variant.filter_name}_n{variant.max_ngram}_singlespan"
     final_model_save_path = tokenizer_save_path(corpus_name, 64_000, final_model_tag, "unigram")
     final_model = None
     try:
@@ -167,7 +164,7 @@ def run_experiment(variant: Variant, single_token_span: bool, view: bool = False
         logger.info(f"Loaded existing supertoken model from {final_model_save_path}")
         if view:
             return {
-                "model_name": f"Supertoken 64k" if not single_token_span else f"Supertoken 64k (single span)",
+                "model_name": f"Supertoken 64k (single span)",
                 "filter": variant.filter_name,
                 "max_ngram": variant.max_ngram,
                 **_filter_metadata_for_comparison(final_model.metadata),
@@ -182,39 +179,27 @@ def run_experiment(variant: Variant, single_token_span: bool, view: bool = False
         ngram_sizes = list(range(2, variant.max_ngram + 1))
         unigram_counts = Counter()
         ngram_counters = {n: Counter() for n in ngram_sizes}
-        logger.info(f"Tokenizing corpus and counting n-grams {'with single token span' if single_token_span else 'with full span'}...")
+        logger.info(f"Tokenizing corpus and counting n-grams with single token span...")
 
         def tokenize_encoded(atomic_tokens: list[int]) -> list[int]:
             lattice = model.make_lattice(atomic_tokens)
             viterbi_path, _ = lattice.viterbi()
             return [token.id for token in viterbi_path]
 
-        if single_token_span:
-            for pretoken_seq, freq in corpus:
-                text = model.pretokenizer.decode(pretoken_seq)
-                chunks = [tokenize_encoded(chunk) for chunk in model.pretokenizer.pretokenize(text)]
-                for chunk in chunks:
-                    for token_id in chunk:
-                        unigram_counts[(token_id,)] += freq
-
-                for n in ngram_sizes:
-                    if len(chunks) >= n:
-                        for i in range(len(chunks) - n + 1):
-                            if not all(len(c)==1 for c in chunks[i:i+n]):
-                                continue
-                            ngram = tuple(c[0] for c in chunks[i:i+n])
-                            ngram_counters[n][ngram] += freq
-        else:
-           for pretoken_seq, freq in corpus:
-                token_ids = tokenize_encoded(pretoken_seq)
-                for token_id in token_ids:
+        for pretoken_seq, freq in corpus:
+            text = model.pretokenizer.decode(pretoken_seq)
+            chunks = [tokenize_encoded(chunk) for chunk in model.pretokenizer.pretokenize(text)]
+            for chunk in chunks:
+                for token_id in chunk:
                     unigram_counts[(token_id,)] += freq
 
-                for n in ngram_sizes:
-                    if len(token_ids) >= n:
-                        for i in range(len(token_ids) - n + 1):
-                            ngram = tuple(token_ids[i : i + n])
-                            ngram_counters[n][ngram] += freq            
+            for n in ngram_sizes:
+                if len(chunks) >= n:
+                    for i in range(len(chunks) - n + 1):
+                        if not all(len(c)==1 for c in chunks[i:i+n]):
+                            continue
+                        ngram = tuple(c[0] for c in chunks[i:i+n])
+                        ngram_counters[n][ngram] += freq            
 
         logger.info(f"Scoring and selecting top {SUPERTOKEN_INIT_SIZE:,} tokens...")
         scores = Counter()
@@ -280,7 +265,7 @@ def run_experiment(variant: Variant, single_token_span: bool, view: bool = False
         final_model = final_trainer.train()
         final_model.metadata = final_model.metadata or {}
         final_model.metadata["supertoken_filter"] = variant.filter_name
-        final_model.metadata["single_token_span"] = single_token_span
+        final_model.metadata["single_token_span"] = True
         final_model.metadata["top_allowed_supertokens"] = [
             {
                 "score": score,
@@ -353,14 +338,14 @@ def run_experiment(variant: Variant, single_token_span: bool, view: bool = False
     }
 
 
-def run_all_and_tabulate(filter_names: list[str], max_ngrams: list[int], single_token_span: bool | None, view: bool = False) -> None:
+def run_all_and_tabulate(filter_names: list[str], max_ngrams: list[int], corpus_name: str, view: bool = False) -> None:
     logger = create_logger("superscript", verbose=True)
     logger.info(f"Pretokenizer: {pretokenizer_name}, Corpus: {corpus_name}")
     logger.info(f"Trainer Config: {trainer_config_kwargs}")
-    logger.info(f"Filters: {filter_names}; Max n-grams: {max_ngrams}; Single token span: {single_token_span}; View: {view}")
+    logger.info(f"Filters: {filter_names}; Max n-grams: {max_ngrams}; View: {view}")
 
-    _ = _get_initial_model()
-    baseline_64k_model = _get_baseline_model()
+    _ = _get_initial_model(corpus_name)
+    baseline_64k_model = _get_baseline_model(corpus_name)
 
     baseline_report_path = tokenizer_save_path(corpus_name, 64_000, pretokenizer_name, "unigram").replace(".json.gz", ".md")
     with open(baseline_report_path, "w") as f:
@@ -370,17 +355,12 @@ def run_all_and_tabulate(filter_names: list[str], max_ngrams: list[int], single_
     comparison_rows = [
         {"model_name": "Baseline 64k", "filter":"", "max_ngram": "", **_filter_metadata_for_comparison(baseline_64k_model.metadata)}
     ]
-    if single_token_span is None:
-        single_spans = [True, False]
-    else:
-        single_spans = [single_token_span]
 
     for filter_name in filter_names:
         for max_ngram in max_ngrams:
-            for single_token_span in single_spans:
-                row = run_experiment(Variant(filter_name=filter_name, max_ngram=max_ngram), single_token_span=single_token_span, view=view)
-                if row is not None:
-                    comparison_rows.append(row)
+            row = run_experiment(Variant(filter_name=filter_name, max_ngram=max_ngram), corpus_name=corpus_name, view=view)
+            if row is not None:
+                comparison_rows.append(row)
 
     logger.info("--- Final Model Comparison ---")
     print(tabulate(comparison_rows, headers="keys", tablefmt="grid"))
@@ -395,10 +375,10 @@ def _parse_csv_ints(value: str) -> list[int]:
     return [int(x) for x in value.split(",") if x.strip()]
 
 @app.default
-def cli(filters: str = "all,words,words_nocomma,len_8c,len_16c", max_ngrams: str = "2,4,8", single_token_span: bool | None = None, view: bool = False) -> None:
+def cli(filters: str = "all,words,words_nocomma,len_8c,len_16c", max_ngrams: str = "2,4,8", corpus_name: str = "eng_latn_300mb", view: bool = False) -> None:
     filter_names = _parse_csv_strs(filters)
     max_ngram_values = _parse_csv_ints(max_ngrams)
-    run_all_and_tabulate(filter_names, max_ngram_values, single_token_span=single_token_span, view=view)
+    run_all_and_tabulate(filter_names, max_ngram_values, corpus_name=corpus_name, view=view)
 
 if __name__ == '__main__':
     freeze_support()
