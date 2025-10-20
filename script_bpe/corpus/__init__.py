@@ -74,16 +74,11 @@ class PretokenizedCorpus:
                 f"Corpus {name} already exists at {corpus.metadata_path()}. Use a different name or delete the existing corpus."
             )
 
-        if num_workers > 1:
-            from script_bpe.utils import mp_ctx
-
-            pool = mp_ctx.Pool(num_workers)
-        else:
-            import multiprocessing.dummy
-
-            pool = multiprocessing.dummy.Pool(1)
+        from concurrent.futures import ThreadPoolExecutor
+        import threading
 
         total_chunk_counts: Counter[bytes] = Counter()
+        counts_lock = threading.Lock()
         metadata: dict[str, int | str] = dict(
             version=cls.VERSION,
             max_length=max_length,
@@ -93,16 +88,22 @@ class PretokenizedCorpus:
             chunks=0,
             chunks_skipped=0,
         )
-        with pool:
-            results = [
-                pool.apply_async(cls.encode_texts, (texts[i::num_workers], pretokenizer, max_length))
-                for i in range(num_workers)
-            ]
-            for result in results:
-                part_chunk_counts, part_metadata = result.get()
-                total_chunk_counts += part_chunk_counts
+        metadata_lock = threading.Lock()
+        
+        def worker_encode(worker_id: int):
+            part_chunk_counts, part_metadata = cls.encode_texts(
+                texts[worker_id::num_workers], pretokenizer, max_length
+            )
+            with counts_lock:
+                total_chunk_counts.update(part_chunk_counts)
+            with metadata_lock:
                 for k, v in part_metadata.items():
                     metadata[k] += v
+        
+        with ThreadPoolExecutor(max_workers=num_workers) as executor:
+            futures = [executor.submit(worker_encode, i) for i in range(num_workers)]
+            for future in futures:
+                future.result()  # Wait for completion and raise any exceptions
 
         flattened_data: list[dict[str, int | bytes]] = [
             dict(

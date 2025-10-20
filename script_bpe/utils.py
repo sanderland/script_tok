@@ -1,7 +1,5 @@
 import array
-import gc
 import logging
-import multiprocessing
 import os
 import sys
 import time
@@ -9,10 +7,6 @@ from typing import Iterable, Literal
 
 # one dir lower than this script
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-# ---- multiprocessing context ----
-gc.freeze()  # docs suggest freezing to avoid copy-on-write
-mp_ctx = multiprocessing.get_context("forkserver")
 
 # ---- typing ----
 

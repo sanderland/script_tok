@@ -3,7 +3,9 @@ from typing import Sequence
 
 import heapq
 import math
+import threading
 from collections import Counter, defaultdict
+from concurrent.futures import ThreadPoolExecutor
 
 from scipy.special import digamma
 
@@ -199,18 +201,60 @@ class UnigramTrainer(BaseTrainer):
 		return tokens, len(all_tokens)
 
 	def run_e_step(self, model: UnigramModel, corpus_atomic_length: int) -> tuple[dict[int, float], float, int]:
+		"""Parallel E-step using threading."""
+		num_workers = self.config.num_workers
+		
+		if num_workers == 1:
+			# Single-threaded path
+			expected_count = defaultdict(float)
+			objective = total_tokens = 0
+			for atomic_token_seq, freq in self.corpus:
+				lattice = model.make_lattice(atomic_token_seq)
+				z, token_prob = lattice.calc_marginal()
+				assert not math.isnan(z), f"NaN likelihood for pretoken {atomic_token_seq} with freq={freq}."
+				for token_id, prob in token_prob.items():
+					expected_count[token_id] += prob * freq
+				viterbi_path, _ = lattice.viterbi()
+				total_tokens += len(viterbi_path) * freq
+				objective -= (z * freq)
+			objective /= corpus_atomic_length
+			return expected_count, objective, total_tokens
+		
+		# Multi-threaded path
+		def worker_e_step(worker_id: int):
+			local_expected_count = defaultdict(float)
+			local_objective = 0.0
+			local_total_tokens = 0
+			
+			for atomic_token_seq, freq in self.corpus.worker_iterate(worker_id, num_workers):
+				lattice = model.make_lattice(atomic_token_seq)
+				z, token_prob = lattice.calc_marginal()
+				assert not math.isnan(z), f"NaN likelihood for pretoken {atomic_token_seq} with freq={freq}."
+				for token_id, prob in token_prob.items():
+					local_expected_count[token_id] += prob * freq
+				viterbi_path, _ = lattice.viterbi()
+				local_total_tokens += len(viterbi_path) * freq
+				local_objective -= (z * freq)
+			
+			return local_expected_count, local_objective, local_total_tokens
+		
+		# Run workers in parallel
+		with ThreadPoolExecutor(max_workers=num_workers) as executor:
+			futures = [executor.submit(worker_e_step, i) for i in range(num_workers)]
+			results = [future.result() for future in futures]
+		
+		# Aggregate results
 		expected_count = defaultdict(float)
-		objective = total_tokens = 0
-		for atomic_token_seq, freq in self.corpus:
-			lattice = model.make_lattice(atomic_token_seq)
-			z, token_prob = lattice.calc_marginal()
-			assert not math.isnan(z), f"NaN likelihood for pretoken {atomic_token_seq} with freq={freq}."
-			for token_id, prob in token_prob.items():
-				expected_count[token_id] += prob * freq
-			viterbi_path, _ = lattice.viterbi()
-			total_tokens += len(viterbi_path) * freq
-			objective -= (z * freq)
-		objective /= corpus_atomic_length # objective is per atomic token, to make it independent of corpus size and splitting into pretokens
+		objective = 0.0
+		total_tokens = 0
+		
+		for local_expected_count, local_objective, local_total_tokens in results:
+			for token_id, count in local_expected_count.items():
+				expected_count[token_id] += count
+			objective += local_objective
+			total_tokens += local_total_tokens
+		
+		objective /= corpus_atomic_length
 		return expected_count, objective, total_tokens
 
 	def run_m_step(self, model: UnigramModel, expected_count: dict[int, float]) -> tuple[UnigramModel, int]:
@@ -292,12 +336,37 @@ class UnigramTrainer(BaseTrainer):
 			return new_model, 0, num_removed, []
 		
 		# Otherwise use the Viterbi-based pruning approach
-		token_count = {t.id: 0.0 for t in model.tokens.values()}
-		for atomic_token_seq, count in self.corpus:
-			lattice = model.make_lattice(atomic_token_seq)
-			viterbi_path, _ = lattice.viterbi()
-			for token in viterbi_path:
-				token_count[token.id] += count
+		num_workers = self.config.num_workers
+		
+		if num_workers == 1:
+			# Single-threaded path
+			token_count = {t.id: 0.0 for t in model.tokens.values()}
+			for atomic_token_seq, count in self.corpus:
+				lattice = model.make_lattice(atomic_token_seq)
+				viterbi_path, _ = lattice.viterbi()
+				for token in viterbi_path:
+					token_count[token.id] += count
+		else:
+			# Multi-threaded path
+			def worker_count_tokens(worker_id: int):
+				local_token_count = defaultdict(float)
+				for atomic_token_seq, count in self.corpus.worker_iterate(worker_id, num_workers):
+					lattice = model.make_lattice(atomic_token_seq)
+					viterbi_path, _ = lattice.viterbi()
+					for token in viterbi_path:
+						local_token_count[token.id] += count
+				return local_token_count
+			
+			# Run workers in parallel
+			with ThreadPoolExecutor(max_workers=num_workers) as executor:
+				futures = [executor.submit(worker_count_tokens, i) for i in range(num_workers)]
+				results = [future.result() for future in futures]
+			
+			# Aggregate results
+			token_count = {t.id: 0.0 for t in model.tokens.values()}
+			for local_token_count in results:
+				for token_id, count in local_token_count.items():
+					token_count[token_id] += count
 		total_count = sum(token_count.values())
 		log_total = math.log(total_count) if total_count > 0 else float("-inf")
 		candidates = []

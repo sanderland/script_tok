@@ -9,7 +9,6 @@ from script_bpe.tokenizers.unigram.trainer import (
 )
 from script_bpe.train import train_tokenizer, tokenizer_save_path
 from script_bpe.utils import create_logger
-from multiprocessing import freeze_support
 from collections import Counter, defaultdict
 import matplotlib.pyplot as plt
 import numpy as np
@@ -381,7 +380,6 @@ def cli(filters: str = "all,words,words_nocomma,len_8c,len_16c", max_ngrams: str
     run_all_and_tabulate(filter_names, max_ngram_values, corpus_name=corpus_name, view=view)
 
 if __name__ == '__main__':
-    freeze_support()
     app()
 
 
