@@ -1,11 +1,6 @@
 import os
 
-try:
-    from datasets import load_dataset
-    HAS_DATASETS = True
-except ImportError:
-    HAS_DATASETS = False
-    load_dataset = None
+from datasets import load_dataset
 
 from script_bpe.corpus import PretokenizedCorpus
 from script_bpe.utils import create_logger

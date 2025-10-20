@@ -78,7 +78,6 @@ class PretokenizedCorpus:
         import threading
 
         total_chunk_counts: Counter[bytes] = Counter()
-        counts_lock = threading.Lock()
         metadata: dict[str, int | str] = dict(
             version=cls.VERSION,
             max_length=max_length,
@@ -88,15 +87,14 @@ class PretokenizedCorpus:
             chunks=0,
             chunks_skipped=0,
         )
-        metadata_lock = threading.Lock()
+        update_lock = threading.Lock()
         
         def worker_encode(worker_id: int):
             part_chunk_counts, part_metadata = cls.encode_texts(
                 texts[worker_id::num_workers], pretokenizer, max_length
             )
-            with counts_lock:
+            with update_lock:
                 total_chunk_counts.update(part_chunk_counts)
-            with metadata_lock:
                 for k, v in part_metadata.items():
                     metadata[k] += v
         
