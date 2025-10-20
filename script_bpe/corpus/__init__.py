@@ -1,6 +1,8 @@
 import json
 import os
+import threading
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 from typing import Iterable, Literal
 
 import polars as pl
@@ -74,9 +76,6 @@ class PretokenizedCorpus:
                 f"Corpus {name} already exists at {corpus.metadata_path()}. Use a different name or delete the existing corpus."
             )
 
-        from concurrent.futures import ThreadPoolExecutor
-        import threading
-
         total_chunk_counts: Counter[bytes] = Counter()
         metadata: dict[str, int | str] = dict(
             version=cls.VERSION,
@@ -99,9 +98,7 @@ class PretokenizedCorpus:
                     metadata[k] += v
         
         with ThreadPoolExecutor(max_workers=num_workers) as executor:
-            futures = [executor.submit(worker_encode, i) for i in range(num_workers)]
-            for future in futures:
-                future.result()  # Wait for completion and raise any exceptions
+            list(executor.map(worker_encode, range(num_workers)))
 
         flattened_data: list[dict[str, int | bytes]] = [
             dict(

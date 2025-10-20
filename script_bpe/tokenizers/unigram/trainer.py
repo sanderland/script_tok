@@ -66,33 +66,35 @@ class UnigramTrainer(BaseTrainer):
 
 		model = UnigramModel(self.pretokenizer, vocab)
 
-		for iter in range(cfg.max_iterations):
-			for sub_iter in range(cfg.num_sub_iterations):
-				self.logger.info(f"🔄 EM Iteration {iter + 1}.{sub_iter + 1}. Model size {len(model.tokens):,}")
-				expected_count, objective, total_tokens = self.run_e_step(model, corpus_atomic_length)
-				model, m_step_removed = self.run_m_step(model, expected_count)
-				totals_removed["M Step Low Count"].append(m_step_removed)
-				avg_tokens_per_pretoken = 1.0 * total_tokens / total_pretokens
-				self.logger.debug(f"   ├─ Objective: {objective:.4f}")
-				self.logger.debug(f"   ├─ Total tokens: {total_tokens:,d}")
-				self.logger.debug(f"   └─ Avg tokens/pretoken: {avg_tokens_per_pretoken:.4f}")
+		# Create thread pool once and reuse throughout training
+		with ThreadPoolExecutor(max_workers=cfg.num_workers) as executor:
+			for iter in range(cfg.max_iterations):
+				for sub_iter in range(cfg.num_sub_iterations):
+					self.logger.info(f"🔄 EM Iteration {iter + 1}.{sub_iter + 1}. Model size {len(model.tokens):,}")
+					expected_count, objective, total_tokens = self.run_e_step(model, corpus_atomic_length, executor)
+					model, m_step_removed = self.run_m_step(model, expected_count)
+					totals_removed["M Step Low Count"].append(m_step_removed)
+					avg_tokens_per_pretoken = 1.0 * total_tokens / total_pretokens
+					self.logger.debug(f"   ├─ Objective: {objective:.4f}")
+					self.logger.debug(f"   ├─ Total tokens: {total_tokens:,d}")
+					self.logger.debug(f"   └─ Avg tokens/pretoken: {avg_tokens_per_pretoken:.4f}")
 
-			current_size = len(model.tokens)
-			if current_size <= prune_to_vocab_size:
-				self.logger.info("🎯 Target vocabulary size for EM iterations reached")
-				self.logger.debug(f"   ├─ Current: {current_size:,}")
-				self.logger.debug(f"   └─ Target:  {prune_to_vocab_size:,}")
-				break
+				current_size = len(model.tokens)
+				if current_size <= prune_to_vocab_size:
+					self.logger.info("🎯 Target vocabulary size for EM iterations reached")
+					self.logger.debug(f"   ├─ Current: {current_size:,}")
+					self.logger.debug(f"   └─ Target:  {prune_to_vocab_size:,}")
+					break
 
-			model, num_unused, num_pruned, defended_tokens = self.prune_tokens(model, prune_to_vocab_size)
-			totals_removed["Prune/Zero Count"].append(num_unused)
-			totals_removed["Prune/Loss"].append(num_pruned)
-			defended_token_ids.update(t.id for t, _ in defended_tokens)
+				model, num_unused, num_pruned, defended_tokens = self.prune_tokens(model, prune_to_vocab_size, executor)
+				totals_removed["Prune/Zero Count"].append(num_unused)
+				totals_removed["Prune/Loss"].append(num_pruned)
+				defended_token_ids.update(t.id for t, _ in defended_tokens)
 
-		model, finalize_removed = self.finalize_tokens(model, final_vocab_size)
-		totals_removed["Finalize"].append(finalize_removed)
+			model, finalize_removed = self.finalize_tokens(model, final_vocab_size)
+			totals_removed["Finalize"].append(finalize_removed)
 
-		expected_count, objective, total_tokens = self.run_e_step(model, corpus_atomic_length)
+			expected_count, objective, total_tokens = self.run_e_step(model, corpus_atomic_length, executor)
 		num_defended = len(defended_token_ids)
 		defended_in_final = [(t, t.log_prob) for t in model.tokens.values() if t.id in defended_token_ids]
 		stats = {
@@ -200,7 +202,7 @@ class UnigramTrainer(BaseTrainer):
 		self.logger.debug(f"   └─ Source: {self.corpus.name}: {self.corpus.metadata}")
 		return tokens, len(all_tokens)
 
-	def run_e_step(self, model: UnigramModel, corpus_atomic_length: int) -> tuple[dict[int, float], float, int]:
+	def run_e_step(self, model: UnigramModel, corpus_atomic_length: int, executor: ThreadPoolExecutor) -> tuple[dict[int, float], float, int]:
 		"""Parallel E-step using threading."""
 		num_workers = self.config.num_workers
 		
@@ -221,9 +223,7 @@ class UnigramTrainer(BaseTrainer):
 			
 			return local_expected_count, local_objective, local_total_tokens
 		
-		with ThreadPoolExecutor(max_workers=num_workers) as executor:
-			futures = [executor.submit(worker_e_step, i) for i in range(num_workers)]
-			results = [future.result() for future in futures]
+		results = list(executor.map(worker_e_step, range(num_workers)))
 		
 		# Aggregate results
 		expected_count = defaultdict(float)
@@ -306,7 +306,7 @@ class UnigramTrainer(BaseTrainer):
 		new_model = UnigramModel(model.pretokenizer, list(final_tokens.values()))
 		return new_model, len(removed_tokens)
 
-	def prune_tokens(self, model: UnigramModel, desired_vocab_size: int):
+	def prune_tokens(self, model: UnigramModel, desired_vocab_size: int, executor: ThreadPoolExecutor):
 		num_non_atomic_tokens = len(model.tokens) - len(self.pretokenizer.atomic_tokens)
 		shrink_n = int(num_non_atomic_tokens * (1 - self.config.pruning_shrinking_factor))
 		target_size = max(desired_vocab_size, num_non_atomic_tokens - shrink_n)
@@ -329,9 +329,7 @@ class UnigramTrainer(BaseTrainer):
 					local_token_count[token.id] += count
 			return local_token_count
 		
-		with ThreadPoolExecutor(max_workers=num_workers) as executor:
-			futures = [executor.submit(worker_count_tokens, i) for i in range(num_workers)]
-			results = [future.result() for future in futures]
+		results = list(executor.map(worker_count_tokens, range(num_workers)))
 		
 		# Aggregate results
 		token_count = {t.id: 0.0 for t in model.tokens.values()}
