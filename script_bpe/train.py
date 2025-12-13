@@ -5,10 +5,8 @@ from json import JSONDecodeError
 from script_bpe import PRETOKENIZER_REGISTRY, BPETokenizer, get_pretokenizer
 from script_bpe.corpus.registry import load_corpus_by_name
 from script_bpe.tokenizers.unigram import UnigramModel
-from script_bpe.tokenizers.uniformgram import UniformGramModel
 from script_bpe.tokenizers.bpe.trainer import BPETrainer, BPETrainerConfig
 from script_bpe.tokenizers.unigram.trainer import UnigramTrainer, UnigramTrainerConfig
-from script_bpe.tokenizers.uniformgram.trainer import UniformGramTrainer, UniformGramTrainerConfig
 from script_bpe.utils import PROJECT_ROOT, create_logger
 
 logger = create_logger("main")
@@ -25,8 +23,6 @@ def tokenizer_save_path(
         dir = "bpe_tokenizers"
     elif model_name == "unigram":
         dir = "unigram_tokenizers"
-    elif model_name == "uniformgram":
-        dir = "uniformgram_tokenizers"
     else:
         raise ValueError(f"Unknown model name: {model_name}")
     if trainer_config_kwargs:
@@ -47,8 +43,6 @@ def load_tokenizers_for_dataset(file, n, model_name="bpe"):
                 tokenizers[ptok] = BPETokenizer.load(path)
             elif model_name == "unigram":
                 tokenizers[ptok] = UnigramModel.load(path)
-            elif model_name == "uniformgram":
-                tokenizers[ptok] = UniformGramModel.load(path)
             if model_name == "bpe":
                 for t in tokenizers[ptok].tokens.values():
                     if t.current_count < 0:
@@ -72,7 +66,7 @@ def train_tokenizer(
     retrain=False,
     report=False,
     trainer_config_kwargs: dict | None = None,
-) -> BPETokenizer | UnigramModel | UniformGramModel | None:
+) -> BPETokenizer | UnigramModel | None:
     save_path = tokenizer_save_path(
         corpus_name, additional_vocab_size, pretokenizer_name, model_name, trainer_config_kwargs
     )
@@ -85,10 +79,6 @@ def train_tokenizer(
         tokenizer_class = UnigramModel
         trainer_cls = UnigramTrainer
         trainer_cfg_cls = UnigramTrainerConfig
-    elif model_name == "uniformgram":
-        tokenizer_class = UniformGramModel
-        trainer_cls = UniformGramTrainer
-        trainer_cfg_cls = UniformGramTrainerConfig
     else:
         raise ValueError(f"Unknown model name: {model_name}")
     tokenizer = None
@@ -135,7 +125,7 @@ def main():
         "--corpus", type=str, default="kor_hang_300mb", help="Name for corpus to train on, see load_dataset"
     )
     parser.add_argument("--pretokenizer", type=str, default="scriptenc_cb", help="Pretokenizer name")
-    parser.add_argument("--model", type=str, default="bpe", help="Model name (bpe/unigram/uniformgram)")
+    parser.add_argument("--model", type=str, default="bpe", help="Model name (bpe/unigram)")
     parser.add_argument("--additional_vocab_size", "-n", type=int, default=100, help="Additional vocabulary size")
     parser.add_argument("--retrain", action="store_true", help="Force retraining of the tokenizer, even if it exists")
     parser.add_argument("--parallel", "-p", type=int, default=4, help="Number of CPUs to use for training")

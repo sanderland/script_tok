@@ -223,7 +223,7 @@ def generate_init_algorithms_table() -> str:
 
         if algo == "corpus_long":  # baseline row
             loss_str = f"{metrics['objective']:.3f}\\phantom{{\\relchange{{+0.00}}}}"
-            tokens_str = f"{metrics['tokens'] / 1e6:.1f}\\phantom{{\\relchange{{+0.00}}}}"
+            tokens_str = f"{metrics['tokens'] / 1e6:.2f}\\phantom{{\\relchange{{+0.00}}}}"
             overlap_str = "---\\phantom{0}"
         else:
             loss_str = format_with_relchange(metrics["objective"], baseline_means["objective"], decimals=3)
@@ -261,47 +261,36 @@ def generate_init_algorithms_table() -> str:
     return "\n".join(lines)
 
 
-def evaluate_model_stats(model, model_path, train_corpus, eval_corpus, ms):
-    """Evaluate model on both training (FineWiki) and held-out (300MB) corpora."""
-    # 1. Training corpus metrics (FineWiki)
-    # Prefer metadata if available and correct corpus
-    train_obj = None
-    train_tok = None
-    
-    # Always reload performance from metadata if possible to match cached results exactly
-    if model.metadata.get("corpus") == train_corpus:
-        # objective is at top level (Unigram only), total_tokens_len is in performance
-        train_obj = model.metadata.get("objective")  # None for BPE, which is fine
+def evaluate_model_on_300mb(model, model_path, corpus_300mb, ms):
+    """Evaluate model on 300MB corpus (used for both in-domain and holdout evaluation)."""
+    # Check if we have cached results in metadata (only if model was trained on this corpus)
+    tok = None
+    if model.metadata.get("corpus") == corpus_300mb:
         perf = model.metadata.get("performance", {})
-        train_tok = perf.get("total_tokens_len")
+        tok = perf.get("total_tokens_len")
     
-    if train_tok is None:
-        # Fallback: re-evaluate (only if we're missing tokens - objective can be None for BPE)
-        print(f"  [uncached] evaluate_on_corpus: {train_corpus} (no metadata)")
-        res = evaluate_on_corpus(model, train_corpus)
-        train_obj = res["objective"]
-        train_tok = res["tokens"]
+    if tok is None:
+        # Evaluate on 300MB corpus (cached)
+        res = evaluate_on_corpus_cached(model, corpus_300mb, str(model_path))
+        tok = res["tokens"]
 
-    # 2. Held-out corpus metrics (300MB, cached)
-    res_eval = evaluate_on_corpus_cached(model, eval_corpus, str(model_path))
-    eval_obj = res_eval["objective"]
-    eval_tok = res_eval["tokens"]
-
-    results = {
-        "finewiki": {"objective": train_obj, "tokens": train_tok},
-        "300mb": {"objective": eval_obj, "tokens": eval_tok}
-    }
+    results = {"tokens": tok}
+    
     # MorphScore evaluation - on separate data, uses language code
-    lang_code = eval_corpus[:8]  # e.g., "eng_latn" from "eng_latn_300mb"
+    lang_code = corpus_300mb[:8]  # e.g., "eng_latn" from "eng_latn_300mb"
     if lang_code == "eng_latn":
         ms_results = evaluate_morphscore_cached(ms, model, lang_code, str(model_path))
-        ms_score = ms_results["morphscore_recall"]
-        results["morph_recall"] = ms_score
+        results["morph_recall"] = ms_results["morphscore_recall"]
 
     return results
 
 def generate_generalization_table() -> str:
-    """Generate Table 2: Generalization (Train on FineWiki, Evaluate on 300MB)."""
+    """Generate Table 2: Generalization comparing in-domain vs holdout training.
+    
+    Both columns evaluate on 300MB corpora:
+    - Column 1: Train on 300MB, eval on 300MB (in-domain)
+    - Column 2: Train on FineWiki, eval on 300MB (holdout/out-of-domain)
+    """
     print("\n" + "=" * 70)
     print("GENERATING TABLE: Generalization (Table 2)")
     print("=" * 70)
@@ -310,100 +299,98 @@ def generate_generalization_table() -> str:
     print("Loading MorphScore...")
     ms = MorphScore()
 
-    # 2. Gather data
-    # Structure: results[fw_corpus][method][vocab_size] = {finewiki: {}, 300mb: {}}
-    # Models trained on FineWiki, evaluated on 300MB
-    results = {}
+    from paper_utils.unigram.train_hyperparameters import load_model_if_cached, get_model_path
 
-    for i, fw_corpus in enumerate(FINEWIKI_CORPUS_NAMES):
-        eval_corpus = CORPUS_NAMES[i]  # 300MB corpus for held-out evaluation
-        results[fw_corpus] = {m: {} for m in METHODS}
+    # 2. Gather data for BOTH training scenarios
+    # Structure: results_300mb[corpus][method][vocab_size] = {tokens, morph_recall}
+    #            results_fw[corpus][method][vocab_size] = {tokens, morph_recall}
+    results_300mb = {}  # Models trained on 300MB, evaluated on 300MB
+    results_fw = {}     # Models trained on FineWiki, evaluated on 300MB
+
+    for i, corpus_300mb in enumerate(CORPUS_NAMES):
+        fw_corpus = FINEWIKI_CORPUS_NAMES[i]
+        results_300mb[corpus_300mb] = {m: {} for m in METHODS}
+        results_fw[corpus_300mb] = {m: {} for m in METHODS}  # keyed by eval corpus for consistency
         
-        print(f"\nProcessing {fw_corpus} (eval on {eval_corpus})...")
+        print(f"\nProcessing {corpus_300mb}...")
 
-        # -- Default --
+        # ========== Models trained on 300MB ==========
+        print("  [300MB-trained models]")
         for vocab_size in VOCAB_SIZES:
+            # Default
             params = {**DEFAULTS, "additional_vocab_size": vocab_size}
-            # Use cached loader from train_hyperparameters
-            from paper_utils.unigram.train_hyperparameters import load_model_if_cached
-            model, path = load_model_if_cached(fw_corpus, params)
+            model, path = load_model_if_cached(corpus_300mb, params)
             if model:
-                print(f"  Default {vocab_size}")
-                results[fw_corpus]["Default"][vocab_size] = evaluate_model_stats(model, path, fw_corpus, eval_corpus, ms)
-            else:
-                 print(f"  Missing Default {vocab_size}")
+                print(f"    Default {vocab_size}")
+                results_300mb[corpus_300mb]["Default"][vocab_size] = evaluate_model_on_300mb(model, path, corpus_300mb, ms)
 
-        # -- FSP --
-        fsp_alpha = 0.75
-        for vocab_size in VOCAB_SIZES:
-            params = {
+            # FSP
+            params_fsp = {
                 **DEFAULTS,
                 "additional_vocab_size": vocab_size,
                 "final_style_prune": True,
                 "pre_final_vocab_factor": 1.0,
-                "pruning_shrinking_factor": fsp_alpha,
+                "pruning_shrinking_factor": 0.75,
             }
-            from paper_utils.unigram.train_hyperparameters import get_model_path
-            path = get_model_path(fw_corpus, params)
-            if path.exists():
-                print(f"  FSP {vocab_size}")
-                model = UnigramModel.load(str(path))
-                results[fw_corpus]["FSP"][vocab_size] = evaluate_model_stats(model, path, fw_corpus, eval_corpus, ms)
-            else:
-                 print(f"  Missing FSP {vocab_size}")
+            path_fsp = get_model_path(corpus_300mb, params_fsp)
+            if path_fsp.exists():
+                print(f"    FSP {vocab_size}")
+                model = UnigramModel.load(str(path_fsp))
+                results_300mb[corpus_300mb]["FSP"][vocab_size] = evaluate_model_on_300mb(model, path_fsp, corpus_300mb, ms)
 
-        # -- BPE --
+            # BPE
+            path_bpe = RESULTS_DIR / corpus_300mb / f"bpe_n{vocab_size}.model.json.gz"
+            if path_bpe.exists():
+                print(f"    BPE {vocab_size}")
+                model = BPETokenizer.load(str(path_bpe))
+                results_300mb[corpus_300mb]["BPE"][vocab_size] = evaluate_model_on_300mb(model, path_bpe, corpus_300mb, ms)
+
+        # ========== Models trained on FineWiki, evaluated on 300MB ==========
+        print("  [FineWiki-trained models]")
         for vocab_size in VOCAB_SIZES:
-            path = RESULTS_DIR / fw_corpus / f"bpe_n{vocab_size}.model.json.gz"
-            if path.exists():
-                print(f"  BPE {vocab_size}")
-                model = BPETokenizer.load(str(path))
-                results[fw_corpus]["BPE"][vocab_size] = evaluate_model_stats(model, path, fw_corpus, eval_corpus, ms)
-            else:
-                 print(f"  Missing BPE {vocab_size}")
+            # Default
+            params = {**DEFAULTS, "additional_vocab_size": vocab_size}
+            model, path = load_model_if_cached(fw_corpus, params)
+            if model:
+                print(f"    Default {vocab_size}")
+                results_fw[corpus_300mb]["Default"][vocab_size] = evaluate_model_on_300mb(model, path, corpus_300mb, ms)
 
-    # Check for missing data and warn
-    def check_missing_data():
-        print("\nData availability check:")
-        for vocab_size in VOCAB_SIZES:
-            for method in METHODS:
-                missing = []
-                for fw_corpus in FINEWIKI_CORPUS_NAMES:
-                    if not results[fw_corpus][method].get(vocab_size):
-                        missing.append(fw_corpus)
-                if missing:
-                    print(f"  ⚠️  MISSING: {method} {VOCAB_LABELS[vocab_size]}: {', '.join(missing)}")
-        print()
+            # FSP
+            params_fsp = {
+                **DEFAULTS,
+                "additional_vocab_size": vocab_size,
+                "final_style_prune": True,
+                "pre_final_vocab_factor": 1.0,
+                "pruning_shrinking_factor": 0.75,
+            }
+            path_fsp = get_model_path(fw_corpus, params_fsp)
+            if path_fsp.exists():
+                print(f"    FSP {vocab_size}")
+                model = UnigramModel.load(str(path_fsp))
+                results_fw[corpus_300mb]["FSP"][vocab_size] = evaluate_model_on_300mb(model, path_fsp, corpus_300mb, ms)
 
-    check_missing_data()
+            # BPE
+            path_bpe = RESULTS_DIR / fw_corpus / f"bpe_n{vocab_size}.model.json.gz"
+            if path_bpe.exists():
+                print(f"    BPE {vocab_size}")
+                model = BPETokenizer.load(str(path_bpe))
+                results_fw[corpus_300mb]["BPE"][vocab_size] = evaluate_model_on_300mb(model, path_bpe, corpus_300mb, ms)
 
-    # Helper to compute means - only over corpora that have data for BOTH Default and the method
-    def get_means(method, vocab_size, corpus_type, metric_keys):
+    # Helper to compute means across corpora
+    def get_means(results_dict, method, vocab_size, metric_keys):
         values = {k: [] for k in metric_keys}
-        included_corpora = []
-        for fw_corpus in FINEWIKI_CORPUS_NAMES:
-            # Only include corpus if Default baseline also has data (for fair comparison)
-            default_res = results[fw_corpus]["Default"].get(vocab_size)
-            if not (default_res and default_res.get(corpus_type)):
-                continue  # Skip corpora without Default baseline
-            
-            res = results[fw_corpus][method].get(vocab_size)
-            if res and res.get(corpus_type):
-                included_corpora.append(fw_corpus)
+        for corpus in CORPUS_NAMES:
+            res = results_dict.get(corpus, {}).get(method, {}).get(vocab_size)
+            if res:
                 for k in metric_keys:
-                    val = res[corpus_type].get(k)
+                    val = res.get(k)
                     if val is not None:
                         values[k].append(val)
-        
-        if len(included_corpora) < len(FINEWIKI_CORPUS_NAMES):
-            excluded = set(FINEWIKI_CORPUS_NAMES) - set(included_corpora)
-            print(f"  {method} {vocab_size}: mean over {len(included_corpora)}/6 corpora (excluded: {', '.join(excluded)})")
-        
         return {k: (sum(v)/len(v) if v else None) for k, v in values.items()}
 
-    # Helper to get English-only morph score (MorphScore is only for English)
-    def get_english_morph(method, vocab_size):
-        res = results.get("finewiki_en_1gb", {}).get(method, {}).get(vocab_size)
+    # Helper to get English-only morph score
+    def get_english_morph(results_dict, method, vocab_size):
+        res = results_dict.get("eng_latn_300mb", {}).get(method, {}).get(vocab_size)
         if res:
             return res.get("morph_recall")
         return None
@@ -414,71 +401,71 @@ def generate_generalization_table() -> str:
     lines.append(r"\small")
     lines.append(r"\begin{tabular}{@{}llrrr@{}}")
     lines.append(r"\toprule")
-    lines.append(r"\textbf{Method} & \textbf{Voc} & \textbf{FW Tok.} & \textbf{300MB Tok.} & \textbf{Morph.} \\")
+    lines.append(r"\textbf{Method} & \textbf{Voc} & \textbf{Train 300MB} & \textbf{Train FW} & \textbf{Morph.} \\")
     lines.append(r"\midrule")
-    lines.append(r"\multicolumn{5}{@{}l}{\textit{\textbf{Train on FineWiki, Evaluate on 300MB}}} \\")
+    lines.append(r"\multicolumn{5}{@{}l}{\textit{\textbf{All evaluated on 300MB corpora}}} \\")
     lines.append(r"\addlinespace[2pt]")
 
     # Default (baseline - no relchange)
     for vocab_size in VOCAB_SIZES:
-        means_fw = get_means("Default", vocab_size, "finewiki", ["tokens"])
-        means_300mb = get_means("Default", vocab_size, "300mb", ["tokens"])
+        means_300mb = get_means(results_300mb, "Default", vocab_size, ["tokens"])
+        means_fw = get_means(results_fw, "Default", vocab_size, ["tokens"])
         
-        tok_fw = f"{means_fw['tokens']/1e6:.1f}\\phantom{{\\relchange{{+0.0}}}}" if means_fw['tokens'] else "---"
         tok_300mb = f"{means_300mb['tokens']/1e6:.1f}\\phantom{{\\relchange{{+0.0}}}}" if means_300mb['tokens'] else "---"
-        morph_val = get_english_morph("Default", vocab_size)
+        tok_fw = f"{means_fw['tokens']/1e6:.1f}\\phantom{{\\relchange{{+0.0}}}}" if means_fw['tokens'] else "---"
+        morph_val = get_english_morph(results_fw, "Default", vocab_size)
         morph = f"{morph_val:.3f}" if morph_val else "---"
         
         prefix = "Default" if vocab_size == VOCAB_SIZES[0] else ""
-        lines.append(f"{prefix} & {VOCAB_LABELS[vocab_size]} & {tok_fw} & {tok_300mb} & {morph} \\\\")
+        lines.append(f"{prefix} & {VOCAB_LABELS[vocab_size]} & {tok_300mb} & {tok_fw} & {morph} \\\\")
     
     lines.append(r"\addlinespace[1pt]")
 
     # FSP
     for vocab_size in VOCAB_SIZES:
-        means_fw = get_means("FSP", vocab_size, "finewiki", ["tokens"])
-        means_300mb = get_means("FSP", vocab_size, "300mb", ["tokens"])
-        base_fw = get_means("Default", vocab_size, "finewiki", ["tokens"])
-        base_300mb = get_means("Default", vocab_size, "300mb", ["tokens"])
+        means_300mb = get_means(results_300mb, "FSP", vocab_size, ["tokens"])
+        means_fw = get_means(results_fw, "FSP", vocab_size, ["tokens"])
+        base_300mb = get_means(results_300mb, "Default", vocab_size, ["tokens"])
+        base_fw = get_means(results_fw, "Default", vocab_size, ["tokens"])
         
-        tok_fw = format_tokens_millions(means_fw['tokens'], base_fw['tokens']) if means_fw['tokens'] and base_fw['tokens'] else "---"
         tok_300mb = format_tokens_millions(means_300mb['tokens'], base_300mb['tokens']) if means_300mb['tokens'] and base_300mb['tokens'] else "---"
-        morph_val = get_english_morph("FSP", vocab_size)
+        tok_fw = format_tokens_millions(means_fw['tokens'], base_fw['tokens']) if means_fw['tokens'] and base_fw['tokens'] else "---"
+        morph_val = get_english_morph(results_fw, "FSP", vocab_size)
         morph = f"{morph_val:.3f}" if morph_val else "---"
         
         prefix = "FSP" if vocab_size == VOCAB_SIZES[0] else ""
-        lines.append(f"{prefix} & {VOCAB_LABELS[vocab_size]} & {tok_fw} & {tok_300mb} & {morph} \\\\")
+        lines.append(f"{prefix} & {VOCAB_LABELS[vocab_size]} & {tok_300mb} & {tok_fw} & {morph} \\\\")
 
     lines.append(r"\addlinespace[1pt]")
 
     # BPE
     for vocab_size in VOCAB_SIZES:
-        means_fw = get_means("BPE", vocab_size, "finewiki", ["tokens"])
-        means_300mb = get_means("BPE", vocab_size, "300mb", ["tokens"])
-        base_fw = get_means("Default", vocab_size, "finewiki", ["tokens"])
-        base_300mb = get_means("Default", vocab_size, "300mb", ["tokens"])
+        means_300mb = get_means(results_300mb, "BPE", vocab_size, ["tokens"])
+        means_fw = get_means(results_fw, "BPE", vocab_size, ["tokens"])
+        base_300mb = get_means(results_300mb, "Default", vocab_size, ["tokens"])
+        base_fw = get_means(results_fw, "Default", vocab_size, ["tokens"])
         
-        tok_fw = format_tokens_millions(means_fw['tokens'], base_fw['tokens']) if means_fw['tokens'] and base_fw['tokens'] else "---"
         tok_300mb = format_tokens_millions(means_300mb['tokens'], base_300mb['tokens']) if means_300mb['tokens'] and base_300mb['tokens'] else "---"
-        morph_val = get_english_morph("BPE", vocab_size)
+        tok_fw = format_tokens_millions(means_fw['tokens'], base_fw['tokens']) if means_fw['tokens'] and base_fw['tokens'] else "---"
+        morph_val = get_english_morph(results_fw, "BPE", vocab_size)
         morph = f"{morph_val:.3f}" if morph_val else "---"
         
         prefix = "BPE" if vocab_size == VOCAB_SIZES[0] else ""
-        lines.append(f"{prefix} & {VOCAB_LABELS[vocab_size]} & {tok_fw} & {tok_300mb} & {morph} \\\\")
+        lines.append(f"{prefix} & {VOCAB_LABELS[vocab_size]} & {tok_300mb} & {tok_fw} & {morph} \\\\")
 
     lines.append(r"\bottomrule")
     lines.append(r"\end{tabular}")
     lines.append(
-        r"\caption{Compression and morphological alignment across methods and vocabulary sizes. "
+        r"\caption{Compression and generalization across methods. "
     )
     lines.append(
-        r"Models trained on FineWiki (1\,GB), evaluated on held-out 300\,MB corpora. "
+        r"All models evaluated on 300\,MB corpora. \textbf{Train 300MB}: in-domain (trained and evaluated on same corpus). "
     )
     lines.append(
-        r"FSP and BPE both improve compression vs default Unigram, with BPE achieving the best compression especially on held-out data. "
+        r"\textbf{Train FW}: out-of-domain (trained on FineWiki 1\,GB, evaluated on 300\,MB). "
     )
     lines.append(
-        r"\textbf{Morph.} is MorphScore boundary recall on English (see \autoref{app:morphscore}): Unigram methods substantially outperform BPE on morphological alignment, suggesting Unigram's probabilistic framework better captures linguistic structure.}"
+        r"\textbf{Morph.} is MorphScore boundary recall on English (see \autoref{app:morphscore}).}"
     )
     lines.append(r"\label{tab:fsp_bpe_val}")
     lines.append(r"\end{table}")

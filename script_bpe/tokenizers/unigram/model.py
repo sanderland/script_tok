@@ -59,14 +59,13 @@ class Trie:
 
 
 class Lattice:
-    def __init__(self, atomic_token_seq: TokenSeq, tokens_from_pos: list[list[UnigramToken]], token_bias: float = 0.0):
+    def __init__(self, atomic_token_seq: TokenSeq, tokens_from_pos: list[list[UnigramToken]]):
         self.atomic_token_seq = atomic_token_seq
         self.tokens_from_pos = tokens_from_pos
-        self.token_bias = token_bias  # Subtracted from each token's log_prob to encourage compression
 
     def _effective_log_prob(self, token: UnigramToken) -> float:
         """Get effective log prob with bias applied."""
-        return token.log_prob - self.token_bias
+        return token.log_prob
 
     def viterbi(self, allow_single_token=True) -> tuple[list[UnigramToken], float]:
         best_at_pos = [(None, 0.0)] + [(None, float("-inf"))] * len(self.atomic_token_seq)
@@ -161,9 +160,9 @@ class UnigramModel(BaseTokenizer):
         self.metadata = metadata or {}
         self.tokens_by_id = self.tokens
 
-    def make_lattice(self, atomic_token_seq: TokenSeq, token_bias: float = 0.0) -> Lattice:
+    def make_lattice(self, atomic_token_seq: TokenSeq) -> Lattice:
         tokens_from_pos = [self.trie.find_prefixes(atomic_token_seq[i:]) for i in range(len(atomic_token_seq))]
-        return Lattice(atomic_token_seq, tokens_from_pos, token_bias=token_bias)
+        return Lattice(atomic_token_seq, tokens_from_pos)
 
     def encode(self, text: str, return_tokens=False) -> list[UnigramToken] | list[int]:
         # Flatten pretokenized chunks into a single atomic token sequence

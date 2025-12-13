@@ -14,12 +14,12 @@ def evaluate_on_corpus(model, corpus_name: str) -> dict:
     For BPE models: compute compression metrics only (no probabilistic objective)
 
     Args:
-        model: A tokenizer model (UnigramModel, UniformGramModel, or BPETokenizer)
+        model: A tokenizer model (UnigramModel or BPETokenizer)
         corpus_name: Name of corpus to evaluate on (loaded via registry)
 
     Returns:
         dict with keys:
-        - objective: float or None (Unigram/UniformGram only)
+        - objective: float or None (Unigram only)
         - tokens: int (total token count)
         - atomic_tokens: int (total atomic token count)
         - bytes: int (total byte count)
@@ -40,7 +40,7 @@ def evaluate_on_corpus(model, corpus_name: str) -> dict:
             token_ids = model.encode(text)
             total_tokens += len(token_ids) * count
         else:
-            # Unigram/UniformGram: use lattice for objective
+            # Unigram: use lattice for objective
             lattice = model.make_lattice(atomic_tokens)
             z, _ = lattice.calc_marginal()
             assert not math.isnan(z), f"NaN likelihood for pretoken {atomic_tokens}"

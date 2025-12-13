@@ -105,8 +105,6 @@ def create_scatter_plot_all_points() -> tuple[list[dict], list[dict], list[dict]
             param_col = "init_vocab_algo"
         elif experiment_name in ["bpe_init", "bpe_init_fsp"]:
             param_col = "bpe_init_factor"
-        elif experiment_name == "token_bias_fsp":
-            param_col = "token_bias"
         else:
             print(f"    Unknown sweep parameter for {experiment_name}")
             continue

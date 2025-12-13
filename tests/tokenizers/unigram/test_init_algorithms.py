@@ -2,8 +2,9 @@ from collections import Counter
 
 import pytest
 
-from script_bpe.tokenizers.unigram.init_corpus import (
+from script_bpe.tokenizers.unigram.init_algorithms import (
     compute_substring_frequencies_corpus,
+    compute_substring_frequencies_simple,
     FlatCorpusT,
 )
 from script_bpe.pretokenize.pretokenizer import UTF8Pretokenizer, UTF8PretokenizerConfig
@@ -194,3 +195,25 @@ def test_fallback_strategy_no_spaces():
     )
     encoded_expected = _encode_expected(CORPUS1_EXPECTED_FALLBACK_NO_SPACES)
     _assert_is_equal_to_expected(corpus, result, encoded_expected, pretokenizer_no_multi_word)
+
+
+def test_simple_vs_corpus_consistency():
+    """Verify corpus algorithm results are consistent with simple enumeration.
+
+    The corpus (LCP-based) algorithm only returns repeated patterns (freq > 1).
+    The simple algorithm returns ALL substrings. So we verify that:
+    - All multi-token patterns from corpus appear in simple with same frequency
+    - Single tokens have correct corpus-wide counts in both
+    """
+    corpus = _make_corpus(CORPUS1_WORDS)
+    result_simple = compute_substring_frequencies_simple(pretokenizer, corpus, max_token_length=10)
+    result_corpus = compute_substring_frequencies_corpus(
+        pretokenizer, corpus, max_token_length=10, strategy="intermediate"
+    )
+
+    # All patterns in corpus result should appear in simple with same or higher frequency
+    for pattern, freq in result_corpus.items():
+        assert pattern in result_simple, f"Pattern {pattern} in corpus result but not in simple"
+        assert result_simple[pattern] == freq, (
+            f"Pattern {pattern} has freq {freq} in corpus but {result_simple[pattern]} in simple"
+        )

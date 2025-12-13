@@ -4,16 +4,8 @@ profile*
 *.log
 archive/
 
-# test runs
+# results are growing too big, so do not check them in
 results/*
-
-# caches/results
-results/corpora/
-results/unigram_sweeps/
-results/hybrid/
-results/**/*.md
-results/**/*.parquet
-huggingface/
 
 # secrets
 .env

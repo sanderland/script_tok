@@ -42,7 +42,6 @@ class UnigramTrainerConfig(TrainerConfig):
     forced_initial_vocab: Sequence[UnigramToken] | None = None
     # Token bias: subtracted from each token's log_prob during training to encourage compression.
     # Higher bias = fewer tokens used = better compression but worse likelihood.
-    token_bias: float = 0.0
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
 
 
@@ -213,9 +212,8 @@ class UnigramTrainer(BaseTrainer):
     def run_e_step(self, model: UnigramModel, corpus_atomic_length: int) -> tuple[dict[int, float], float, int]:
         expected_count = defaultdict(float)
         objective = total_tokens = 0
-        token_bias = self.config.token_bias
         for atomic_token_seq, freq in self.corpus:
-            lattice = model.make_lattice(atomic_token_seq, token_bias=token_bias)
+            lattice = model.make_lattice(atomic_token_seq)
             z, token_prob = lattice.calc_marginal()
             assert not math.isnan(z), f"NaN likelihood for pretoken {atomic_token_seq} with freq={freq}."
             for token_id, prob in token_prob.items():
@@ -304,10 +302,9 @@ class UnigramTrainer(BaseTrainer):
             return new_model, 0, num_removed, []
 
         # Otherwise use the Viterbi-based pruning approach
-        token_bias = self.config.token_bias
         token_count = {t.id: 0.0 for t in model.tokens.values()}
         for atomic_token_seq, count in self.corpus:
-            lattice = model.make_lattice(atomic_token_seq, token_bias=token_bias)
+            lattice = model.make_lattice(atomic_token_seq)
             viterbi_path, _ = lattice.viterbi()
             for token in viterbi_path:
                 token_count[token.id] += count
@@ -323,7 +320,7 @@ class UnigramTrainer(BaseTrainer):
             if token_count[token.id] == 0:
                 unused_token_ids.add(token.id)
                 continue
-            lattice = model.make_lattice(token.atomic_tokens, token_bias=token_bias)
+            lattice = model.make_lattice(token.atomic_tokens)
             alt_path, _ = lattice.viterbi(allow_single_token=False)
             assert alt_path, f"Token {token.id} has no alternative segmentation"
             logprob_token = math.log(token_count[token.id]) - log_total
