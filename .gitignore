@@ -1,6 +1,8 @@
 # debug
 log*.txt
 profile*
+*.log
+archive/
 
 # test runs
 results/tokenizers/swift/*
@@ -8,14 +10,17 @@ results/tokenizers/*/n100/*
 results/tokenizers/*/n1/*
 
 # caches/results
-results/*_stats.json
 results/corpora/
-corpora/
-ngrams/
-training_timing_logs/
-results/training_timing_logs/
-results/tokenizers/**/*.md
+results/unigram_sweeps/
+results/hybrid/
+results/**/*.md
+results/**/*.parquet
+huggingface/
 
+# secrets
+.env
+.env.*
+.env.local
 
 # Python-generated files
 __pycache__/
