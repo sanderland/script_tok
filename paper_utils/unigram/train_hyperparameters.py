@@ -21,6 +21,8 @@ from script_bpe.tokenizers.bpe.trainer import BPETrainer, BPETrainerConfig
 from script_bpe.tokenizers.unigram import UnigramModel
 
 from paper_utils.unigram.utils import (
+    PRETOKENIZER_NAME,
+    RESULTS_DIR,
     load_experiment_results as _load_experiment_results,
     identify_baseline as _identify_baseline,
     load_baseline_model as _load_baseline_model,
@@ -48,7 +50,6 @@ FINEWIKI_CORPUS_NAMES = [
     "finewiki_zh_1gb",
 ]
 
-PRETOKENIZER_NAME = "scriptenc_cb"
 ADDITIONAL_VOCAB_SIZE = 32768
 USE_CACHE = True
 
@@ -76,9 +77,6 @@ SWEEP_CONFIGS = {
     "pruning_shrinking_factor": [0.5, 0.75, 0.9, 0.95],
     "additional_vocab_size": [fac * ADDITIONAL_VOCAB_SIZE for fac in [0.5, 1, 2, 4, 8]],
 }
-
-RESULTS_DIR = Path("results/unigram_sweeps")
-
 
 # ========== EXPERIMENT CONFIGURATION HELPERS ==========
 

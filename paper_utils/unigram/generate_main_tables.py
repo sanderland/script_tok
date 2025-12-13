@@ -12,6 +12,7 @@ from paper_utils.unigram.train_hyperparameters import (
     CORPUS_NAMES,
     FINEWIKI_CORPUS_NAMES,
     DEFAULTS,
+    RESULTS_DIR,
     load_experiment_results,
     load_baseline_model,
     load_vocab_from_model_file,
@@ -19,21 +20,20 @@ from paper_utils.unigram.train_hyperparameters import (
 from paper_utils.unigram.utils import evaluate_on_corpus_cached, evaluate_morphscore_cached
 
 SMOL_CORPUS_NAMES = ["smol_" + corpus for corpus in CORPUS_NAMES]
-RESULTS_DIR = Path("results/unigram_sweeps")
 
 # Table 1: Seed Vocabulary Algorithms
 INIT_ALGO_ROWS = [
     ("Pretokens (Ours)", "corpus_long"),
-    ("Pretokens, Recovery", "corpus_fallback"),
+    ("Pretok., Recovery", "corpus_fallback"),
     ("Full-text (SP)", "corpus_long_no_pt"),
-    ("Full-text, Recovery", "corpus_fallback_no_pt"),
+    ("Full-text, Recov.", "corpus_fallback_no_pt"),
 ]
 
 # Table 2: Generalization (Vocab sizes and Methods)
 # Match sweep output types: 0.5*32768=16384.0 (float), 1*32768=32768 (int), 2*32768=65536 (int)
 VOCAB_SIZES = [16384.0, 32768, 65536]
 VOCAB_LABELS = {16384.0: "16K", 32768: "32K", 65536: "64K"}
-METHODS = ["Default", "FSP", "BPE"]
+METHODS = ["Baseline", "FSP", "BPE"]
 
 
 def check_data_completeness(
@@ -168,7 +168,7 @@ def generate_init_algorithms_table() -> str:
     lines.append(r"\small")
     lines.append(r"\begin{tabular}{@{}lrrr@{}}")
     lines.append(r"\toprule")
-    lines.append(r"\textbf{Method} & \textbf{Loss} & \textbf{Tok.} & \textbf{Over.} \\")
+    lines.append(r"\textbf{Method} & \textbf{Loss} & \textbf{\#Tokens} & \textbf{Overlap} \\")
     lines.append(r"\midrule")
 
     # 30 MB section
@@ -241,20 +241,7 @@ def generate_init_algorithms_table() -> str:
 
     lines.append(r"\bottomrule")
     lines.append(r"\end{tabular}")
-    lines.append("")
-    lines.append(r"\caption{Seed Vocabulary Algorithms. ")
-    lines.append("")
-    lines.append(
-        r"Comparing pretoken-based (Ours) and full-text (SentencePiece-style) initialization, with and without Maximal Valid Prefix Recovery (`Recovery'; Algorithm~\ref{alg:init:repair}). Superscripts show \% change vs baseline; \textbf{Over.} is vocabulary overlap with baseline."
-    )
-    lines.append("")
-    lines.append(
-        r"Pretoken-based initialization consistently achieves better loss and compression than full-text. The recovery variation has minimal effect on small corpora (30\,MB) and slightly degrades on larger corpora."
-    )
-    lines.append("")
-    lines.append(
-        r"We use pretoken-based initialization without prefix recovery for subsequent experiments.}"
-    )
+    lines.append(r"\caption{Seed vocabulary initialization algorithms. Comparing pretoken-based (Ours) and full-text (SentencePiece-style) initialization, with and without Maximal Valid Prefix Recovery (Algorithm~\ref{alg:init:repair}). Superscripts show \% change vs baseline; `Overlap' is vocabulary overlap with baseline. Pretoken-based initialization achieves better loss and compression on both corpus sizes. The recovery variation has minimal effect, suggesting that missing prefixes are recovered naturally in sufficiently large corpora.}")
     lines.append(r"\label{tab:seed_init}")
     lines.append(r"\end{table}")
 
@@ -317,12 +304,12 @@ def generate_generalization_table() -> str:
         # ========== Models trained on 300MB ==========
         print("  [300MB-trained models]")
         for vocab_size in VOCAB_SIZES:
-            # Default
+            # Baseline
             params = {**DEFAULTS, "additional_vocab_size": vocab_size}
             model, path = load_model_if_cached(corpus_300mb, params)
             if model:
-                print(f"    Default {vocab_size}")
-                results_300mb[corpus_300mb]["Default"][vocab_size] = evaluate_model_on_300mb(model, path, corpus_300mb, ms)
+                print(f"    Baseline {vocab_size}")
+                results_300mb[corpus_300mb]["Baseline"][vocab_size] = evaluate_model_on_300mb(model, path, corpus_300mb, ms)
 
             # FSP
             params_fsp = {
@@ -348,12 +335,12 @@ def generate_generalization_table() -> str:
         # ========== Models trained on FineWiki, evaluated on 300MB ==========
         print("  [FineWiki-trained models]")
         for vocab_size in VOCAB_SIZES:
-            # Default
+            # Baseline
             params = {**DEFAULTS, "additional_vocab_size": vocab_size}
             model, path = load_model_if_cached(fw_corpus, params)
             if model:
-                print(f"    Default {vocab_size}")
-                results_fw[corpus_300mb]["Default"][vocab_size] = evaluate_model_on_300mb(model, path, corpus_300mb, ms)
+                print(f"    Baseline {vocab_size}")
+                results_fw[corpus_300mb]["Baseline"][vocab_size] = evaluate_model_on_300mb(model, path, corpus_300mb, ms)
 
             # FSP
             params_fsp = {
@@ -396,77 +383,69 @@ def generate_generalization_table() -> str:
         return None
 
     lines = []
-    lines.append(r"\begin{table}[pt]")
+    lines.append(r"\newcommand{\tabtwosep}{\addlinespace[4pt]\midrule\addlinespace[4pt]}")
+    lines.append(r"\begin{table}[t]")
     lines.append(r"\centering")
     lines.append(r"\small")
     lines.append(r"\begin{tabular}{@{}llrrr@{}}")
     lines.append(r"\toprule")
-    lines.append(r"\textbf{Method} & \textbf{Voc} & \textbf{Train 300MB} & \textbf{Train FW} & \textbf{Morph.} \\")
+    lines.append(r"\textbf{Method} & $\vocabsize$ & \textbf{Train Tok.} & \textbf{FW Tok.} & \textbf{Morph.} \\")
     lines.append(r"\midrule")
-    lines.append(r"\multicolumn{5}{@{}l}{\textit{\textbf{All evaluated on 300MB corpora}}} \\")
-    lines.append(r"\addlinespace[2pt]")
+    lines.append(r"\addlinespace[3.3pt]")
 
-    # Default (baseline - no relchange)
+    # Baseline (no relchange)
     for vocab_size in VOCAB_SIZES:
-        means_300mb = get_means(results_300mb, "Default", vocab_size, ["tokens"])
-        means_fw = get_means(results_fw, "Default", vocab_size, ["tokens"])
+        means_300mb = get_means(results_300mb, "Baseline", vocab_size, ["tokens"])
+        means_fw = get_means(results_fw, "Baseline", vocab_size, ["tokens"])
         
-        tok_300mb = f"{means_300mb['tokens']/1e6:.1f}\\phantom{{\\relchange{{+0.0}}}}" if means_300mb['tokens'] else "---"
-        tok_fw = f"{means_fw['tokens']/1e6:.1f}\\phantom{{\\relchange{{+0.0}}}}" if means_fw['tokens'] else "---"
-        morph_val = get_english_morph(results_fw, "Default", vocab_size)
+        tok_300mb = f"{means_300mb['tokens']/1e6:.2f}\\phantom{{\\relchange{{+0.00}}}}" if means_300mb['tokens'] else "---"
+        tok_fw = f"{means_fw['tokens']/1e6:.2f}\\phantom{{\\relchange{{+0.00}}}}" if means_fw['tokens'] else "---"
+        morph_val = get_english_morph(results_fw, "Baseline", vocab_size)
         morph = f"{morph_val:.3f}" if morph_val else "---"
         
-        prefix = "Default" if vocab_size == VOCAB_SIZES[0] else ""
+        prefix = "Baseline" if vocab_size == VOCAB_SIZES[0] else "        "
         lines.append(f"{prefix} & {VOCAB_LABELS[vocab_size]} & {tok_300mb} & {tok_fw} & {morph} \\\\")
     
-    lines.append(r"\addlinespace[1pt]")
+    lines.append(r"\tabtwosep")
 
     # FSP
     for vocab_size in VOCAB_SIZES:
         means_300mb = get_means(results_300mb, "FSP", vocab_size, ["tokens"])
         means_fw = get_means(results_fw, "FSP", vocab_size, ["tokens"])
-        base_300mb = get_means(results_300mb, "Default", vocab_size, ["tokens"])
-        base_fw = get_means(results_fw, "Default", vocab_size, ["tokens"])
+        base_300mb = get_means(results_300mb, "Baseline", vocab_size, ["tokens"])
+        base_fw = get_means(results_fw, "Baseline", vocab_size, ["tokens"])
         
-        tok_300mb = format_tokens_millions(means_300mb['tokens'], base_300mb['tokens']) if means_300mb['tokens'] and base_300mb['tokens'] else "---"
-        tok_fw = format_tokens_millions(means_fw['tokens'], base_fw['tokens']) if means_fw['tokens'] and base_fw['tokens'] else "---"
+        tok_300mb = format_tokens_millions(means_300mb['tokens'], base_300mb['tokens'], decimals=2) if means_300mb['tokens'] and base_300mb['tokens'] else "---"
+        tok_fw = format_tokens_millions(means_fw['tokens'], base_fw['tokens'], decimals=2) if means_fw['tokens'] and base_fw['tokens'] else "---"
         morph_val = get_english_morph(results_fw, "FSP", vocab_size)
         morph = f"{morph_val:.3f}" if morph_val else "---"
         
-        prefix = "FSP" if vocab_size == VOCAB_SIZES[0] else ""
+        prefix = "FSP" if vocab_size == VOCAB_SIZES[0] else "        "
         lines.append(f"{prefix} & {VOCAB_LABELS[vocab_size]} & {tok_300mb} & {tok_fw} & {morph} \\\\")
 
-    lines.append(r"\addlinespace[1pt]")
+    lines.append(r"\tabtwosep")
 
     # BPE
     for vocab_size in VOCAB_SIZES:
         means_300mb = get_means(results_300mb, "BPE", vocab_size, ["tokens"])
         means_fw = get_means(results_fw, "BPE", vocab_size, ["tokens"])
-        base_300mb = get_means(results_300mb, "Default", vocab_size, ["tokens"])
-        base_fw = get_means(results_fw, "Default", vocab_size, ["tokens"])
+        base_300mb = get_means(results_300mb, "Baseline", vocab_size, ["tokens"])
+        base_fw = get_means(results_fw, "Baseline", vocab_size, ["tokens"])
         
-        tok_300mb = format_tokens_millions(means_300mb['tokens'], base_300mb['tokens']) if means_300mb['tokens'] and base_300mb['tokens'] else "---"
-        tok_fw = format_tokens_millions(means_fw['tokens'], base_fw['tokens']) if means_fw['tokens'] and base_fw['tokens'] else "---"
+        tok_300mb = format_tokens_millions(means_300mb['tokens'], base_300mb['tokens'], decimals=2) if means_300mb['tokens'] and base_300mb['tokens'] else "---"
+        tok_fw = format_tokens_millions(means_fw['tokens'], base_fw['tokens'], decimals=2) if means_fw['tokens'] and base_fw['tokens'] else "---"
         morph_val = get_english_morph(results_fw, "BPE", vocab_size)
         morph = f"{morph_val:.3f}" if morph_val else "---"
         
-        prefix = "BPE" if vocab_size == VOCAB_SIZES[0] else ""
+        prefix = "BPE" if vocab_size == VOCAB_SIZES[0] else "        "
         lines.append(f"{prefix} & {VOCAB_LABELS[vocab_size]} & {tok_300mb} & {tok_fw} & {morph} \\\\")
 
+    lines.append(r"\addlinespace[1.1pt]")
     lines.append(r"\bottomrule")
     lines.append(r"\end{tabular}")
-    lines.append(
-        r"\caption{Compression and generalization across methods. "
-    )
-    lines.append(
-        r"All models evaluated on 300\,MB corpora. \textbf{Train 300MB}: in-domain (trained and evaluated on same corpus). "
-    )
-    lines.append(
-        r"\textbf{Train FW}: out-of-domain (trained on FineWiki 1\,GB, evaluated on 300\,MB). "
-    )
-    lines.append(
-        r"\textbf{Morph.} is MorphScore boundary recall on English (see \autoref{app:morphscore}).}"
-    )
+    lines.append(r"\caption{Compression (M tokens, lower is better, superscripts show \% change vs baseline) and morphological alignment across vocabulary sizes $\vocabsize$. Baseline is Unigram with our default settings; FSP uses Final-Style Pruning.")
+    lines.append(r"\emph{Train Tok.}: trained and evaluated on same 300\,MB corpora. \emph{FW Tok.}: trained on FineWiki 1\,GB, evaluated on 300\,MB corpora. Note that the gap with Baseline widens, while BPE gains a small edge over FSP.")
+    lines.append(r"\emph{Morph.}: MorphScore boundary recall on English (higher is better).}")
     lines.append(r"\label{tab:fsp_bpe_val}")
     lines.append(r"\end{table}")
 

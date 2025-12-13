@@ -17,6 +17,13 @@ from script_bpe.analysis.morphscore import MorphScore
 from script_bpe.tokenizers.bpe import BPETokenizer
 from script_bpe.tokenizers.unigram import UnigramModel
 
+# ========== PRETOKENIZER & RESULTS CONFIG ==========
+
+PRETOKENIZER_NAME = "scriptenc_cb"
+# PRETOKENIZER_NAME = "bytes_gpt4o_cb"
+
+RESULTS_DIR = Path("results/unigram_sweeps") / PRETOKENIZER_NAME
+
 # ========== CORPUS MAPPINGS ==========
 
 # Mapping from training corpus to FineWiki evaluation corpus
@@ -47,7 +54,7 @@ def get_finewiki_corpus_name(corpus_name: str) -> str | None:
 
 # ========== UNIFIED JSON CACHE ==========
 
-CACHE_DIR = Path("results/unigram_sweeps")
+CACHE_DIR = RESULTS_DIR
 
 
 class JsonCache:

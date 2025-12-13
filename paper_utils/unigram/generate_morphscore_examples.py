@@ -6,12 +6,13 @@ from script_bpe.analysis import MorphScore
 from paper_utils.unigram.train_hyperparameters import (
     DEFAULTS,
     ADDITIONAL_VOCAB_SIZE,
+    RESULTS_DIR,
     get_model_path,
 )
 from script_bpe.tokenizers.bpe import BPETokenizer
 from script_bpe.tokenizers.unigram import UnigramModel
 
-RESULTS_BASE = Path("results/unigram_sweeps")
+RESULTS_BASE = RESULTS_DIR
 CORPUS = "eng_latn_300mb"
 MORPHSCORE_LANG = "eng_latn"
 

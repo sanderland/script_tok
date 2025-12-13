@@ -12,13 +12,12 @@ from script_bpe.analysis.formatting import (
 )
 from paper_utils.unigram.train_hyperparameters import (
     CORPUS_NAMES,
+    RESULTS_DIR,
     load_experiment_results,
     load_baseline_model,
     compute_relative_performance,
     compute_vocab_overlap,
 )
-
-RESULTS_DIR = Path("results/unigram_sweeps")
 SMOL_CORPUS_NAMES = ["smol_" + corpus for corpus in CORPUS_NAMES]
 
 # Option to include iterations row in tables

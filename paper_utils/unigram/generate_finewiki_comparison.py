@@ -19,12 +19,11 @@ from paper_utils.unigram.train_hyperparameters import (
     CORPUS_NAMES,
     FINEWIKI_CORPUS_NAMES,
     DEFAULTS,
+    RESULTS_DIR,
     load_model_if_cached,
     get_model_path,
 )
 from paper_utils.unigram.utils import evaluate_on_corpus_cached, evaluate_morphscore_cached
-
-RESULTS_DIR = Path("results/unigram_sweeps")
 
 # Configuration
 # Match sweep output types: 0.5*32768=16384.0 (float), 1*32768=32768 (int), 2*32768=65536 (int)
