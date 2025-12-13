@@ -1,8 +1,10 @@
 # SCRIPT: Script/Category Representation In (Pre-)Tokenization
 
-This repository provides tools for SCRIPT encoding-based pre-tokenization and BPE.
+This repository provides tools for tokenization, focused on SCRIPT encoding, but also supporting UTF-8.
+It contains tokenizers for BPE and Unigram.
 
-For details of the methods, see our paper: [BPE Stays on SCRIPT: Structured Encoding for Robust Multilingual Pretokenization](https://arxiv.org/abs/2505.24689)
+For details of the methods, see our paper:
+* [BPE Stays on SCRIPT: Structured Encoding for Robust Multilingual Pretokenization](https://arxiv.org/abs/2505.24689)
 
 ## Overview
 
@@ -47,16 +49,7 @@ uv run train --corpus <kor_hang_300mb> -n <number of merge rules> --pretokenizer
 
 ### Reproducing results
 
-The directory `paper_utils` contains scripts to reproduce the paper's results from scratch.
-To remove checked-in results and reproduce all, you can run:
-
-```bash
-# rm -r results/ # for reproduction from scratch.
-bash paper_utils/train_monolingual.sh  # Uses GNU parallel, make sure it is installed
-bash paper_utils/train_multilingual.sh
-```
-
-The notebooks in the same directory can then be used to reproduce the tables and figures.
+The directory `paper_utils` contains scripts to train and reproduce the paper's results from scratch.
 
 ## Sources
 

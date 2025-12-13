@@ -31,7 +31,7 @@ UTF8_TEST_CASES = [
     pytest.param(("한", slice(0, 2)), ("한", slice(2, 3)), True, id="Han_P12+P3"),
     # Complete + Partial (Disallowed)
     pytest.param("a", ("ü", slice(0, 1)), False, id="A+Uml_P1"),
-    pytest.param("ü", ("한", slice(2, 3)), False, id="Uml+Han_P3_Cont"),
+    # pytest.param("ü", ("한", slice(2, 3)), False, id="Uml+Han_P3_Cont"), # cant happen
     # Partial + Complete (Disallowed)
     pytest.param(("ü", slice(0, 1)), "a", False, id="Uml_P1+A"),
     pytest.param(("ü", slice(1, 2)), "a", False, id="Uml_P2_Cont+A"),
@@ -50,7 +50,7 @@ def test_bpe_merge_allowed_ext(regex_utf8b, marker1, marker2, expected: bool):
     for marker in [marker1, marker2]:
         base_str = marker if isinstance(marker, str) else marker[0]
         slice_obj = marker[1] if isinstance(marker, tuple) else slice(None)
-        chunks = regex_utf8b_tokenizer.encode_and_chunk(base_str)
+        chunks = regex_utf8b_tokenizer.pretokenize(base_str)
         seqs.append(chunks[0][slice_obj])
 
     result = regex_utf8b_tokenizer.bpe_merge_allowed(seqs[0], seqs[1])
@@ -62,8 +62,8 @@ SE_TEST_CASES = [pytest.param(a, b, id=f"{a}+{b}") for a in ["a", "ü", "한", "
 
 @pytest.mark.parametrize("a, b", SE_TEST_CASES)
 def test_merge_scriptenc_cb(a, b, scriptenc_cb):
-    c1 = scriptenc_cb.encode_and_chunk(a)[0]
-    c2 = scriptenc_cb.encode_and_chunk(b)[0]
+    c1 = scriptenc_cb.pretokenize(a)[0]
+    c2 = scriptenc_cb.pretokenize(b)[0]
     assert scriptenc_cb.bpe_merge_allowed(c1, c2)
     assert scriptenc_cb.bpe_merge_allowed([c1[0]], [c1[1]])
     assert scriptenc_cb.bpe_merge_allowed([c1[0]], [c1[1]])
@@ -75,10 +75,9 @@ def test_merge_scriptenc_cb(a, b, scriptenc_cb):
 
 @pytest.mark.parametrize("a, b", SE_TEST_CASES)
 def test_merge_scriptenc(a, b, scriptenc):  # all allowed
-    c1 = scriptenc.encode_and_chunk(a)[0]
-    c2 = scriptenc.encode_and_chunk(b)[0]
+    c1 = scriptenc.pretokenize(a)[0]
+    c2 = scriptenc.pretokenize(b)[0]
     assert scriptenc.bpe_merge_allowed(c1, c2)
-    assert scriptenc.bpe_merge_allowed([c1[0]], [c1[1]])
     assert scriptenc.bpe_merge_allowed([c1[0]], [c1[1]])
     assert scriptenc.bpe_merge_allowed([c1[1]], [c1[0]])
     assert scriptenc.bpe_merge_allowed(c1, [c2[0]])

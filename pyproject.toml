@@ -1,9 +1,9 @@
 [project]
 name = "script_bpe"
-version = "0.5.0"
+version = "0.6.0"
 description = "BPE with support for SCRIPT encoding"
 authors = [
-    {name = "Sander Land", email = "sander@cohere.com"},
+    {name = "Sander Land", email = "sander@writer.com"},
     {name = "Catherine Arnett", email = "catherine@eleuther.ai"},
 ]
 readme = "README.md"
@@ -15,22 +15,43 @@ dependencies = [
     "regex>=2024.11.6",
     "tabulate>=0.9.0",
     "tqdm>=4.67.1",
-    "pytest>=8.3.5",
-    "pip>=25.1.1", # avoids jupyter notebook in vscode issues
-    "jinja2>=3.1.6",
+    "scipy>=1.16.1",
+    "frozendict>=2.4.6",
+    "pydantic>=2.11.7",
+    "matplotlib>=3.10.5",
+    "python-dotenv>=1.1.1",
+    "cyclopts>=3.24.0",
+    "seaborn>=0.13.2",
+    "plotly>=6.3.1",
+    "huggingface-hub<1.0",
+    "transformers>=4.57.1",
+    "openai>=2.8.0",
 ]
-
-
 
 [project.scripts]
 train = "script_bpe.train:main"
 
-[tool.black]
+[dependency-groups]
+dev = [
+    "ruff>=0.12.9",
+    "pytest>=8.3.5",
+    "pip>=25.1.1", # avoids jupyter notebook in vscode issues
+    "scalene>=1.5.51", # profiler
+    "jinja2>=3.1.6",
+    "mypy>=1.17.1",
+    "ipykernel>=6.30.1",
+    "matplotlib>=3.10.5",
+    "statsmodels>=0.14.5",
+]
+
+
+[tool.ruff]
 line-length = 120
 
-[tool.isort]
-profile="black"
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+

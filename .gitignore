@@ -5,9 +5,7 @@ profile*
 archive/
 
 # test runs
-results/tokenizers/swift/*
-results/tokenizers/*/n100/*
-results/tokenizers/*/n1/*
+results/*
 
 # caches/results
 results/corpora/

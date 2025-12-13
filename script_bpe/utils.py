@@ -1,19 +1,17 @@
 import array
-import functools
+import gc
 import logging
 import multiprocessing
 import os
 import sys
 import time
-import unicodedata
-from script_bpe.encoding.encoder import unicode_script_map
-from typing import Iterable
+from typing import Iterable, Literal
 
 # one dir lower than this script
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # ---- multiprocessing context ----
-
+gc.freeze()  # docs suggest freezing to avoid copy-on-write
 mp_ctx = multiprocessing.get_context("forkserver")
 
 # ---- typing ----
@@ -24,6 +22,10 @@ PretokenizedT = list[TokenSeq]
 
 # inputs more flexible
 InputTokenSeq = array.array | list[int]
+
+# shared aliases
+DigitHandlingT = Literal["RTL3", "SPLIT"] | None
+TokenPairT = tuple[int, int]
 
 
 def token_array(values: Iterable[int]) -> TokenSeq:
@@ -55,31 +57,3 @@ def create_logger(tag: str, verbose: bool = True):
         handler.setFormatter(formatter)
         logger.addHandler(handler)
     return logger
-
-
-# --- string/utf8 utils ---
-
-UNASSIGNED_CATEGORIES = {"Cn", "Co", "Cs"}  # we ignore Cn=Not Assigned, Co=Private Use, Cs=Surrogate
-
-
-def remove_unassigned_private_surrogate(s):
-    return "".join(c for c in s if not is_unassigned_private_surrogate(c))
-
-@functools.cache
-def is_unassigned_private_surrogate(char):
-    return char not in unicode_script_map()
-
-@functools.cache
-def utf_byte_type(b: int) -> int:
-    start_byte = f"{b:08b}"  # cached so we can be really explicit
-    if start_byte.startswith("10"):  # continuation byte
-        return 0
-    if start_byte.startswith("0"):
-        return 1
-    if start_byte.startswith("110"):
-        return 2
-    if start_byte.startswith("1110"):
-        return 3
-    if start_byte.startswith("11110"):
-        return 4
-    return 5  # not part of utf8
