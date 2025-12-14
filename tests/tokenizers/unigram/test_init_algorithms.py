@@ -218,3 +218,4 @@ def test_simple_vs_corpus_consistency():
             f"Pattern {pattern} has freq {freq} in corpus but {result_simple[pattern]} in simple"
         )
 
+
