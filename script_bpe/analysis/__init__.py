@@ -10,4 +10,3 @@ from script_bpe.analysis.formatting import (
     format_vocab_value,
     mark_biggest_in_group,
 )
-

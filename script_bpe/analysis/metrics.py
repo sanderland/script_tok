@@ -61,4 +61,3 @@ def evaluate_on_corpus(model, corpus_name: str) -> dict:
         "atomic_tokens": total_atomic_len,
         "bytes": total_bytes,
     }
-

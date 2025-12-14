@@ -10,9 +10,9 @@ import time
 from pathlib import Path
 
 from tabulate import tabulate
-
+import pandas as pd
 from script_bpe import get_pretokenizer
-from script_bpe.analysis import get_config_hash, flatten_model_metadata
+from script_bpe.analysis import get_config_hash
 from script_bpe.corpus.registry import load_corpus_by_name
 from script_bpe.utils import create_logger
 from script_bpe.tokenizers.unigram.trainer import UnigramTrainer, UnigramTrainerConfig
@@ -26,9 +26,6 @@ from paper_utils.unigram.utils import (
     load_experiment_results as _load_experiment_results,
     identify_baseline as _identify_baseline,
     load_baseline_model as _load_baseline_model,
-    load_vocab_from_model_file,
-    compute_relative_performance,
-    compute_vocab_overlap,
 )
 
 # ========== FIXED SETTINGS ==========
@@ -122,7 +119,7 @@ def get_model_path(corpus_name: str, params: dict) -> Path:
             **params,
         }
     )
-    prefix = params.get('init_vocab_algo', 'corpus_long')
+    prefix = params.get("init_vocab_algo", "corpus_long")
     return cache_dir / f"{prefix}_n{vocab_size}_{config_hash}.model.json.gz"
 
 
@@ -147,7 +144,7 @@ def load_model_if_cached(corpus_name: str, params: dict) -> tuple[UnigramModel |
 def load_experiment_results(
     experiment_keys: str | list[str],
     corpus_names: list[str] | None = None,
-) -> "pd.DataFrame":
+) -> pd.DataFrame:
     """Load experiment results based on experiment configuration."""
     if corpus_names is None:
         corpus_names = CORPUS_NAMES
@@ -159,12 +156,12 @@ def load_experiment_results(
     )
 
 
-def identify_baseline(df: "pd.DataFrame", corpus_name: str) -> "pd.Series | None":
+def identify_baseline(df: pd.DataFrame, corpus_name: str) -> pd.Series | None:
     """Identify baseline configuration for a corpus (all defaults)."""
     return _identify_baseline(df, corpus_name, DEFAULTS)
 
 
-def load_baseline_model(corpus_name: str) -> "pd.Series | None":
+def load_baseline_model(corpus_name: str) -> pd.Series | None:
     """Load baseline model (all defaults) for a corpus."""
     return _load_baseline_model(corpus_name, DEFAULTS, load_model_if_cached)
 

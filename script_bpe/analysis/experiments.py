@@ -59,4 +59,3 @@ def flatten_model_metadata(metadata: dict) -> dict:
             data["num_iterations"] = stats["num_iterations"]
 
     return data
-

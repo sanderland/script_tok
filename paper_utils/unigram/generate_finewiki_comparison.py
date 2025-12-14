@@ -8,9 +8,7 @@ This script compares generalization in BOTH directions:
 The goal is to understand whether models generalize equally well in both directions.
 """
 
-from pathlib import Path
 
-import pandas as pd
 
 from script_bpe.analysis import evaluate_on_corpus, MorphScore
 from script_bpe.tokenizers.bpe import BPETokenizer
@@ -41,7 +39,7 @@ def check_experiment_status():
     Prints detailed status of:
     - 300MB -> FineWiki (models trained on 300MB, evaluated on FineWiki)
     - FineWiki -> 300MB (models trained on FineWiki, evaluated on 300MB)
-    
+
     Returns:
         bool: True if all models exist, False if any are missing
     """
@@ -50,7 +48,7 @@ def check_experiment_status():
     print("=" * 80)
 
     missing = []
-    
+
     for corpus_300mb, corpus_fw in CORPUS_PAIRS:
         lang_name = corpus_300mb.split("_")[0]  # e.g., "eng", "deu", etc.
         print(f"\n{'-' * 80}")
@@ -102,9 +100,8 @@ def check_experiment_status():
                 status_300mb = "YES" if exists_300mb else "NO "
                 status_fw = "YES" if exists_fw else "NO "
 
-                print(f"    {VOCAB_LABELS[vocab_size]:>4}: "
-                      f"300MB->FW {status_300mb}  |  FW->300MB {status_fw}")
-                
+                print(f"    {VOCAB_LABELS[vocab_size]:>4}: 300MB->FW {status_300mb}  |  FW->300MB {status_fw}")
+
                 # Track missing models
                 if not exists_300mb:
                     missing.append(f"{lang_name.upper()} {method} {VOCAB_LABELS[vocab_size]} 300MB->FW")
@@ -114,7 +111,7 @@ def check_experiment_status():
     print(f"\n{'=' * 80}")
     print("SUMMARY")
     print("=" * 80)
-    
+
     if missing:
         print(f"❌ INCOMPLETE: {len(missing)} models missing")
         print("\nMissing models:")
@@ -125,9 +122,9 @@ def check_experiment_status():
         print("  FineWiki models: uv run python paper_utils/unigram/train_hyperparameters.py <experiment> --finewiki")
     else:
         print("✓ COMPLETE: All models are available")
-    
+
     print("=" * 80)
-    
+
     return len(missing) == 0
 
 
@@ -166,7 +163,7 @@ def evaluate_cross_generalization(model, model_path, train_corpus, eval_corpus, 
 
     results = {
         "train": {"objective": train_obj, "tokens": train_tok},
-        "eval": {"objective": eval_obj, "tokens": eval_tok}
+        "eval": {"objective": eval_obj, "tokens": eval_tok},
     }
 
     # 3. MorphScore evaluation (only for English)
@@ -316,10 +313,10 @@ def generate_bidirectional_table() -> str:
         if val is None or baseline is None:
             return "---"
         if val == baseline:
-            return f"{val/1e6:.1f}\\phantom{{\\relchange{{+0.0}}}}"
+            return f"{val / 1e6:.1f}\\phantom{{\\relchange{{+0.0}}}}"
         rel = (val - baseline) / baseline * 100
         sign = "+" if rel >= 0 else ""
-        return f"{val/1e6:.1f}\\relchange{{{sign}{rel:.1f}}}"
+        return f"{val / 1e6:.1f}\\relchange{{{sign}{rel:.1f}}}"
 
     # Build LaTeX table
     lines = []
@@ -341,8 +338,8 @@ def generate_bidirectional_table() -> str:
         eval_tok = get_means("300mb", "Default", vocab_size, "eval", "tokens")
         morph = get_english_morph("300mb", "Default", vocab_size)
 
-        tok_train = f"{train_tok/1e6:.1f}\\phantom{{\\relchange{{+0.0}}}}" if train_tok else "---"
-        tok_eval = f"{eval_tok/1e6:.1f}\\phantom{{\\relchange{{+0.0}}}}" if eval_tok else "---"
+        tok_train = f"{train_tok / 1e6:.1f}\\phantom{{\\relchange{{+0.0}}}}" if train_tok else "---"
+        tok_eval = f"{eval_tok / 1e6:.1f}\\phantom{{\\relchange{{+0.0}}}}" if eval_tok else "---"
         morph_str = f"{morph:.3f}" if morph else "---"
 
         prefix = "Default" if vocab_size == VOCAB_SIZES[0] else ""
@@ -393,8 +390,8 @@ def generate_bidirectional_table() -> str:
         eval_tok = get_means("finewiki", "Default", vocab_size, "eval", "tokens")
         morph = get_english_morph("finewiki", "Default", vocab_size)
 
-        tok_train = f"{train_tok/1e6:.1f}\\phantom{{\\relchange{{+0.0}}}}" if train_tok else "---"
-        tok_eval = f"{eval_tok/1e6:.1f}\\phantom{{\\relchange{{+0.0}}}}" if eval_tok else "---"
+        tok_train = f"{train_tok / 1e6:.1f}\\phantom{{\\relchange{{+0.0}}}}" if train_tok else "---"
+        tok_eval = f"{eval_tok / 1e6:.1f}\\phantom{{\\relchange{{+0.0}}}}" if eval_tok else "---"
         morph_str = f"{morph:.3f}" if morph else "---"
 
         prefix = "Default" if vocab_size == VOCAB_SIZES[0] else ""
@@ -436,21 +433,11 @@ def generate_bidirectional_table() -> str:
 
     lines.append(r"\bottomrule")
     lines.append(r"\end{tabular}")
-    lines.append(
-        r"\caption{Bidirectional cross-generalization: 300MB $\leftrightarrow$ FineWiki. "
-    )
-    lines.append(
-        r"Top section trains on 300MB corpora and evaluates on held-out FineWiki data. "
-    )
-    lines.append(
-        r"Bottom section trains on FineWiki and evaluates on 300MB. "
-    )
-    lines.append(
-        r"This reveals whether generalization is symmetric across corpus domains. "
-    )
-    lines.append(
-        r"\textbf{Morph.} is MorphScore boundary recall on English training data.}"
-    )
+    lines.append(r"\caption{Bidirectional cross-generalization: 300MB $\leftrightarrow$ FineWiki. ")
+    lines.append(r"Top section trains on 300MB corpora and evaluates on held-out FineWiki data. ")
+    lines.append(r"Bottom section trains on FineWiki and evaluates on 300MB. ")
+    lines.append(r"This reveals whether generalization is symmetric across corpus domains. ")
+    lines.append(r"\textbf{Morph.} is MorphScore boundary recall on English training data.}")
     lines.append(r"\label{tab:bidirectional_gen}")
     lines.append(r"\end{table}")
 

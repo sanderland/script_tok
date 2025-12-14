@@ -164,9 +164,7 @@ class MorphScore:
         if len(filtered) == 0:
             # Try with common variations
             available = full_df["language"].unique()
-            raise FileNotFoundError(
-                f"No data for language '{language}'. Available: {sorted(available)[:20]}..."
-            )
+            raise FileNotFoundError(f"No data for language '{language}'. Available: {sorted(available)[:20]}...")
 
         return filtered
 
@@ -503,14 +501,16 @@ class MorphScore:
             recall_val, _ = self.morph_eval(morphemes, tokens)
             recall = None if np.isnan(recall_val) else float(recall_val)
 
-            results.append({
-                "word": wordform,
-                "gold": morphemes,
-                "predicted": tokens,
-                "recall": recall,
-                "is_correct": recall == 1.0 if recall is not None else False,
-                "is_single": len(tokens) == 1,
-            })
+            results.append(
+                {
+                    "word": wordform,
+                    "gold": morphemes,
+                    "predicted": tokens,
+                    "recall": recall,
+                    "is_correct": recall == 1.0 if recall is not None else False,
+                    "is_single": len(tokens) == 1,
+                }
+            )
 
         return results
 
@@ -522,4 +522,3 @@ class MorphScore:
     def get_config(self) -> dict:
         """Get current configuration."""
         return self.config.copy()
-

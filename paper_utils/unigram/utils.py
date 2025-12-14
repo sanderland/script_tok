@@ -310,4 +310,3 @@ def compute_vocab_overlap(
             rows.append(row_data)
 
     return pd.DataFrame(rows)
-

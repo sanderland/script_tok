@@ -128,4 +128,3 @@ def mark_biggest_in_group(
                 return result
 
     return result
-

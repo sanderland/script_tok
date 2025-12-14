@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Generate detailed appendix LaTeX tables for unigram hyperparameter experiments."""
 
-from pathlib import Path
 
 import pandas as pd
 
@@ -18,6 +17,7 @@ from paper_utils.unigram.train_hyperparameters import (
     compute_relative_performance,
     compute_vocab_overlap,
 )
+
 SMOL_CORPUS_NAMES = ["smol_" + corpus for corpus in CORPUS_NAMES]
 
 # Option to include iterations row in tables

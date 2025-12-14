@@ -15,8 +15,16 @@ import multiprocessing
 import json
 
 # %%
-PRETOKENIZERS = ["bytes_gpt4_cb", "bytes_gpt4o_cb", "scriptenc_cb", "scriptenc_gpt4o_cb",
-               "scriptenc2_cb", "scriptenc2_cbi", "scriptenc3_cb", "scriptenc3_cbi"]
+PRETOKENIZERS = [
+    "bytes_gpt4_cb",
+    "bytes_gpt4o_cb",
+    "scriptenc_cb",
+    "scriptenc_gpt4o_cb",
+    "scriptenc2_cb",
+    "scriptenc2_cbi",
+    "scriptenc3_cb",
+    "scriptenc3_cbi",
+]
 TRAIN_N = 256000
 NUM_PROCESSES = 16
 TRAIN_CORPORA = {"culturax": "CulturaX-subsample-100-bal2"}
@@ -32,6 +40,7 @@ TEST_FILES = MONOLINGUAL_DATASETS + list(TRAIN_CORPORA.values()) + SPLIT_VAL_COR
 for ptok in PRETOKENIZERS:  # can not nest multiprocessing, so ensure these work before
     for file in TEST_FILES:
         corpus = load_corpus_by_name(file, get_pretokenizer(ptok))
+
 
 # %%
 def process_file_ptok(args):

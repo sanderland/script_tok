@@ -53,6 +53,7 @@ for file in MONOLINGUAL_DATASETS:
         )
         num_undecodable[file][f"unigram:{ptok}"] = tok.stats()["num_undecodable"]
 
+
 # %%
 def format_results(df, columns=None, floatfmt="{:.4f}", gradient="RdYlGn_r", relative=None):
     df = df[columns or df.columns]
@@ -79,7 +80,7 @@ format_results(
     bpe_start_df, columns=[c for c in ["bytes_gpt4", "scriptenc", "scriptenc_cb"] if c in bpe_start_df.columns]
 ).set_caption("Table 1 (Left two columns): Tokens/Char at start (BPE only)")
 
-#%% Combined end table, model-prefixed columns
+# %% Combined end table, model-prefixed columns
 tmp = cdf.copy()
 tmp["col"] = tmp["model"].fillna("bpe") + ":" + tmp["pretokenizer"]
 end_df = tmp.pivot(index="file", columns="col", values="end")

@@ -189,14 +189,14 @@ def create_scatter_plot_all_points() -> tuple[list[dict], list[dict], list[dict]
     print("\nSecond pass: Determining which experiments to plot...")
     experiments_to_plot = []
     skipped_experiments = []
-    
+
     for experiment_name in list(EXPERIMENT_DISPLAY.keys()) + ["BPE"]:
         if experiment_name not in experiment_points or not experiment_points[experiment_name]:
             continue
-        
+
         # Find max distance for this experiment
         max_dist = max(pt["dist"] for pt in experiment_points[experiment_name])
-        
+
         if max_dist >= MIN_DIFF_THRESHOLD:
             experiments_to_plot.append(experiment_name)
             print(f"  ✓ Including {experiment_name} (max dist: {max_dist:.3f}%)")
@@ -207,7 +207,7 @@ def create_scatter_plot_all_points() -> tuple[list[dict], list[dict], list[dict]
     # THIRD PASS: Create the plot with only included experiments
     print("\nThird pass: Creating plot...")
     fig, ax = plt.subplots(figsize=(12, 10), dpi=150)
-    
+
     plotted_experiments = []
     out_of_bounds = []
 
@@ -217,7 +217,7 @@ def create_scatter_plot_all_points() -> tuple[list[dict], list[dict], list[dict]
             bpe_point = experiment_points["BPE"][0]
             bpe_individual = bpe_point["individual_points"]
             bpe_mean = bpe_point["y"]
-            
+
             # Plot individual BPE points (small)
             if PLOT_ALL_POINTS:
                 ax.scatter(
@@ -233,7 +233,7 @@ def create_scatter_plot_all_points() -> tuple[list[dict], list[dict], list[dict]
             # Plot mean BPE point (large)
             ax.scatter([0], [bpe_mean], c="black", marker="x", s=150, linewidths=4, alpha=1.0, zorder=10)
             print(f"  ✓ Plotted {len(bpe_individual)} BPE points")
-            
+
             # Check for out-of-bounds
             if not (XLIM[0] <= 0 <= XLIM[1] and YLIM[0] <= bpe_mean <= YLIM[1]):
                 out_of_bounds.append(bpe_point)
@@ -241,7 +241,7 @@ def create_scatter_plot_all_points() -> tuple[list[dict], list[dict], list[dict]
             # Handle regular experiments
             display_config = EXPERIMENT_DISPLAY[experiment_name]
             points = experiment_points[experiment_name]
-            
+
             for point_info in points:
                 # Plot individual corpus points if enabled
                 if PLOT_ALL_POINTS and "individual_points" in point_info:
@@ -255,7 +255,7 @@ def create_scatter_plot_all_points() -> tuple[list[dict], list[dict], list[dict]
                         s=60,
                         edgecolors="none",
                     )
-                
+
                 # Plot mean point
                 ax.scatter(
                     [point_info["x"]],
@@ -267,11 +267,11 @@ def create_scatter_plot_all_points() -> tuple[list[dict], list[dict], list[dict]
                     edgecolors="black",
                     linewidths=1.5,
                 )
-                
+
                 # Check for out-of-bounds
                 if not (XLIM[0] <= point_info["x"] <= XLIM[1] and YLIM[0] <= point_info["y"] <= YLIM[1]):
                     out_of_bounds.append(point_info)
-            
+
             plotted_experiments.append(experiment_name)
             print(f"  ✓ Plotted {len(points)} parameter values for {experiment_name}")
 
@@ -441,7 +441,7 @@ def main():
         exp = pt["experiment"]
         if exp not in exp_max_dist or pt["dist"] > exp_max_dist[exp]["dist"]:
             exp_max_dist[exp] = pt
-    
+
     for pt in sorted(exp_max_dist.values(), key=lambda p: p["dist"], reverse=True):
         exp = pt["experiment"]
         skipped_str = " (SKIPPED)" if exp in skipped_experiments else ""

@@ -49,7 +49,6 @@ PRETOKENIZER_REGISTRY: dict[str, PretokenizerConfig] = {
     "scriptenc2_cbi": ScriptPretokenizerConfig(script_config=ScriptEncodingV2, enforce_inherited=True),
     "scriptenc3_cb": ScriptPretokenizerConfig(script_config=ScriptEncodingV3, enforce_char_boundaries=True),
     "scriptenc3_cbi": ScriptPretokenizerConfig(script_config=ScriptEncodingV3, enforce_inherited=True),
-
 }
 
 

@@ -212,7 +212,7 @@ class ScriptConfig(BaseModel):
             supercat = "LM"  # Letter/Mark
         elif supercat == "Z" or category == "Cc":
             supercat = "ZC"  # whitespace/control, which includes \n,\t, etc
-        elif category == "So": # emoji etc
+        elif category == "So":  # emoji etc
             supercat = "So"
         elif supercat in {"P", "S"} or category == "Cf":
             supercat = "PSF"  # Punctuation/Symbol/Formatting

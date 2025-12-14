@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Generate MorphScore appendix table comparing tokenizers at 32K vocab size."""
 
-from pathlib import Path
 from script_bpe.analysis import MorphScore
 from paper_utils.unigram.train_hyperparameters import (
     DEFAULTS,
@@ -61,7 +60,6 @@ def generate_latex(tokenizers: dict[str, object]) -> str:
 
     # Get word frequencies
     word_freqs = ms.get_word_frequencies()
-    total_freq = sum(word_freqs.values())
 
     # Analyze each tokenizer
     analyses = {name: ms.analyze_tokenizer(tok) for name, tok in tokenizers.items()}
@@ -96,7 +94,6 @@ def generate_latex(tokenizers: dict[str, object]) -> str:
     complete_words.sort(key=lambda x: x[1]["freq"], reverse=True)
 
     # Compute summary statistics
-    total_words = len(complete_words)
     total_freq_sum = sum(d["freq"] for _, d in complete_words)
 
     scores = {}
@@ -153,14 +150,19 @@ Table~\ref{tab:morphscore-examples} shows MorphScore evaluation results comparin
 \midrule
 """
 
-    def add_examples(category_name: str, examples: list, num: int = 3, color_winner: str | None = None, all_red: bool = False):
+    def add_examples(
+        category_name: str, examples: list, num: int = 3, color_winner: str | None = None, all_red: bool = False
+    ):
         """Add example rows for a category."""
         nonlocal latex
         # Compute stats for this category
         cat_count = len(examples)
         cat_freq_pct = 100 * sum(d["freq"] for _, d in examples) / total_freq_sum if total_freq_sum > 0 else 0
 
-        latex += rf"\multicolumn{{6}}{{l}}{{\textbf{{{category_name}}} ({cat_count} words covering {cat_freq_pct:.1f}\% of corpus)}} \\" + "\n"
+        latex += (
+            rf"\multicolumn{{6}}{{l}}{{\textbf{{{category_name}}} ({cat_count} words covering {cat_freq_pct:.1f}\% of corpus)}} \\"
+            + "\n"
+        )
         latex += r"\midrule" + "\n"
 
         for word, data in examples[:num]:
