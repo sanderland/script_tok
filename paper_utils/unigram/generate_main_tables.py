@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Generate LaTeX tables for unigram paper: init algorithms and final style pruning."""
 
-
 import pandas as pd
 
 from script_bpe.analysis import format_with_relchange, format_tokens_millions, MorphScore

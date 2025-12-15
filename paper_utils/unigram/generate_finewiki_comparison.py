@@ -8,8 +8,6 @@ This script compares generalization in BOTH directions:
 The goal is to understand whether models generalize equally well in both directions.
 """
 
-
-
 from script_bpe.analysis import evaluate_on_corpus, MorphScore
 from script_bpe.tokenizers.bpe import BPETokenizer
 from script_bpe.tokenizers.unigram import UnigramModel

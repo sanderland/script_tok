@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Generate detailed appendix LaTeX tables for unigram hyperparameter experiments."""
 
-
 import pandas as pd
 
 from script_bpe.analysis.formatting import (
