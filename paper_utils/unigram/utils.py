@@ -20,7 +20,6 @@ from script_bpe.tokenizers.unigram import UnigramModel
 # ========== PRETOKENIZER & RESULTS CONFIG ==========
 
 PRETOKENIZER_NAME = "scriptenc_cb"
-# PRETOKENIZER_NAME = "bytes_gpt4o_cb"
 
 RESULTS_DIR = Path("results/unigram_sweeps") / PRETOKENIZER_NAME
 

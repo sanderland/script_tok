@@ -71,10 +71,12 @@ Text Input
 **Script Encoding** (`scriptencoding.py`):
 - `ScriptConfig`: Defines how Unicode scripts/categories map to blocks
 - `ScriptBlock`: A group of characters sharing script+category
-- `ScriptEncodingV1` vs `ScriptEncodingV2`: Different categorization strategies
+- Three encoding versions (`ScriptEncodingV1`, `ScriptEncodingV2`, `ScriptEncodingV3`):
   - V1: More granular script categories
   - V2: High-resource scripts get categories, low-resource collapse to ALL
+  - V3: Like V2, but with broader space-combining behavior (all scripts get PSF)
 - Special handling: Hiragana merged with Han, space-combining scripts
+- Registry variants: `scriptenc_cb` (V1), `scriptenc2_cb` (V2), `scriptenc3_cb` (V3)
 
 ### 2. Corpus Management (`script_bpe/corpus/`)
 
@@ -106,7 +108,7 @@ results/corpora/
 **Registry** (`registry.py`):
 - `load_corpus_by_name()`: Lazy-loads or creates corpora
 - Supports HuggingFace datasets (OSCAR, CulturaX, finewiki)
-- Monolingual datasets: `eng_latn_300mb`, `kor_hang_300mb`, etc.
+- `MONOLINGUAL_DATASETS`: List of 12 language-script pairs (e.g., `eng_latn_300mb`, `kor_hang_300mb`, `zho_hans_300mb`) with ~300MB each, ordered by bytes/char
 
 ### 3. Tokenizers (`script_bpe/tokenizers/`)
 
@@ -198,6 +200,21 @@ uv run train --corpus <name> -n <vocab_size> --pretokenizer <name> --model bpe|u
 - Custom logger with uptime tracking
 - Used consistently across trainers
 
+### 6. Analysis (`script_bpe/analysis/`)
+
+**Purpose**: Utilities for evaluating tokenizers and generating paper results
+
+**Key Components**:
+- `metrics.py`: `evaluate_on_corpus()` - compute compression and entropy metrics
+- `morphscore.py`: `MorphScore` - evaluate morphological quality of tokenization
+- `experiments.py`: `get_config_hash()`, `flatten_model_metadata()` - experiment tracking helpers
+- `formatting.py`: LaTeX table formatting utilities (`format_with_relchange()`, `format_latex_value()`, etc.)
+
+**Usage**:
+```python
+from script_bpe.analysis import evaluate_on_corpus, MorphScore
+```
+
 ## Testing Structure
 
 Tests organized by component:
@@ -265,7 +282,7 @@ tokenizer.save("path/to/tokenizer.json.gz")
 ### Comparing Pretokenizers
 Paper utilities in `paper_utils/` batch-train all variants:
 ```bash
-bash paper_utils/train_monolingual.sh  # Uses GNU parallel
+bash paper_utils/script_bpe/train_monolingual.sh  # Uses GNU parallel
 ```
 
 ### Adding a New Pretokenizer Variant
@@ -284,10 +301,10 @@ stats = tokenizer.corpus_performance(corpus)
 ## Key Files to Know
 
 **Core Logic** (read these to understand algorithms):
-- `pretokenize/pretokenizer.py` (340 lines): Pretokenization logic
-- `tokenizers/bpe/trainer.py` (250 lines): BPE training loop
-- `tokenizers/unigram/trainer.py` (375 lines): Unigram EM algorithm
-- `tokenizers/unigram/model.py` (255 lines): Lattice and Viterbi
+- `pretokenize/pretokenizer.py` (~340 lines): Pretokenization logic
+- `tokenizers/bpe/trainer.py` (~250 lines): BPE training loop
+- `tokenizers/unigram/trainer.py` (~375 lines): Unigram EM algorithm
+- `tokenizers/unigram/model.py` (~260 lines): Lattice and Viterbi
 
 **Configuration** (read these to understand variants):
 - `pretokenize/__init__.py`: All pretokenizer variants
@@ -341,7 +358,7 @@ stats = tokenizer.corpus_performance(corpus)
 
 ## Related Files
 
-- `paper_utils/`: Scripts to reproduce paper results
-- `nb_*.py`: Jupyter notebooks for analysis (converted to .py format)
+- `paper_utils/script_bpe/`: BPE paper utilities (training scripts, compression notebooks)
+- `paper_utils/unigram/`: Unigram paper utilities (table generation, hyperparameter tuning)
 - `results/`: Cached tokenizers and corpora (not in git)
 - `tests/data/taylorswift.txt`: Small test corpus

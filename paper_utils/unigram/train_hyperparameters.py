@@ -242,7 +242,7 @@ def run_bpe_baseline(corpora: list[str]) -> list[dict]:
 
     for corpus_name in corpora:
         for vocab_size in SWEEP_CONFIGS["additional_vocab_size"]:
-            cache_dir = Path("results") / "unigram_sweeps" / corpus_name
+            cache_dir = RESULTS_DIR / corpus_name
             cache_dir.mkdir(parents=True, exist_ok=True)
             model_file = cache_dir / f"bpe_n{vocab_size}.model.json.gz"
 
