@@ -1,16 +1,10 @@
-from typing import Any, Callable, Type
-
-from script_bpe.encoding import ScriptEncoding
-
-from .base import BasePretokenizer
-from .regex import RegexBytePretokenizer
-from .scriptencoding import (
-    ScriptEncodingPretokenizer,
-    ScriptEncodingPretokenizerRegexSplitting,
+from script_bpe.pretokenize.pretokenizer import (
+    Pretokenizer,
+    PretokenizerConfig,
+    ScriptPretokenizerConfig,
+    UTF8PretokenizerConfig,
 )
-
-DefaultScriptEncoding = ScriptEncoding().export_config()
-
+from script_bpe.pretokenize.scriptencoding import ScriptEncodingV1, ScriptEncodingV2, ScriptEncodingV3
 
 GPT2_REGEX = r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"
 GPT4_REGEX = (
@@ -27,49 +21,52 @@ GPT4O_REGEX = "|".join(
         r"""\s+""",
     ]
 )
-NO_SPLIT_REGEX = r"\A.*\Z"
 
 
 # Registry of available pretokenizers
-PRETOKENIZER_REGISTRY: dict[str, Callable[[], BasePretokenizer]] = {
-    "bytes_gpt4": lambda: RegexBytePretokenizer({"regex": GPT4_REGEX, "enforce_char_boundaries": False}),
-    "bytes_gpt4_cb": lambda: RegexBytePretokenizer({"regex": GPT4_REGEX, "enforce_char_boundaries": True}),
-    "bytes_gpt4o": lambda: RegexBytePretokenizer({"regex": GPT4O_REGEX, "enforce_char_boundaries": False}),
-    "bytes_gpt4o_cb": lambda: RegexBytePretokenizer({"regex": GPT4O_REGEX, "enforce_char_boundaries": True}),
-    "bytes_nosplit_cb": lambda: RegexBytePretokenizer({"regex": NO_SPLIT_REGEX, "enforce_char_boundaries": True}),
-    "scriptenc": lambda: ScriptEncodingPretokenizer({**DefaultScriptEncoding, "enforce_char_boundaries": False}),
-    "scriptenc_cb": lambda: ScriptEncodingPretokenizer({**DefaultScriptEncoding, "enforce_char_boundaries": True}),
-    "scriptenc_gpt4o_cb": lambda: ScriptEncodingPretokenizerRegexSplitting(
-        {**DefaultScriptEncoding, "regex": GPT4O_REGEX, "enforce_char_boundaries": True}
+PRETOKENIZER_REGISTRY: dict[str, PretokenizerConfig] = {
+    "bytes_gpt4": UTF8PretokenizerConfig(regex_pattern=GPT4_REGEX, enforce_char_boundaries=False),
+    "bytes_gpt4_cb": UTF8PretokenizerConfig(regex_pattern=GPT4_REGEX),
+    "bytes_gpt4o": UTF8PretokenizerConfig(regex_pattern=GPT4O_REGEX, enforce_char_boundaries=False),
+    "bytes_gpt4o_cb": UTF8PretokenizerConfig(regex_pattern=GPT4O_REGEX),
+    "bytes_gpt4o_cbi": UTF8PretokenizerConfig(regex_pattern=GPT4O_REGEX, enforce_inherited=True),
+    "bytes_nosplit_cb": UTF8PretokenizerConfig(regex_pattern=None),
+    # Backward-compatible alias names expected by tests
+    "bytes_nosplit_cbi": UTF8PretokenizerConfig(regex_pattern=None, enforce_inherited=True),
+    "bytes_gpt4_cbi": UTF8PretokenizerConfig(regex_pattern=GPT4_REGEX, enforce_inherited=True),
+    "scriptenc": ScriptPretokenizerConfig(enforce_char_boundaries=False),
+    "scriptenc_cb": ScriptPretokenizerConfig(),
+    "scriptenc_cbi": ScriptPretokenizerConfig(enforce_inherited=True),
+    "scriptenc_gpt4o": ScriptPretokenizerConfig(
+        regex_pattern=GPT4O_REGEX, script_split=False, enforce_char_boundaries=False
     ),
-    "scriptenc_gpt4o": lambda: ScriptEncodingPretokenizerRegexSplitting(
-        {**DefaultScriptEncoding, "regex": GPT4O_REGEX, "enforce_char_boundaries": False}
+    "scriptenc_gpt4o_cb": ScriptPretokenizerConfig(regex_pattern=GPT4O_REGEX, script_split=False),
+    "scriptenc_gpt4o_cbi": ScriptPretokenizerConfig(
+        regex_pattern=GPT4O_REGEX, script_split=False, enforce_inherited=True
     ),
-    "scriptenc_nosplit_cb": lambda: ScriptEncodingPretokenizerRegexSplitting(
-        {**DefaultScriptEncoding, "regex": NO_SPLIT_REGEX, "enforce_char_boundaries": True}
-    ),
+    "scriptenc_nosplit_cb": ScriptPretokenizerConfig(regex_pattern=None, script_split=False),
+    "scriptenc2_cb": ScriptPretokenizerConfig(script_config=ScriptEncodingV2, enforce_char_boundaries=True),
+    "scriptenc2_cbi": ScriptPretokenizerConfig(script_config=ScriptEncodingV2, enforce_inherited=True),
+    "scriptenc3_cb": ScriptPretokenizerConfig(script_config=ScriptEncodingV3, enforce_char_boundaries=True),
+    "scriptenc3_cbi": ScriptPretokenizerConfig(script_config=ScriptEncodingV3, enforce_inherited=True),
 }
 
 
-def get_pretokenizer(name: str) -> BasePretokenizer:
-    """
-    Get or initialize a pretokenizer by name.
-    :param name: The name of the pretokenizer (must be in the registry).
-    :return: An instance of the requested pretokenizer.
-    """
+def get_pretokenizer(name: str) -> Pretokenizer:
     if name not in PRETOKENIZER_REGISTRY:
         raise ValueError(f"Pretokenizer '{name}' is not registered. Available: {list(PRETOKENIZER_REGISTRY.keys())}")
-    return PRETOKENIZER_REGISTRY[name]()
+    config = PRETOKENIZER_REGISTRY[name]
+    for config_type, pretokenizer_cls in Pretokenizer.REGISTRY.values():
+        if config_type is config.__class__:
+            return pretokenizer_cls(config)
+    raise ValueError(f"config.__class__: {config.__class__} not found in any pretokenizer")
 
 
-def make_pretokenizer(data: dict):
-    cls = globals()[data["class"]]
-    config = data["config"]
-    return cls(config)
+def load_pretokenizer(serialized: dict) -> Pretokenizer:
+    config_type, pretokenizer_cls = Pretokenizer.REGISTRY[serialized["config_class"]]
+    config = config_type.model_validate(serialized["config"])
+    return pretokenizer_cls(config)
 
 
-def export_pretokenizer(pretok: BasePretokenizer) -> dict:
-    return {
-        "class": pretok.__class__.__name__,
-        "config": pretok.config,
-    }
+def export_pretokenizer(pretokenizer: Pretokenizer) -> dict:
+    return dict(config_class=pretokenizer.__class__.__name__, config=pretokenizer.config.model_dump())

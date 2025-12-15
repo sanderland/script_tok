@@ -25,7 +25,7 @@ def test_corpus_creation_and_content_integrity(tmp_path, pretokenizer_name, tayl
     assert corpus.metadata["docs"] == len(texts)
     assert corpus.metadata["chunks"] > 0
     assert corpus.metadata["unique_chunks"] > 0
-    assert corpus.metadata["base_tokens"] > 0  # Total tokens in all stored chunks
+    assert corpus.metadata["atomic_tokens"] > 0  # Total tokens in all stored chunks
     assert corpus.metadata["chunks_skipped"] == 0  # default max_length is sufficient
 
     # Iterate and collect all chunks and their counts
@@ -40,7 +40,7 @@ def test_corpus_creation_and_content_integrity(tmp_path, pretokenizer_name, tayl
     assert (
         sum(iterated_chunk_counts.values()) == corpus.metadata["chunks"]
     )  # Sum of counts of unique chunks == total chunks
-    assert total_tokens_from_iteration == corpus.metadata["base_tokens"]
+    assert total_tokens_from_iteration == corpus.metadata["atomic_tokens"]
 
 
 @pytest.mark.parametrize("num_procs", [1, 2])  # Test single and multi-process
@@ -48,7 +48,7 @@ def test_corpus_creation_and_content_integrity(tmp_path, pretokenizer_name, tayl
 def test_corpus_reconstruction_and_token_sum(tmp_path, taylorswift_text, pretokenizer_name, num_procs):
     """
     Tests that the sum of (len(chunk) * count) for all unique chunks
-    matches the 'base_tokens' metadata. Verifies consistency across single/multi-proc.
+    matches the 'atomic_tokens' metadata. Verifies consistency across single/multi-proc.
     Checks if some decoded content resembles input.
     """
     pretokenizer = get_pretokenizer(pretokenizer_name)
@@ -63,9 +63,9 @@ def test_corpus_reconstruction_and_token_sum(tmp_path, taylorswift_text, pretoke
         num_workers=num_procs,
     )
 
-    reconstructed_base_tokens = 0
+    reconstructed_atomic_tokens = 0
     # Iterate through all unique chunks from the corpus
     for chunk_array, count in corpus.worker_iterate(worker_id=0, num_workers=1):
-        reconstructed_base_tokens += len(chunk_array) * count
+        reconstructed_atomic_tokens += len(chunk_array) * count
 
-    assert reconstructed_base_tokens == corpus.metadata["base_tokens"]
+    assert reconstructed_atomic_tokens == corpus.metadata["atomic_tokens"]

@@ -1,184 +1,244 @@
 import functools
-import hashlib
-import itertools
-from typing import Any
+import os
+import unicodedata
+from collections import Counter, defaultdict
+from typing import ClassVar, Literal
 
-import regex as re
+from frozendict import frozendict
+from pydantic import BaseModel
 
-from script_bpe.utils import InputTokenSeq, PretokenizedT, token_array
-
-from ..pretokenize.base import BasePretokenizer
-
-TokenPairT = tuple[int, int]
-ScriptEncT = tuple[int, TokenPairT]
-ScriptEncNoneT = tuple[int | None, TokenPairT]
+SCRIPTS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "unicode_scripts.txt")
+END_CODEPOINT = 0xE0FFF  # full cover of non private use code points, excluding surrogates
 
 
-class ScriptEncodingPretokenizer(BasePretokenizer):
-    def __init__(self, config: dict[str, Any]) -> None:
-        """
-        Initialize the ScriptEncodingPretokenizer with a configuration.
-        :param config: A dictionary containing 'starting_token_id' and 'normalization'.
-        """
-        super().__init__(config)
+def char_name(c: str):
+    return unicodedata.name(c, "<UNKNOWN>")
 
-        self.script_cat_with_space = {tuple(l) for l in config["script_cat_with_space"]}
-        self.enforce_char_boundaries: bool = config["enforce_char_boundaries"]
-        self.blocks = config["blocks"]
-        self.num_index_tokens: int = config["num_index_tokens"]
-        assert len(self.blocks) == config["num_blocks"], "Number of blocks does not match the configuration"
-        self.build_tokenization_maps()
-        self.space_group = self.script_encode(" ")
 
-    def hash(self) -> str:
-        hash = hashlib.sha1()
-        hash.update(super().hash().encode("utf-8"))
-        hash.update(str(self.blocks).encode("utf-8"))
-        hash.update(str(sorted(self.script_cat_with_space)).encode("utf-8"))
-        return "SE-" + hash.hexdigest()[:8]
+@functools.cache
+def unicode_script_map(filename=SCRIPTS_PATH) -> dict[str, frozendict[str, object]]:
+    """
+    Load Unicode script and category data from a file.
 
-    # loading
-    def build_tokenization_maps(self):
-        self.script_encoding = {}
-        self.base_tokens.update(
-            {i + self.starting_token_id: f"<|SCRIPT_INDEX_{i}|>" for i in range(self.num_index_tokens)}
-        )
-        self.detokenize_map = {}
-        self.script_combines_with_spaces = {
-            sid: ((script, supercat) in self.script_cat_with_space) for sid, script, supercat, *_ in self.blocks
-        }
-        # self.inherited_script = {sid: script == "Inherited" for sid, script, *_ in self.blocks}
-        self.scripts_can_merge = {
-            (sid_a, sid_b)
-            for sid_a, script_a, sc_a, *_ in self.blocks
-            for sid_b, script_b, sc_b, *_ in self.blocks
-            if script_b == "Inherited"
-            or (sc_a == sc_b and (script_a == script_b or {script_a, script_b} == {"Hiragana", "Han"}))
-        }
-        for block_id, (sid, script, supercat, sub_block_id, cs) in enumerate(self.blocks):
-            block_token_id = self.starting_token_id + self.num_index_tokens + block_id
-            self.base_tokens[block_token_id] = f"<|BLOCK_{script}_{supercat}_{sub_block_id}|>"
-            for ix, c in enumerate(cs):
-                token_pair = (block_token_id, self.starting_token_id + ix)
-                self.script_encoding[c] = (sid, token_pair)
-                self.detokenize_map[token_pair] = c
-
-    # pretokenization
-
-    def _script_encode_char(self, c: str) -> ScriptEncNoneT:
-        if c not in self.script_encoding:
-            print(f"Warning: character '{c}' ({ord(c)}) not found in script encoding map.")
-            return None, (-1, -1)
-        else:
-            return self.script_encoding[c]
-
-    def script_encode(self, text: str) -> list[ScriptEncT]:
-        """
-        Encode the input text into a list of tuples containing script ID and token pair.
-        :param text: The input string to encode.
-        :return: A list of tuples (script_id, (token_id, sub_token_id)).
-        """
-        encoded = [self._script_encode_char(c) for c in text]
-        return [t for t in encoded if t[0] is not None]  # type: ignore   -- filter out None values
-
-    def chunk_script_encoding(self, encoding: list[ScriptEncT]) -> list[list[tuple[int, TokenPairT]]]:
-        """
-        Pretokenize the encoding by grouping adjacent tokens with the same script.
-        Special cases:
-        - If a script combines with spaces, it will be merged with the space group.
-        - Inherited scripts are merged with the previous group, and do not split the group.
-        """
-        space_group = self.space_group
-        script_groups = [list(g) for _, g in itertools.groupby(encoding, key=lambda x: x[0])]
-
-        merged_groups = []
-        i = 0
-        while i < len(script_groups) - 1:
-            current_group, next_group = script_groups[i], script_groups[i + 1]
-            current_script, next_script = current_group[0][0], next_group[0][0]
-            merged_group = current_group
-            if self.script_combines_with_spaces[next_script] and current_group == space_group:
-                merged_group = current_group + next_group
-                current_script = next_script
-                i += 2
+    Returns:
+        A list of dictionaries with 'cp', 'char', 'script' and 'category' keys
+    """
+    char_infos = {}
+    with open(filename, "r", encoding="utf-8") as f:
+        for line in f:
+            # Skip comments and empty lines
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            # Parse 0000..001F    ; Common # Cc  [32] <control-0000>..<control-001F>
+            range_str, semicol, script, hash, category, *_ = line.split()
+            assert semicol == ";" and hash == "#", f"Unexpected format in line: {line}"
+            # Handle single codepoint or range
+            if ".." in range_str:
+                start_str, end_str = range_str.split("..")
+                start, end = int(start_str, 16), int(end_str, 16)
             else:
-                i += 1
-            while i < len(script_groups) and (current_script, script_groups[i][0][0]) in self.scripts_can_merge:
-                merged_group += script_groups[i]
-                i += 1
-            merged_groups.append(merged_group)
-        if i < len(script_groups):
-            merged_groups.append(script_groups[i])  # add last group
-        return merged_groups
-
-    def _encode_and_chunk(self, text: str) -> PretokenizedT:
-        encoded_and_grouped = self.chunk_script_encoding(self.script_encode(text))
-        # Strip script ID from final groups and concat pairs
-        return [token_array([t for _, ts in group for t in ts]) for group in encoded_and_grouped]
-
-    def decode(self, tokenization: InputTokenSeq, errors="replace") -> str:
-        decoded = ""
-        i = 0
-        while i < len(tokenization):
-            script_tok = tokenization[i]
-            ix_tok = tokenization[i + 1] if i + 1 < len(tokenization) else None
-            if (script_tok, ix_tok) in self.detokenize_map:
-                decoded += self.detokenize_map[(script_tok, ix_tok)]
-                i += 2
-            else:
-                if errors == "backslashreplace":  # not backslash, but compatible with bytes version
-                    decoded += self.base_tokens[script_tok]
-                elif errors == "replace":
-                    decoded += "�"
-                elif errors == "strict":
-                    raise ValueError(f"Invalid tokenization: ({script_tok}, {ix_tok}) is not a valid token pair!")
-                else:
-                    raise ValueError(f"Unknown error handling mode: {errors}")
-                i += 1
-        return decoded
-
-    def is_index_token(self, i: int) -> bool:
-        return self.starting_token_id <= i < self.num_index_tokens + self.starting_token_id
-
-    def bpe_merge_allowed(self, token_seq1: InputTokenSeq, token_seq2: InputTokenSeq) -> bool:
-        if not self.enforce_char_boundaries:
-            return True
-        if len(token_seq1) >= 2 and len(token_seq2) >= 2:
-            return True  # both are full sequences
-        if len(token_seq1) >= 2 or len(token_seq2) >= 2:
-            return False  # one is full, the other is partial
-        return not self.is_index_token(token_seq1[0])
-
-    # utility
-    @functools.cache
-    def token_script_name(self, block_token_id: int) -> str:  # maps token to block name without sub-block
-        return re.sub(r"<\|BLOCK_(.*)_\d+\|>", r"\1", self.base_tokens[block_token_id])
-
-    def sequence_script_name(self, seq: list[int]) -> str | None:
-        si = 0
-        if self.is_index_token(seq[si]) and len(seq) > 1:
-            si += 1
-        if tuple(seq[si : si + 2]) == self.space_group[0][1] and len(seq) > si + 2:
-            si += 2
-        if self.is_index_token(seq[si]):
-            return None
-        return self.token_script_name(seq[si])
+                start = end = int(range_str, 16)
+            # Add each codepoint in the range to the result dictionary
+            for cp in range(start, end + 1):
+                char_infos[chr(cp)] = frozendict(
+                    cp=cp,
+                    char=chr(cp),
+                    script=script,
+                    category=category,  # file is typically newer than python's unicodedata
+                )
+    return char_infos
 
 
-class ScriptEncodingPretokenizerRegexSplitting(ScriptEncodingPretokenizer):
-    def __init__(self, config: dict[str, Any]) -> None:
-        super().__init__(config)
-        self.regex = re.compile(config["regex"], re.DOTALL)  # No default, must be provided in config
+# Use deterministic lists for config-level data to avoid nondeterministic set ordering
+ALL = "✭"
+DEFAULT_SCRIPTS_LM_WITH_SPACES = [
+    "Latin",  # Near space 18.0% of time, overall count 296,227,775,159
+    "Arabic",  # Near space 18.6% of time, overall count 116,931,857,999
+    "Devanagari",  # Near space 23.0% of time, overall count 3,391,578,438
+    "Hangul",  # Near space 28.8% of time, overall count 2,456,037,316
+    "Ethiopic",  # Near space 22.3% of time, overall count 493,107,008
+    "Cyrillic",  # Near space 13.6% of time, overall count 119,738,736
+    "Greek",  # Near space 17.2% of time, overall count 13,040,710
+    "Hebrew",  # Near space 17.0% of time, overall count 6,081,243
+    "Bengali",  # Near space 16.4% of time, overall count 3,630,267
+    "Syriac",  # Near space 12.6% of time, overall count 2,669,016
+    "Oriya",  # Near space 16.6% of time, overall count 1,147,764
+    "Tamil",  # Near space 11.9% of time, overall count 1,084,075
+    "Telugu",  # Near space 13.6% of time, overall count 694,309
+    "Gurmukhi",  # Near space 22.8% of time, overall count 394,438
+    "Gujarati",  # Near space 18.3% of time, overall count 388,983
+    "Sinhala",  # Near space 17.5% of time, overall count 369,417
+    "Malayalam",  # Near space 10.7% of time, overall count 339,796
+    "Armenian",  # Near space 14.3% of time, overall count 338,586
+    "Kannada",  # Near space 13.3% of time, overall count 326,104
+    "Georgian",  # Near space 14.1% of time, overall count 277,463
+]
+DEFAULT_SCRIPT_WITH_SPACES = [(s, "LM") for s in DEFAULT_SCRIPTS_LM_WITH_SPACES]
+DEFAULT_SCRIPT_HIGH_RESOURCE_NO_SPACES = [
+    "Common",
+    "Han",
+    "Hiragana",
+    "Katakana",
+    "Thai",
+    "Myanmar",
+    "Khmer",
+    "Lao",
+]
+ARABIC_SCRIPT_CAT_OVERRIDE = {
+    "\u0640": ("Arabic", "LM"),  # ـــمــر (used in Arabic script shaping)
+}
+V1_SCRIPT_CAT_OVERRIDE = ARABIC_SCRIPT_CAT_OVERRIDE | {
+    "\n": ("Common", "Z"),  # Newline – whitespace
+    "\t": ("Common", "Z"),  # Tab – whitespace
+    "\u30fc": ("Inherited", "LM"),  # カー (カ + ー) Katakana-Hiragana Prolonged Sound Mark in Japanese
+    "\uff70": ("Inherited", "LM"),  # ﾊﾟｰﾃｨｰ (halfwidth)
+}
+V2_SCRIPT_CAT_OVERRIDE = ARABIC_SCRIPT_CAT_OVERRIDE | {
+    "\u30fc": ("Inherited", ALL),  # カー (カ + ー) Katakana-Hiragana Prolonged Sound Mark in Japanese
+    "\uff70": ("Inherited", ALL),  # ﾊﾟｰﾃｨｰ (halfwidth)
+}
 
-    def hash(self) -> str:
-        hash = hashlib.sha1()
-        hash.update(super().hash().encode("utf-8"))
-        hash.update(str(self.config["regex"]).encode("utf-8"))
-        return "SE+R-" + hash.hexdigest()[:8]
 
-    def _encode_and_chunk(self, text: str) -> PretokenizedT:
-        """split with regex, and then encode with script encoding"""
-        chunks = re.findall(self.regex, text)
-        encoded = [self.script_encode(t) for t in chunks]
-        # filter empty groups - like private use area only
-        return [token_array([t for _, ts in group for t in ts]) for group in encoded if group]
+class ScriptBlock(BaseModel):
+    script_id: int
+    script: str
+    category: str
+    sub_block_id: int
+    combines_with_spaces: bool
+    chars: str
+
+
+class ScriptConfig(BaseModel):
+    ALL: ClassVar[str] = ALL
+    ASCII_SCRIPT: ClassVar[str] = "ASCII"
+    blocks: list[ScriptBlock] = []
+    supercategory_type: Literal["V1", "V2", "V3"]
+    largest_block: tuple[str, str] = ("Latin", "LM")
+    merge_hiragana_with_han: bool = True
+    script_cat_with_spaces: list[tuple[str, str]] = DEFAULT_SCRIPT_WITH_SPACES + [("Common", "PS")]
+    script_cat_override: dict[str, tuple[str, str]] = ARABIC_SCRIPT_CAT_OVERRIDE
+    # v2 only: avoid sets in config; use list for determinism and convert to set internally
+    higher_resource_scripts: list[str] = DEFAULT_SCRIPTS_LM_WITH_SPACES + DEFAULT_SCRIPT_HIGH_RESOURCE_NO_SPACES
+
+    def model_post_init(self, __context):
+        """builds blocks"""
+        # for fast membership checks, while keeping config deterministic
+        self._higher_resource_scripts_set = set(self.higher_resource_scripts)
+        self._script_cat_with_spaces_set = set(self.script_cat_with_spaces)
+        if self.blocks:
+            return  # we trust blocks when they are provided
+        chars_by_sc = defaultdict(list)
+        num_chars_by_script = Counter()
+        for char_info in unicode_script_map().values():
+            if char_info["char"] in self.script_cat_override:
+                script_cat = self.script_cat_override[char_info["char"]]
+            elif self.supercategory_type == "V1":
+                script_cat = self.script_category_v1(char_info)
+            elif self.supercategory_type == "V2":
+                script_cat = self.script_category_v2(char_info)
+            elif self.supercategory_type == "V3":
+                script_cat = self.script_category_v3(char_info)
+            chars_by_sc[script_cat].append(char_info["char"])
+            num_chars_by_script[char_info["script"]] += 1
+
+        assert self.largest_block in chars_by_sc, f"{self.largest_block} not found. Blocks are: {chars_by_sc.keys()}"
+        num_index_tokens = len(chars_by_sc[self.largest_block])
+        self.blocks = []
+        for sc, cps in sorted(chars_by_sc.items(), key=lambda kv: (num_chars_by_script[kv[0][0]], kv[1]), reverse=True):
+            sid = len(self.blocks) + 1
+            script, supercat = sc
+            combines_with_spaces = (script, supercat) in self._script_cat_with_spaces_set
+            for sub_block, start in enumerate(range(0, len(cps), num_index_tokens)):
+                self.blocks.append(
+                    ScriptBlock(
+                        script_id=sid,
+                        script=script,
+                        category=supercat,
+                        sub_block_id=sub_block,
+                        combines_with_spaces=combines_with_spaces,
+                        chars="".join(cps[start : start + num_index_tokens]),
+                    )
+                )
+
+        if self.merge_hiragana_with_han:
+            self._merge_hiragana_with_han()
+
+    def script_category_v1(self, char_info) -> tuple[str, str]:
+        category, script = char_info["category"], char_info["script"]
+        supercat = category[0]
+        if supercat in {"P", "S"}:
+            supercat = "PS"  # Punctuation/Symbol
+        if supercat in {"L", "M"}:
+            supercat = "LM"  # Letter/Non-spacing Mark (like accept modifiers)
+        return script, supercat
+
+    def script_category_v2(self, char_info) -> tuple[str, str]:
+        category, script = char_info["category"], char_info["script"]
+        supercat = category[0]
+
+        # low resource scripts are (script, *) with no blocks for category
+        if script not in self._higher_resource_scripts_set:
+            supercat = self.ALL
+            return script, supercat
+
+        # merge categories into supercategories
+        if supercat in {"L", "M"}:
+            supercat = "LM"  # Letter/Mark
+        elif supercat == "Z" or category == "Cc":
+            supercat = "ZC"  # whitespace/control, which includes \n,\t, etc
+        elif supercat in {"P", "S"} or category == "Cf":
+            supercat = "PSF"  # Punctuation/Symbol/Formatting
+            if ord(char_info["char"]) < 128:  # ascii punctuation is its own script, which allows for leading spaces
+                script = self.ASCII_SCRIPT
+
+        # for all non-letters we ignore the script
+        if supercat != "LM" and script != self.ASCII_SCRIPT:
+            script = self.ALL  # for non-letters, ignore script
+
+        return script, supercat
+
+    def script_category_v3(self, char_info) -> tuple[str, str]:
+        category, script = char_info["category"], char_info["script"]
+        supercat = category[0]
+
+        # low resource scripts are (script, *) with no blocks for category
+        if script not in self._higher_resource_scripts_set:
+            supercat = self.ALL
+            return script, supercat
+
+        # merge categories into supercategories
+        if supercat in {"L", "M"}:
+            supercat = "LM"  # Letter/Mark
+        elif supercat == "Z" or category == "Cc":
+            supercat = "ZC"  # whitespace/control, which includes \n,\t, etc
+        elif category == "So":  # emoji etc
+            supercat = "So"
+        elif supercat in {"P", "S"} or category == "Cf":
+            supercat = "PSF"  # Punctuation/Symbol/Formatting
+
+        # for all non-letters we ignore the script
+        if supercat != "LM":
+            script = self.ALL  # for non-letters, ignore script
+
+        return script, supercat
+
+    def _merge_hiragana_with_han(self) -> list[ScriptBlock]:  # recode Hiragana to Han for pretokenizing
+        han_lm_script_id = next(b.script_id for b in self.blocks if b.script == "Han" and b.category == "LM")
+        for b in self.blocks:
+            if b.script == "Hiragana" and b.category == "LM":
+                b.script_id = han_lm_script_id
+        return self.blocks
+
+
+ScriptEncodingV1 = ScriptConfig(supercategory_type="V1", script_cat_override=V1_SCRIPT_CAT_OVERRIDE)
+ScriptEncodingV2 = ScriptConfig(
+    supercategory_type="V2",
+    script_cat_override=V2_SCRIPT_CAT_OVERRIDE,
+    script_cat_with_spaces=DEFAULT_SCRIPT_WITH_SPACES + [(ScriptConfig.ASCII_SCRIPT, "PSF")],
+)
+ScriptEncodingV3 = ScriptConfig(
+    supercategory_type="V3",
+    script_cat_override=V2_SCRIPT_CAT_OVERRIDE,
+    script_cat_with_spaces=DEFAULT_SCRIPT_WITH_SPACES + [(ALL, "PSF")],
+)

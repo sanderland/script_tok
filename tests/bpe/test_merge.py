@@ -2,7 +2,7 @@ from collections import Counter
 
 import pytest
 
-from script_bpe.bpe.train import ChunkTokenization
+from script_bpe.tokenizers.bpe.trainer import ChunkTokenization
 from script_bpe.utils import token_array
 
 
@@ -36,7 +36,8 @@ def test_chunk_merge(curr_seq, pair, new_token, expected_seq):
 
     assert chunk.curr_seq.tolist() == expected_seq
     delta_from_merge_nz = {k: v for k, v in pair_delta_from_merge.items() if v != 0}
-    delta_manual_nz = {k: v for k, v in pair_delta_manual.items() if v != 0}  # and k != pair}  # also exclude the pair
+    # Compare against expected pair delta computed from before/after sequences
+    delta_manual_nz = {k: v for k, v in pair_delta_manual.items() if v != 0}
     assert delta_from_merge_nz == delta_manual_nz, f"Pair delta mismatch: {delta_from_merge_nz} != {delta_manual_nz}"
 
     token_delta_manual = {k: v for k, v in delta_counts(Counter(curr_seq), Counter(expected_seq)).items()}

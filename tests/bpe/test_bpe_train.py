@@ -2,11 +2,12 @@ from collections import Counter
 
 import pytest
 
-from script_bpe.bpe import BPETokenizer, train_bpe
-from script_bpe.bpe.tokenizer import MergeRule
+from script_bpe.tokenizers.bpe import BPETokenizer
+from script_bpe.tokenizers.bpe.tokenizer import MergeRule
 from script_bpe.corpus import PretokenizedCorpus
 from script_bpe.pretokenize import PRETOKENIZER_REGISTRY, get_pretokenizer
 from script_bpe.utils import token_array
+from script_bpe.tokenizers.bpe.trainer import BPETrainer, BPETrainerConfig
 
 
 def taylor_swift_text():
@@ -81,36 +82,36 @@ def test_bpe_train(tmp_path, pretokenizer_name, text_fixture, expected_merge_rul
     corpus = PretokenizedCorpus.from_texts(
         f"test_bpe_train_{text_fixture}", texts=[text], pretokenizer=pretokenizer, base_path=str(tmp_path)
     )
-
-    tokenizer = train_bpe(pretokenizer, corpus, additional_vocab_size=x_tokens, verbose=True)
+    trainer = BPETrainer(pretokenizer, corpus, BPETrainerConfig(additional_vocab_size=x_tokens, verbose=True))
+    tokenizer = trainer.train()
 
     # Basic assertions
     assert isinstance(tokenizer, BPETokenizer)
     if "gpt4" not in pretokenizer_name:
-        assert (
-            len(tokenizer.merge_rules) == x_tokens
-        ), f"Expected {x_tokens} merge rules, got {len(tokenizer.merge_rules)}"
-    assert len(tokenizer.tokens) == len(tokenizer.merge_rules) + len(
-        pretokenizer.base_tokens
-    ), f"Expected {len(tokenizer.tokens)}"
+        assert len(tokenizer.merge_rules) == x_tokens, (
+            f"Expected {x_tokens} merge rules, got {len(tokenizer.merge_rules)}"
+        )
+    assert len(tokenizer.tokens) == len(tokenizer.merge_rules) + len(pretokenizer.atomic_tokens), (
+        f"Expected {len(tokenizer.tokens)}"
+    )
 
-    # Verify token counts
-    metadata_tokens = {t["id"]: t for t in tokenizer.metadata["tokens"]}
+    # Verify token counts against model tokens
+    tokens_by_id = tokenizer.tokens
     tokens = tokenizer.encode(text)
-    base_tokens = sum(tokenizer.pretokenizer.encode_and_chunk(text), token_array([]))
+    atomic_tokens = sum(tokenizer.pretokenizer.pretokenize(text), token_array([]))
 
-    for token_id, count in Counter(base_tokens).items():
-        assert (
-            count == metadata_tokens[token_id]["original_count"]
-        ), f"Base token {token_id} original count mismatch: manual count {count} does not match metadata {metadata_tokens[token_id]}"
+    for token_id, count in Counter(atomic_tokens).items():
+        assert count == tokens_by_id[token_id].original_count, (
+            f"Base token {token_id} original count mismatch: manual count {count} does not match model {tokens_by_id[token_id]}"
+        )
 
     for token_id, count in Counter(tokens).items():
-        assert (
-            count == metadata_tokens[token_id]["final_count"]
-        ), f"Token {token_id} final count mismatch: manual count {count} does not match metadata {metadata_tokens[token_id]}"
+        assert count == tokens_by_id[token_id].current_count, (
+            f"Token {token_id} final count mismatch: manual count {count} does not match model {tokens_by_id[token_id]}"
+        )
 
     # Optional merge rules check
     if expected_merge_rules is not None:
-        assert (
-            tokenizer.merge_rules == expected_merge_rules
-        ), f"Merge rules mismatch for {pretokenizer_name} + {text_fixture.__name__}"
+        assert tokenizer.merge_rules == expected_merge_rules, (
+            f"Merge rules mismatch for {pretokenizer_name} + {text_fixture.__name__}"
+        )

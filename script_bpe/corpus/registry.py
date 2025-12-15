@@ -1,22 +1,55 @@
 import os
-
+import random
+import re
+from typing import Callable
 from datasets import load_dataset
 
-from script_bpe.corpus import PretokenizedCorpus
+from script_bpe.corpus.base import PretokenizedCorpus
 from script_bpe.utils import create_logger
+import dotenv
+
+dotenv.load_dotenv()  # support .env with HF_TOKEN
 
 
 def create_huggingface_corpus(
-    dataset_name: str, corpus_name: str, pretokenizer, base_dir: str, logger, **kwargs
+    dataset_name: str,
+    corpus_name: str,
+    pretokenizer,
+    base_dir: str,
+    logger,
+    subsample: int | None = None,
+    max_chars: int | None = None,
+    text_transform: Callable | None = None,
+    **kwargs,
 ) -> PretokenizedCorpus:
-    num_cpus = os.cpu_count() or 4
+    num_cpus = min(os.cpu_count() or 4, 16)
     dataset = load_dataset(dataset_name, **kwargs)
+    if subsample:
+        dataset = dataset.select(range(0, len(dataset), subsample))
+
+    texts = [doc["text"] for doc in dataset]
+
+    # Apply text transform if provided (e.g., normalize whitespace)
+    if text_transform is not None:
+        texts = [text_transform(t) for t in texts]
+
+    if max_chars:  # Shuffle and truncate if requested
+        random.seed(42)
+        random.shuffle(texts)
+        total_chars = 0
+        for i in range(len(texts)):
+            if total_chars >= max_chars:
+                break
+            total_chars += len(texts[i])
+        texts = texts[:i]
+        logger.info(f"Truncated to {i} documents ({total_chars:,} chars)")
+
     logger.info(f"Loaded dataset {dataset_name} with args {kwargs}, pretokenizing on {num_cpus} CPUs.")
     corpus = PretokenizedCorpus.from_texts(
         name=corpus_name,
         base_path=base_dir,
         pretokenizer=pretokenizer,
-        texts=[doc["text"] for doc in dataset],  # Assuming the dataset has a "text" field
+        texts=texts,
         num_workers=num_cpus,
     )
     logger.info(f"Created corpus {corpus_name} with pretokenizer {pretokenizer.hash()} in {corpus.dir_path()}")
@@ -42,15 +75,17 @@ def load_corpus_by_name(
         )
 
     if corpus_name.endswith("300mb"):
-        return create_huggingface_corpus(
-            "catherinearnett/monolingual-tokenizer-data",
+        corpus = create_huggingface_corpus(
+            "sanderland/monolingual-tokenizer-data",
             corpus_name=corpus_name,
             base_dir=base_dir,
             pretokenizer=pretokenizer,
             logger=logger,
             split="train",
-            data_files=[f"{corpus_name}.txt"],
+            data_files=[f"{corpus_name.removeprefix('smol_')}.txt"],
+            subsample=10 if corpus_name.startswith("smol_") else None,
         )
+        return corpus
     elif "OSCAR" in corpus_name or "CulturaX" in corpus_name:
         return create_huggingface_corpus(
             f"sanderland/{corpus_name}",
@@ -60,9 +95,34 @@ def load_corpus_by_name(
             pretokenizer=pretokenizer,
             split="train",
         )
+    elif corpus_name.startswith("finewiki_"):
+        # Format: finewiki_{lang}_1gb
+        # Always normalize whitespace (collapse multiple spaces to single space)
+        lang_code = corpus_name.removeprefix("finewiki_").removesuffix("_1gb")
+        max_chars = 1_000_000_000 if "_1gb" in corpus_name else None
+
+        def normalize_whitespace(text: str) -> str:
+            return re.sub(r"[ \t]+", " ", text)
+
+        return create_huggingface_corpus(
+            "HuggingFaceFW/finewiki",
+            corpus_name=corpus_name,
+            base_dir=base_dir,
+            logger=logger,
+            pretokenizer=pretokenizer,
+            name=lang_code,
+            split="train",
+            max_chars=max_chars,
+            text_transform=normalize_whitespace,
+        )
     elif corpus_name == "swift":
         with open("tests/data/taylorswift.txt", "r") as f:
-            return PretokenizedCorpus.from_texts(corpus_name, pretokenizer=pretokenizer, texts=[f.read()])
+            return PretokenizedCorpus.from_texts(
+                corpus_name,
+                pretokenizer=pretokenizer,
+                texts=[f.read()],
+                base_path=base_dir,
+            )
     else:
         raise ValueError(f"Unknown dataset: {corpus_name}")
 
