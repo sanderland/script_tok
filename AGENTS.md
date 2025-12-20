@@ -6,7 +6,9 @@ This guide provides a high-level architectural overview of the script_bpe reposi
 
 This repository implements **SCRIPT encoding-based pre-tokenization and BPE/Unigram tokenization** for multilingual text processing. The core innovation is using Unicode script properties to create more efficient and robust tokenizers for multilingual data.
 
-**Paper**: [BPE Stays on SCRIPT: Structured Encoding for Robust Multilingual Pretokenization](https://arxiv.org/abs/2505.24689)
+**Papers**:
+- [BPE Stays on SCRIPT: Structured Encoding for Robust Multilingual Pretokenization](https://arxiv.org/abs/2505.24689)
+- [Which Pieces Does Unigram Tokenization Really Need?](https://arxiv.org/abs/2512.12641)
 
 ## High-Level Architecture
 
@@ -57,9 +59,11 @@ Text Input
 **Key Variants** (see `PRETOKENIZER_REGISTRY`):
 - `bytes_gpt4`: Classic UTF-8 + GPT-4 regex
 - `bytes_gpt4o_cb`: UTF-8 + GPT-4o regex + character boundaries
-- `scriptenc_cb`: Script encoding with character boundaries (PROPOSED METHOD)
+- `scriptenc_cb`: Script encoding with character boundaries (PROPOSED METHOD for BPE)
+- `scriptenc_cbi`: Script encoding with character boundaries + inherited enforcement
 - `scriptenc_gpt4o_cb`: Hybrid (regex chunking + script encoding)
 - `scriptenc_nosplit_cb`: No regex chunking (very slow, for ablations)
+- `scriptenc2_cb`, `scriptenc3_cb`: V2/V3 encoding variants
 
 **Character Boundary Enforcement** (`enforce_char_boundaries`):
 - Prevents merges that would create invalid UTF-8 sequences
@@ -150,14 +154,14 @@ Two tokenization algorithms, sharing a common base:
   - Iterate until vocabulary shrinks to target size
 - **Initialization** (`init_algorithms.py`):
   - Extract frequent substrings from corpus
-  - Three strategies: "simple", "corpus_long", "corpus_intermediate", "corpus_fallback"
+  - Four strategies: "simple", "corpus_long", "corpus_intermediate", "corpus_fallback"
   - Uses suffix arrays and LCP for efficient pattern mining
 - **Pruning strategies**:
   - Training: Viterbi-based (considers alternative segmentations)
   - Final: Score-based (faster, just keeps top-N by probability)
   - Defensive pruning: Keeps tokens if their alternatives would also be removed
 
-**Model** (`model.py`):
+**Model** (`model.py` - `UnigramModel` class):
 - `UnigramToken`: Token with log_prob and required flag
 - `Trie`: Fast prefix matching for lattice construction
 - `Lattice`: Dynamic programming for Viterbi/marginal calculation
@@ -165,6 +169,7 @@ Two tokenization algorithms, sharing a common base:
   - Viterbi for best path
 - Encoding: Viterbi decoding on lattice
 - Decoding: Concatenate atomic tokens
+- Save/load via JSON + gzip (same pattern as BPE)
 
 **Key Insight**: Unigram is probabilistic - same text can tokenize differently. Training uses forward-backward to estimate marginal probabilities, but encoding uses Viterbi for deterministic output.
 
@@ -205,10 +210,10 @@ uv run train --corpus <name> -n <vocab_size> --pretokenizer <name> --model bpe|u
 **Purpose**: Utilities for evaluating tokenizers and generating paper results
 
 **Key Components**:
-- `metrics.py`: `evaluate_on_corpus()` - compute compression and entropy metrics
+- `metrics.py`: `evaluate_on_corpus()` - compute compression and entropy/objective metrics (works for both BPE and Unigram)
 - `morphscore.py`: `MorphScore` - evaluate morphological quality of tokenization
 - `experiments.py`: `get_config_hash()`, `flatten_model_metadata()` - experiment tracking helpers
-- `formatting.py`: LaTeX table formatting utilities (`format_with_relchange()`, `format_latex_value()`, etc.)
+- `formatting.py`: LaTeX table formatting utilities (`format_with_relchange()`, `format_latex_value()`, `format_tokens_millions()`, `format_vocab_value()`, `mark_biggest_in_group()`)
 
 **Usage**:
 ```python
@@ -303,17 +308,18 @@ stats = tokenizer.corpus_performance(corpus)
 **Core Logic** (read these to understand algorithms):
 - `pretokenize/pretokenizer.py` (~340 lines): Pretokenization logic
 - `tokenizers/bpe/trainer.py` (~250 lines): BPE training loop
+- `tokenizers/bpe/tokenizer.py`: BPE model (encoding, decoding, merge rules)
 - `tokenizers/unigram/trainer.py` (~375 lines): Unigram EM algorithm
-- `tokenizers/unigram/model.py` (~260 lines): Lattice and Viterbi
+- `tokenizers/unigram/model.py` (~260 lines): UnigramModel, Trie, Lattice, Viterbi
 
 **Configuration** (read these to understand variants):
-- `pretokenize/__init__.py`: All pretokenizer variants
-- `pretokenize/scriptencoding.py`: Script encoding schemes
-- `corpus/registry.py`: Available corpora
+- `pretokenize/__init__.py`: All pretokenizer variants and registry
+- `pretokenize/scriptencoding.py`: Script encoding schemes (V1, V2, V3)
+- `corpus/registry.py`: Available corpora and HuggingFace dataset loaders
 
 **Entry Points**:
-- `train.py`: CLI training script
-- `__init__.py`: Public API exports
+- `train.py`: CLI training script (supports both BPE and Unigram)
+- `__init__.py`: Public API exports (BPETokenizer, UnigramModel, trainers, etc.)
 
 ## Vocabulary
 
@@ -358,7 +364,14 @@ stats = tokenizer.corpus_performance(corpus)
 
 ## Related Files
 
-- `paper_utils/script_bpe/`: BPE paper utilities (training scripts, compression notebooks)
-- `paper_utils/unigram/`: Unigram paper utilities (table generation, hyperparameter tuning)
+- `paper_utils/script_bpe/`: **BPE paper** reproduction utilities (training scripts, compression notebooks)
+  - Paper: [BPE Stays on SCRIPT](https://arxiv.org/abs/2505.24689)
+  - Scripts: `train_monolingual.sh`, `train_multilingual.sh`
+  - Notebooks: `monolingual_compression.ipynb`, `multilingual_compression.ipynb`, `blocks.ipynb`
+- `paper_utils/unigram/`: **Unigram paper** reproduction utilities (table generation, hyperparameter tuning)
+  - Paper: [Which Pieces Does Unigram Tokenization Really Need?](https://arxiv.org/abs/2512.12641)
+  - Scripts: `run_all_experiments.sh`, `train_hyperparameters.py`
+  - Table generators: `generate_main_tables.py`, `generate_appendix_tables.py`, `generate_finewiki_comparison.py`
+  - Analysis: `generate_morphscore_examples.py`, `generate_scatterplot.py`
 - `results/`: Cached tokenizers and corpora (not in git)
 - `tests/data/taylorswift.txt`: Small test corpus
