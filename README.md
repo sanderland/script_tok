@@ -3,8 +3,9 @@
 This repository provides tools for tokenization, focused on SCRIPT encoding, but also supporting UTF-8.
 It contains tokenizers for BPE and Unigram.
 
-For details of the methods, see our paper:
+For details of the methods, see our papers:
 * [BPE Stays on SCRIPT: Structured Encoding for Robust Multilingual Pretokenization](https://arxiv.org/abs/2505.24689)
+* [Which Pieces Does Unigram Tokenization Really Need?](https://www.arxiv.org/abs/2512.12641)
 
 ## Overview
 
