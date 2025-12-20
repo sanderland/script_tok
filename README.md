@@ -1,31 +1,34 @@
 # SCRIPT: Script/Category Representation In (Pre-)Tokenization
 
 This repository provides tools for tokenization, focused on SCRIPT encoding, but also supporting UTF-8.
-It contains tokenizers for BPE and Unigram.
+It contains implementations for both **BPE** and **Unigram** tokenization algorithms.
 
-For details of the methods, see our paper:
+For details of the methods, see our papers:
 * [BPE Stays on SCRIPT: Structured Encoding for Robust Multilingual Pretokenization](https://arxiv.org/abs/2505.24689)
+* [Which Pieces Does Unigram Tokenization Really Need?](https://arxiv.org/abs/2512.12641)
 
 ## Overview
 
-This repository provides tools for SCRIPT encoding-based pre-tokenization and BPE, as well as regular byte-based BPE.
-It includes the following components:
+This repository provides tools for SCRIPT encoding-based pre-tokenization with BPE and Unigram, as well as regular byte-based tokenization.
 
-- **script_bpe**: Core modules for SCRIPT encoding and tokenization.
-  - `pretokenize/`: Pre-tokenizers: These handle both chunking and encoding to 'base tokens' (i.e. bytes or script/index)
-    - `bytes_gpt4`/`bytes_gpt4o`: Classic regex + UTF8 based tokenizer, most obvious point of reference.
-      - `bytes_gpt4o_cb` Variant with character boundaries merge limitations which prevents partial+full character merges, and enforces left-to-right merging within characters.
-      - `bytes_nosplit_cb` Variant with no pre-tokenization chunking. Very slow, mainly for limited ablations.
-    - `scriptenc` SCRIPT Encoding based encoding and pre-tokenization 
-       - `scriptenc_cb` Variant with character boundaries merge limitations (no partial+full merges, enforce merging into a full character first). This is the proposed algorithm.
-       - `scriptenc_gpt4o_cb` Variant which does pre-tokenization chunking with regex, but then uses script encoding. For ablation testing.
-       - `scriptenc_nosplit_cb` Variant with no pre-tokenization chunking. Very slow, mainly for limited ablations.
-    - Regex chunked, script encoded.
-  - `encoding/`: SCRIPT Encoding utilities.
-  - `bpe/`: Byte Pair Encoding (BPE) implementation.
-    - `stats` for tokenizer performance metrics.
-  - `corpus/`
-    - `PretokenizedCorpus` represents a pretokenized sharded training dataset, as `base token encoded chunk -> count`
+### Core Modules (`script_bpe/`)
+
+- **`pretokenize/`**: Pre-tokenizers that handle both chunking and encoding to 'atomic' or 'base' tokens (bytes or script/index pairs)
+  - `bytes_gpt4`/`bytes_gpt4o`: Classic regex + UTF-8 based tokenizer
+  - `bytes_gpt4o_cb`: With character boundaries enforcement
+  - `scriptenc_cb`: SCRIPT encoding with character boundaries (proposed BPE algorithm)
+  - `scriptenc_cbi`: SCRIPT encoding with inherited script enforcement
+  - `scriptenc_gpt4o_cb`: Hybrid (regex chunking + script encoding)
+
+- **`tokenizers/`**: Tokenization algorithms
+  - `bpe/`: Byte Pair Encoding implementation with multi-worker training
+  - `unigram/`: Unigram language model with EM training, Trie, and Lattice-based Viterbi decoding
+
+- **`corpus/`**: Pretokenized corpus management
+  - `PretokenizedCorpus`: Partitioned storage for efficient parallel training
+
+- **`analysis/`**: Evaluation utilities
+  - Compression metrics, morphological scoring, experiment tracking
 
 ## Usage
 
@@ -41,15 +44,32 @@ To explore the available options for training, run:
 uv run train --help
 ```
 
-To train a tokenizer using a specific corpus, use:
+To train a BPE tokenizer:
 
 ```bash
-uv run train --corpus <kor_hang_300mb> -n <number of merge rules> --pretokenizer <pretokenizer_name> 
+uv run train --corpus kor_hang_300mb -n 64000 --pretokenizer scriptenc_cb --model bpe
 ```
 
-### Reproducing results
+To train a Unigram tokenizer:
 
-The directory `paper_utils` contains scripts to train and reproduce the paper's results from scratch.
+```bash
+uv run train --corpus kor_hang_300mb -n 64000 --pretokenizer scriptenc_cb --model unigram
+```
+
+### Reproducing Paper Results
+
+The `paper_utils/` directory contains scripts to reproduce paper results from scratch:
+
+- **`paper_utils/script_bpe/`**: BPE paper reproduction
+  - Paper: [BPE Stays on SCRIPT](https://arxiv.org/abs/2505.24689)
+  - `train_monolingual.sh` / `train_multilingual.sh`: Training scripts
+  - `monolingual_compression.ipynb` / `multilingual_compression.ipynb`: Analysis notebooks
+
+- **`paper_utils/unigram/`**: Unigram paper reproduction
+  - Paper: [Which Pieces Does Unigram Tokenization Really Need?](https://arxiv.org/abs/2512.12641)
+  - `run_all_experiments.sh`: Run all experiments
+  - `generate_main_tables.py` / `generate_appendix_tables.py`: Generate paper tables
+  - `train_hyperparameters.py`: Hyperparameter tuning experiments
 
 ## Sources
 
