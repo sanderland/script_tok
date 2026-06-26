@@ -48,11 +48,17 @@ dev = [
     "ipykernel>=6.30.1",
     "matplotlib>=3.10.5",
     "statsmodels>=0.14.5",
+    "pytest-xdist>=3.8.0",
+    "pytest-forked>=1.6.0",
 ]
 
 
 [tool.ruff]
 line-length = 120
+
+[tool.pytest.ini_options]
+addopts = ["--forked"]
+testpaths = ["tests"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
