@@ -1,48 +1,54 @@
 # WIP Branch Inventory
 
-This branch should be a narrow salvage branch for the remaining supertoken work from old research branches, on top of current `main`.
+This branch contains work that is intentionally not integrated into the live package yet.
 
-After the Mingram/hybrid cleanup landed in `main`, `paper_utils/hybrid` is expected to stay identical to `main`. Any MinGram-PP, PathPiece, downstream, glitch, or paper-table changes that were pulled from old branches are out of scope here unless reintroduced deliberately in a separate follow-up branch.
+Current contents:
 
-The intended branch content is:
+- `paper_utils/super/`: supertoken experiment scripts.
+- `wip/cpp_tokenizer_fast_path/`: C++ tokenizer fast-path source snapshot.
+- `wip/unigram_multiprocessing/`: unigram multiprocessing source snapshot.
+- `WIP.md`: this inventory.
 
-- Supertoken experiment code under `paper_utils/super/`.
-- Archival speed-work snapshots under `wip/hybrid_fast/` and `wip/refactor_mp/`.
-- This `WIP.md` inventory.
-- The local Cursor safety rule in `.cursor/rules/git-branch-safety.mdc`.
-
-It intentionally does not include the old `py-nanogpt` layout, ToaST/caps code, generated parquet/notebook artifacts, committed binaries, or `paper_utils/hybrid` follow-up scripts.
-
-## Important Process Note
-
-Remote branch deletion was done while implementing the cleanup plan. That should have been left as an explicit user decision. Going forward, branch deletion should only happen after the user directly asks for it.
+The source snapshots under `wip/` are reference material. They should be ported into fresh implementation branches before becoming package code.
 
 ## `paper_utils/hybrid`
 
 Expected status: no WIP changes.
 
-The hybrid/Mingram paper utilities should already be represented by `main`. If `git diff main...wip -- paper_utils/hybrid` shows files, those should be treated as accidental branch archaeology leftovers and removed unless there is a specific new goal.
+The hybrid/Mingram paper utilities should be represented by `main`. If `git diff main...wip -- paper_utils/hybrid` shows files, those are out of scope for this branch unless there is a specific new goal.
 
 ## Supertoken Work
 
-The branch preserves the supertoken experiment track in `paper_utils/super/`:
+`paper_utils/super/` contains:
 
 - `train_supertokens.py`: Trains Unigram models with supertoken initialization, using line-level pretokenization for final training.
 - `utils.py`: Registers the line pretokenizer and defines supertoken filters/cache helpers.
 - `generate_results.py`: Loads supertoken models and generates scatter/top-token outputs.
 - `run_experiments.sh`: Shell orchestration for supertoken runs.
-- `EXPERIMENT_LOG.md`: Notes from the old supertoken experiments.
+- `EXPERIMENT_LOG.md`: Experiment notes and observations.
 
 This is the most relevant saved work if supertokens are revived on top of Mingram, but it has not been refactored into a clean Mingram-native implementation.
 
-## Speed Work Snapshots
+## C++ Tokenizer Fast Path
 
-The branch also preserves source snapshots for speed work that should not be mixed into the live package yet:
+`wip/cpp_tokenizer_fast_path/` contains:
 
-- `wip/hybrid_fast/`: C++ BPE/Unigram fast-path sources, build context, and old tests from commit `ebda70c52815c03de708f2eacfb91445731717f7`.
-- `wip/refactor_mp/`: Unigram multiprocessing trainer and benchmark helpers from commit `df33ccae62ba17001547f87476436ad94bf4b20a`.
+- `script_bpe/fast/`: C++ BPE and Unigram prototype sources plus Python wrapper.
+- `script_bpe/fast/heap/min_max_heap.hpp`: Heap helper used by the C++ BPE code.
+- `CMakeLists.txt` and `pyproject.toml`: Build/dependency context for the prototype.
+- `tests/bpe/test_fast_tokenizer.py`: Fast-tokenizer smoke tests.
 
-These are archival files only. If revived, they should become separate fresh branches (`wip/fast-cpp` and `wip/unigram-mp`) and be ported manually to current `main`.
+This code is not imported by `script_bpe` today.
+
+## Unigram Multiprocessing
+
+`wip/unigram_multiprocessing/` contains:
+
+- `script_bpe/tokenizers/unigram/trainer.py`: Unigram trainer version with multiprocessing changes.
+- `paper_utils/benchmark_multiprocessing.py`: Benchmark harness for comparing multiprocessing settings.
+- `analyze_timing.py`: Timing-analysis helper.
+
+This code is not imported by `script_bpe` today.
 
 ## Explicitly Not Included
 
@@ -50,7 +56,7 @@ These are archival files only. If revived, they should become separate fresh bra
 - ToaST/caps code and tests.
 - Generated outputs such as parquet files, notebooks, zips, result blobs, and scratch investigation files.
 - `paper_utils/hybrid` follow-up scripts and plotting/table changes.
-- Live integration of native C++ fast-path code or unigram multiprocessing work.
+- Live integration of C++ fast-path code or unigram multiprocessing work.
 
 ## Suggested Cleanup Before PR
 
@@ -58,9 +64,8 @@ If this branch should become reviewable, prune it further:
 
 1. Keep only the supertoken story.
 2. Refactor supertoken code against the current Mingram/main APIs if it is still worth pursuing.
-3. Decide whether the archival `wip/` speed snapshots should stay in this branch or move to separate branches.
-4. Decide whether `.cursor/rules/git-branch-safety.mdc` should be committed or kept as local workspace guidance.
-5. Run the full test suite after any cleanup.
+3. Move `wip/cpp_tokenizer_fast_path/` and `wip/unigram_multiprocessing/` into separate implementation branches if either speed path is revived.
+4. Run the full test suite after any cleanup.
 
 ## Checks Run
 
