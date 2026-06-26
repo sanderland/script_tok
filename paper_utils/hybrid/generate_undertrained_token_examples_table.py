@@ -6,7 +6,7 @@ from paper_utils.hybrid.token_usage_counts import least_common_tokens, rare_mult
 from paper_utils.hybrid.utils import paper_table_path
 
 N_EXAMPLES = 10
-SECOND_PANEL_METHODS = ["mingram_f1.15", "mingram_pp_f8", "pathpiece", "convextok"]
+SECOND_PANEL_METHODS = ["mingram_f1.15", "mingram_mi_f8", "pathpiece", "convextok"]
 OUT_TEX = paper_table_path("table_undertrained_token_examples.tex", appendix=True)
 
 

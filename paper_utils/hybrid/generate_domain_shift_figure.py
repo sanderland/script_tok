@@ -41,14 +41,14 @@ PAIRINGS = [
     ("fineweb_h6->flores_plus", "6-lang FW\nEval FLORES+"),
 ]
 
-METHOD_ORDER = ["bpe", "bpe_init", "fsp", "bpe_init_fsp", "mingram", "mingram_pp", "pathpiece_bpe", "convextok"]
+METHOD_ORDER = ["bpe", "bpe_init", "fsp", "bpe_init_fsp", "mingram", "mingram_mi", "pathpiece_bpe", "convextok"]
 METHOD_LABEL = {
     "bpe": "BPE",
     "bpe_init": "U-BPE",
     "fsp": "FSP",
     "bpe_init_fsp": "FSP-BPE-Init",
     "mingram": "MinGram",
-    "mingram_pp": "MinGram-PP",
+    "mingram_mi": "MinGram-MI",
     "pathpiece_bpe": "PathPiece-BPE",
     "convextok": "ConvexTok",
 }

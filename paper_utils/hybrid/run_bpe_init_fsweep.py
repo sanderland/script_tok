@@ -15,10 +15,9 @@ from pathlib import Path
 
 from paper_utils.hybrid.train_hybrid import OVERSHOOT_FACTORS, get_model_path as get_hybrid_model_path
 from paper_utils.hybrid.train_mingram import get_model_path as get_mingram_model_path
-from paper_utils.hybrid.train_pathpiece import get_model_path as get_pathpiece_model_path
 from paper_utils.unigram.train_hyperparameters import DEFAULTS, get_model_path as get_unigram_model_path
 from script_bpe.corpus.registry import load_corpus_by_name
-from script_bpe.tokenizers import load_tokenizer
+from script_bpe.tokenizers.unigram import UnigramModel
 
 REPO_ROOT = Path(__file__).parents[2]
 RESULTS_DIR = REPO_ROOT / "results/hybrid"
@@ -37,7 +36,6 @@ LANGS = [
 FSP_OVERRIDES = dict(flat_score_prune=True, pre_final_vocab_factor=1.0)
 MINGRAM_EM = 2
 MINGRAM_P = 0.0
-PATHPIECE_ATOMS = 1916
 
 
 def _model_path_for(method: str, train: str, f: float) -> Path:
@@ -47,12 +45,10 @@ def _model_path_for(method: str, train: str, f: float) -> Path:
         return get_hybrid_model_path(train, {**DEFAULTS, **FSP_OVERRIDES, "overshoot_factor": f})
     if method == "mingram":
         return get_mingram_model_path(train, f, MINGRAM_EM, MINGRAM_P)
-    if method == "pathpiece_bpe":
-        return get_pathpiece_model_path(train, init="bpe", init_vocab_size=round(f * 32768) + PATHPIECE_ATOMS)
     raise ValueError(f"unknown method {method}")
 
 
-METHODS = ("bpe_init", "bpe_init_fsp", "mingram", "pathpiece_bpe")
+METHODS = ("bpe_init", "bpe_init_fsp", "mingram")
 
 
 def _cache_key(train: str, eval_c: str, method: str, model_name: str) -> str:
@@ -60,7 +56,7 @@ def _cache_key(train: str, eval_c: str, method: str, model_name: str) -> str:
 
 
 def _evaluate(model_path: str, eval_corpus_name: str) -> int:
-    model = load_tokenizer(model_path)
+    model = UnigramModel.load(model_path)
     eval_corpus = load_corpus_by_name(eval_corpus_name, model.pretokenizer)
     perf = model.corpus_performance(eval_corpus)
     return int(perf["total_tokens_len"])

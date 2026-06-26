@@ -36,8 +36,8 @@ OUT_MORPH_TEX = paper_table_path("table_main_morphalign.tex")
 MAIN_F = 1.15
 PLOT_EM = 2
 PLOT_P = 0.0
-MINGRAM_PP_F = 8.0
-MINGRAM_PP_P = 0.9
+MINGRAM_MI_F = 8.0
+MINGRAM_MI_P = 0.9
 CONVEXTOK_MODEL = "results/convextok_tokenizers/{train}/n32768_cmin50_mp200000_L32_det.json.gz"
 
 METHOD_ORDER = [
@@ -47,7 +47,7 @@ METHOD_ORDER = [
     "bpe_init",
     "fsp_bpe_init",
     "mingram",
-    "mingram_pp",
+    "mingram_mi",
     "pathpiece_bpe",
     "convextok",
 ]
@@ -59,7 +59,8 @@ METHOD_LABEL = {
     "bpe_init": "Unigram\\hspace{0pt}-BPE\\hspace{0pt}-Init",
     "fsp_bpe_init": "FSP\\hspace{0pt}-BPE\\hspace{0pt}-Init",
     "mingram": "MinGram",
-    "mingram_pp": "\\mingrampp{}",
+    "mingram_mi": "\\mingrammi{}",
+    "pathpiece_ngram": "PathPiece\\hspace{0pt}-N\\hspace{0pt}-gram",
     "pathpiece_bpe": "PathPiece\\hspace{0pt}-BPE",
     "convextok": "ConvexTok",
 }
@@ -71,7 +72,8 @@ GRID_KEY = {
     "bpe_init": "bpe_init",
     "fsp_bpe_init": "bpe_init_fsp",
     "mingram": "mingram",
-    "mingram_pp": "mingram_pp",
+    "mingram_mi": "mingram_mi",
+    "pathpiece_ngram": "pathpiece_ngram",
     "pathpiece_bpe": "pathpiece_bpe",
     "convextok": "convextok",
 }
@@ -237,15 +239,17 @@ def _morphalign_row(cache: dict, method: str) -> dict[str, float | None]:
             out[lang] = _morphalign_fsp_bpe_init(cache, lang, MAIN_F)
         elif method == "mingram":
             out[lang] = _morphalign_mingram(cache, lang, MAIN_F, PLOT_EM, PLOT_P)
-        elif method == "mingram_pp":
+        elif method == "mingram_mi":
             out[lang] = _morphalign_mingram(
                 cache,
                 lang,
-                MINGRAM_PP_F,
+                MINGRAM_MI_F,
                 PLOT_EM,
-                MINGRAM_PP_P,
+                MINGRAM_MI_P,
                 prune_criterion="mi",
             )
+        elif method == "pathpiece_ngram":
+            out[lang] = _morphalign_pathpiece(cache, lang, "ngram")
         elif method == "pathpiece_bpe":
             out[lang] = _morphalign_pathpiece(cache, lang, "bpe")
         elif method == "convextok":

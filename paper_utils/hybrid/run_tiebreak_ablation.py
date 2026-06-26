@@ -34,7 +34,7 @@ RESULTS_DIR = REPO_ROOT / "results/hybrid"
 OUT_JSON = RESULTS_DIR / "tiebreak_ablation.json"
 SEG_DIR = RESULTS_DIR / "tiebreak_segmented"
 
-MORPH_TOK_EVAL_DIR = REPO_ROOT / "eval/morph-tok-eval"
+MORPH_TOK_EVAL_DIR = REPO_ROOT / "data/morph-tok-eval"
 MORPHALIGN_THRESHOLDS = [0.01]
 MORPHALIGN_ITERATIONS = 10
 MORPHALIGN_MODEL = "IBM1"

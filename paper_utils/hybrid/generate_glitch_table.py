@@ -66,13 +66,13 @@ _BPE_CK = {
     **{s: str(NC_RUNS_ROOT / f"bpe_d24_s{s}" / "base_checkpoints" / f"bpe_d24_s{s}" / "model_005590.pt")
        for s in range(46, 62)},
 }
-# MinGram-PP (careful MinGram-PP prune) was eval'd downstream at f=8 (its compression
+# MinGram-MI (careful Minimum-Increase prune) was eval'd downstream at f=8 (its compression
 # optimum) on seeds 45-64; checkpoints live in slurm or _dbg (debug-node) base dirs.
-def _mingram_pp_f8_ck() -> dict[int, str]:
+def _mingram_mi_f8_ck() -> dict[int, str]:
     import glob
     out: dict[int, str] = {}
     for s in SEEDS + list(range(62, 65)):
-        for sub in (f"ds_mingram_pp_f8_d24_s{s}", f"ds_mingram_pp_f8_d24_s{s}_dbg"):
+        for sub in (f"ds_mingram_mi_f8_d24_s{s}", f"ds_mingram_mi_f8_d24_s{s}_dbg"):
             g = glob.glob(str(NC_RUNS_ROOT / sub / "base_checkpoints" / "*" / "model_005590.pt"))
             if g:
                 out[s] = g[0]
@@ -80,7 +80,7 @@ def _mingram_pp_f8_ck() -> dict[int, str]:
     return out
 
 
-_MINGRAM_PP_TOK = "results/mingram/fineweb_en_5gb/mingram_f8.0_em2_p0.9_pcmi_n32768_1f852aea12ed62ea.model.json.gz"
+_MINGRAM_MI_TOK = "results/mingram/fineweb_en_5gb/mingram_f8.0_em2_p0.9_pcmi_n32768_1f852aea12ed62ea.model.json.gz"
 
 
 # canonical PathPiece is now pb=0.1; its downstream checkpoints live under ds_pathpiece_pb01_d24_s*
@@ -120,8 +120,8 @@ RUNS = [
     ("MinGram", "mingram_f1.15", "script_bpe.tokenizers.mingram.model.MinGramModel",
      "results/mingram/fineweb_en_5gb/mingram_f1.15_em2_p0.0_n32768_6a46f861edc5191c.model.json.gz",
      _CACHE_ONLY_CK),
-    ("\\mingrampp{}", "mingram_pp", "script_bpe.tokenizers.mingram.model.MinGramModel",
-     _MINGRAM_PP_TOK, _mingram_pp_f8_ck()),
+    ("\\mingrammi{}", "mingram_mi", "script_bpe.tokenizers.mingram.model.MinGramModel",
+     _MINGRAM_MI_TOK, _mingram_mi_f8_ck()),
     ("PathPiece\\hspace{0pt}-BPE", "pathpiece", "script_bpe.tokenizers.pathpiece.model.PathPieceModel",
      "results/pathpiece/fineweb_en_5gb/pathpiece_bpe_iv262144_L1024_pb0.1_n32768_d1e30bdf3b87710c.model.json.gz",
      _pp_pb01_ck()),

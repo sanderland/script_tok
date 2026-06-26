@@ -37,8 +37,8 @@ OUT_TEX = paper_table_path("table_tokenization_examples.tex")
 MAIN_F = 1.15
 PLOT_EM = 2
 PLOT_P = 0.0
-MINGRAM_PP_F = 8.0
-MINGRAM_PP_P = 0.9
+MINGRAM_MI_F = 8.0
+MINGRAM_MI_P = 0.9
 
 EXAMPLES = [
     # English
@@ -71,7 +71,7 @@ METHOD_LABEL = {
     "unigram": "Unigram",
     "fsp": "FSP",
     "mingram": "MinGram",
-    "mingram_pp": r"\mingrampp{}",
+    "mingram_mi": r"\mingrammi{}",
     "pathpiece_bpe": "PathPiece-BPE",
     "convextok": "ConvexTok",
 }
@@ -89,9 +89,9 @@ def _load_model(method: str, corpus: str):
         return UnigramModel.load(str(get_unigram_model_path(corpus, FSP_PARAMS)))
     if method == "mingram":
         return MinGramModel.load(str(get_mingram_model_path(corpus, MAIN_F, PLOT_EM, PLOT_P)))
-    if method == "mingram_pp":
+    if method == "mingram_mi":
         return MinGramModel.load(
-            str(get_mingram_model_path(corpus, MINGRAM_PP_F, PLOT_EM, MINGRAM_PP_P, prune_criterion="mi"))
+            str(get_mingram_model_path(corpus, MINGRAM_MI_F, PLOT_EM, MINGRAM_MI_P, prune_criterion="mi"))
         )
     if method == "pathpiece_bpe":
         return PathPieceModel.load(str(get_pathpiece_model_path(corpus, init="bpe")))
@@ -324,17 +324,17 @@ def _load_rows(allow_fallback: bool = True) -> list[dict[str, object]]:
 def main() -> None:
     parser = ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--include-mingram-pp",
+        "--include-mingram-mi",
         action="store_true",
-        help="Add the MinGram-PP column. Requires the f8 MinGram-PP tokenizer models locally.",
+        help="Add the MinGram-MI column. Requires the f8 MinGram-MI tokenizer models locally.",
     )
     args = parser.parse_args()
 
     global METHOD_ORDER
-    if args.include_mingram_pp:
-        METHOD_ORDER = ["bpe", "unigram", "fsp", "mingram", "mingram_pp", "pathpiece_bpe", "convextok"]
+    if args.include_mingram_mi:
+        METHOD_ORDER = ["bpe", "unigram", "fsp", "mingram", "mingram_mi", "pathpiece_bpe", "convextok"]
 
-    rows = _load_rows(allow_fallback=not args.include_mingram_pp)
+    rows = _load_rows(allow_fallback=not args.include_mingram_mi)
     tex = build_table(rows)
     OUT_TEX.parent.mkdir(parents=True, exist_ok=True)
     OUT_TEX.write_text(tex)

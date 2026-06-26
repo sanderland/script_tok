@@ -50,15 +50,15 @@ OUT_PNG = paper_figure_path("lead_scatter.png")
 MAIN_F = 1.15
 PLOT_EM = 2
 PLOT_P = 0.0
-MINGRAM_PP_F = 8.0
-MINGRAM_PP_P = 0.9  # MinGram-PP uses iterative pruning (p=0.9).
+MINGRAM_MI_F = 8.0
+MINGRAM_MI_P = 0.9  # careful-MI MinGram uses iterative pruning (p=0.9), where MI pays off
 
 COMPRESSION_LANGS = ["eng", "deu", "fin", "rus", "arb", "kor"]
 MORPHALIGN_LANGS = ["eng", "deu", "fin"]
 MINGRAM_TRACE_FS = [1.05, 1.1, 1.15, 1.25, 1.5, 2.0, 3.0, 5.0]
-# MinGram-PP's candidate is f=8 (matches downstream/renyi/glitch); extend its trace to 8.0.
+# MinGram-MI's candidate is f=8 (matches downstream/renyi/glitch); extend its trace to 8.0.
 # Stock MinGram has no f=8 data (its sweep maxed at 5.0) and is skipped there by the data guards.
-MINGRAM_PP_TRACE_FS = MINGRAM_TRACE_FS + [8.0]
+MINGRAM_MI_TRACE_FS = MINGRAM_TRACE_FS + [8.0]
 
 COMPRESSION_CORPORA = {
     "eng": {"train": "fineweb_en_5gb", "eval": "eng_latn_fishfood"},
@@ -76,7 +76,7 @@ METHOD_ORDER = [
     "fsp",
     "fsp_bpe_init",
     "mingram",
-    "mingram_pp",
+    "mingram_mi",
     "pathpiece_bpe",
     "convextok",
 ]
@@ -87,7 +87,8 @@ METHOD_STYLE = {
     "fsp": {"color": "#7E57C2", "marker": "^", "label": "FSP", "filled": True},
     "fsp_bpe_init": {"color": "#7E57C2", "marker": "^", "label": "FSP-BPE-Init", "filled": False, "size": 88},
     "mingram": {"color": "#0072B2", "marker": "P", "label": "MinGram", "filled": True},
-    "mingram_pp": {"color": "#009E73", "marker": "x", "label": "MinGram-PP", "filled": False, "size": 82},
+    "mingram_mi": {"color": "#009E73", "marker": "x", "label": "MinGram-MI", "filled": False, "size": 82},
+    "pathpiece_ngram": {"color": "#8c564b", "marker": "s", "label": "PathPiece (n-gram)", "filled": True},
     "pathpiece_bpe": {"color": "#CC79A7", "marker": "s", "label": "PathPiece (BPE)", "filled": False, "size": 88},
     "convextok": {"color": "#C44E52", "marker": "*", "label": "ConvexTok", "filled": True, "size": 190},
 }
@@ -141,7 +142,8 @@ def _grid_method_key(method: str) -> str:
         "fsp": "fsp",
         "fsp_bpe_init": "bpe_init_fsp",
         "mingram": "mingram",
-        "mingram_pp": "mingram_pp",
+        "mingram_mi": "mingram_mi",
+        "pathpiece_ngram": "pathpiece_ngram",
         "pathpiece_bpe": "pathpiece_bpe",
     }[method]
 
@@ -313,9 +315,9 @@ def _morphalign_per_method_lang(cache: dict) -> dict[str, dict[str, float]]:
         mingram = _morphalign_mingram(cache, lang, MAIN_F, PLOT_EM, PLOT_P)
         if mingram is not None:
             out["mingram"][lang] = mingram
-        mingram_pp = _morphalign_mingram(cache, lang, MINGRAM_PP_F, PLOT_EM, MINGRAM_PP_P, "mi")
-        if mingram_pp is not None:
-            out["mingram_pp"][lang] = mingram_pp
+        mingram_mi = _morphalign_mingram(cache, lang, MINGRAM_MI_F, PLOT_EM, MINGRAM_MI_P, "mi")
+        if mingram_mi is not None:
+            out["mingram_mi"][lang] = mingram_mi
         for init in ("ngram", "bpe"):
             key = f"pathpiece_{init}"
             if key not in out:
@@ -363,15 +365,15 @@ def build_points(grid: dict, compression_cache: dict, morph_cache: dict) -> tupl
     for method in METHOD_ORDER:
         if method == "mingram":
             compression_mean = _mean_mingram_delta(compression_cache, morph_cache, COMPRESSION_LANGS, MAIN_F, PLOT_EM, PLOT_P)
-        elif method == "mingram_pp":
+        elif method == "mingram_mi":
             vals = [
                 _compression_mingram_delta(
                     compression_cache,
                     morph_cache,
                     lang,
-                    MINGRAM_PP_F,
+                    MINGRAM_MI_F,
                     PLOT_EM,
-                    MINGRAM_PP_P,
+                    MINGRAM_MI_P,
                     "mi",
                 )
                 for lang in COMPRESSION_LANGS
@@ -396,27 +398,27 @@ def build_points(grid: dict, compression_cache: dict, morph_cache: dict) -> tupl
         if f in compression_trace and f in morphalign_trace
     ]
 
-    # MinGram-PP f-trace (p=0.9): compression mean over COMPRESSION_LANGS, morphalign
+    # careful-MI MinGram f-trace (p=0.9): compression mean over COMPRESSION_LANGS, morphalign
     # geomean over MORPHALIGN_LANGS, both at prune_criterion="mi".
     def _mi_comp(f):
-        vals = [_compression_mingram_delta(compression_cache, morph_cache, lang, f, PLOT_EM, MINGRAM_PP_P, "mi") for lang in COMPRESSION_LANGS]
+        vals = [_compression_mingram_delta(compression_cache, morph_cache, lang, f, PLOT_EM, MINGRAM_MI_P, "mi") for lang in COMPRESSION_LANGS]
         return float(np.mean(vals)) if all(v is not None for v in vals) else None
 
     def _mi_morph(f):
-        vals = [_morphalign_mingram(morph_cache, lang, f, PLOT_EM, MINGRAM_PP_P, "mi") for lang in MORPHALIGN_LANGS]
+        vals = [_morphalign_mingram(morph_cache, lang, f, PLOT_EM, MINGRAM_MI_P, "mi") for lang in MORPHALIGN_LANGS]
         return float(geomean(vals)) if all(v is not None for v in vals) else None
 
-    mingram_pp_trace = []
-    for f in MINGRAM_PP_TRACE_FS:
+    mingram_mi_trace = []
+    for f in MINGRAM_MI_TRACE_FS:
         c, m = _mi_comp(f), _mi_morph(f)
         if c is not None and m is not None:
-            mingram_pp_trace.append((f, -c, morphalign_paper_score(m)))
+            mingram_mi_trace.append((f, -c, morphalign_paper_score(m)))
 
-    return method_points, mingram_trace, mingram_pp_trace
+    return method_points, mingram_trace, mingram_mi_trace
 
 
 def plot(method_points: dict, mingram_trace: list[tuple[float, float, float]], out_png: Path,
-         mingram_pp_trace: list[tuple[float, float, float]] | None = None) -> None:
+         mingram_mi_trace: list[tuple[float, float, float]] | None = None) -> None:
     sns.set_style(
         "whitegrid",
         rc={
@@ -472,9 +474,9 @@ def plot(method_points: dict, mingram_trace: list[tuple[float, float, float]], o
                 bbox={"boxstyle": "round,pad=0.14", "facecolor": "white", "edgecolor": "none", "alpha": 0.82},
             )
 
-    if mingram_pp_trace:
-        xs = [p[1] for p in mingram_pp_trace]
-        ys = [p[2] for p in mingram_pp_trace]
+    if mingram_mi_trace:
+        xs = [p[1] for p in mingram_mi_trace]
+        ys = [p[2] for p in mingram_mi_trace]
         ax.plot(
             xs, ys, color="#009E73", linestyle=(0, (1.2, 2.2)), linewidth=1.9, alpha=0.85, zorder=3,
             path_effects=[pe.Stroke(linewidth=3.4, foreground="white", alpha=0.7), pe.Normal()],
@@ -491,7 +493,7 @@ def plot(method_points: dict, mingram_trace: list[tuple[float, float, float]], o
             zorder=4,
         )
         for idx, anno in ((0, {"xytext": (3, -7), "ha": "left", "va": "top"}), (-1, {"xytext": (3, 6), "ha": "left", "va": "bottom"})):
-            pt = mingram_pp_trace[idx]
+            pt = mingram_mi_trace[idx]
             ax.annotate(
                 f"$f{{=}}{_format_f(pt[0])}$", xy=(pt[1], pt[2]), xytext=anno["xytext"], textcoords="offset points",
                 fontsize=7, ha=anno["ha"], va=anno["va"], color="#009E73", alpha=0.9,
@@ -566,7 +568,7 @@ def main() -> None:
     grid = json.loads(GRID_JSON.read_text())
     compression_cache = json.loads(COMPRESSION_CACHE_JSON.read_text())
     morph_cache = json.loads(MORPHALIGN_JSON.read_text())
-    method_points, mingram_trace, mingram_pp_trace = build_points(grid, compression_cache, morph_cache)
+    method_points, mingram_trace, mingram_mi_trace = build_points(grid, compression_cache, morph_cache)
     MORPHALIGN_JSON.write_text(json.dumps(morph_cache, indent=2))
     COMPRESSION_CACHE_JSON.write_text(json.dumps(compression_cache, indent=2))
 
@@ -590,7 +592,7 @@ def main() -> None:
     else:
         print("MinGram f-trace: empty")
 
-    plot(method_points, mingram_trace, OUT_PNG, mingram_pp_trace=mingram_pp_trace)
+    plot(method_points, mingram_trace, OUT_PNG, mingram_mi_trace=mingram_mi_trace)
 
 
 if __name__ == "__main__":

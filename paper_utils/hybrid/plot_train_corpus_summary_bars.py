@@ -46,14 +46,14 @@ LANG_LABEL = {
     "kor": "Korean",
 }
 
-METHOD_ORDER = ["bpe_init", "fsp", "bpe_init_fsp", "mingram", "mingram_pp", "bpe", "pathpiece_bpe", "convextok"]
+METHOD_ORDER = ["bpe_init", "fsp", "bpe_init_fsp", "mingram", "mingram_mi", "bpe", "pathpiece_bpe", "convextok"]
 METHOD_LABEL = {
     "bpe": "BPE",
     "fsp": "FSP",
     "bpe_init": "Unigram-BPE-Init",
     "bpe_init_fsp": "FSP-BPE-Init",
     "mingram": "MinGram",
-    "mingram_pp": "MinGram-PP",
+    "mingram_mi": "MinGram-MI",
     "pathpiece_bpe": "PathPiece-BPE",
     "convextok": "ConvexTok",
 }
@@ -63,7 +63,7 @@ METHOD_TICK_LABEL = {
     "bpe_init": "Unigram-\nBPE-Init",
     "bpe_init_fsp": "FSP-\nBPE-Init",
     "mingram": "MinGram",
-    "mingram_pp": "MinGram-\nPP",
+    "mingram_mi": "MinGram-\nMI",
     "pathpiece_bpe": "PathPiece-\nBPE",
     "convextok": "ConvexTok",
 }
@@ -73,7 +73,7 @@ METHOD_STYLE = {
     "fsp": {"facecolor": "#7E57C2", "edgecolor": "#6C46B3", "hatch": None, "alpha": 0.84},
     "bpe_init_fsp": {"facecolor": "#B18BE8", "edgecolor": "#7E57C2", "hatch": None, "alpha": 0.9},
     "mingram": {"facecolor": "#0072B2", "edgecolor": "#00649D", "hatch": None, "alpha": 0.92},
-    "mingram_pp": {"facecolor": "#009E73", "edgecolor": "#007F5F", "hatch": None, "alpha": 0.9},
+    "mingram_mi": {"facecolor": "#009E73", "edgecolor": "#007F5F", "hatch": None, "alpha": 0.9},
     "pathpiece_bpe": {"facecolor": "#CC79A7", "edgecolor": "#AA5F8C", "hatch": None, "alpha": 0.9},
     "convextok": {"facecolor": "#009E73", "edgecolor": "#007F5F", "hatch": None, "alpha": 0.9},
 }
@@ -83,7 +83,7 @@ BALANCED_HATCH = {
     "fsp": "\\\\",
     "bpe_init_fsp": "xx",
     "mingram": "--",
-    "mingram_pp": "oo",
+    "mingram_mi": "oo",
     "pathpiece_bpe": "++",
     "convextok": "**",
 }

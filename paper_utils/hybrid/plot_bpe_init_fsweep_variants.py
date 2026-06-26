@@ -90,8 +90,8 @@ def _mingram_p09_matrix(factors: list[float]) -> np.ndarray:
     return out
 
 
-def _mingram_pp_matrix(factors: list[float]) -> np.ndarray:
-    """Compression delta (%) vs Default Unigram for MinGram with CAREFUL (MinGram-PP)
+def _mingram_mi_matrix(factors: list[float]) -> np.ndarray:
+    """Compression delta (%) vs Default Unigram for MinGram with CAREFUL (Minimum-Increase)
     pruning at p=0.9 -- same iterative schedule as the p=0.9 usage-count trace, but the prune
     criterion is the corpus-token-count increase instead of usage rank."""
     cache = json.loads(COMPRESSION_CACHE.read_text())
@@ -180,10 +180,10 @@ def plot_anchored_band(factors: list[float], langs: dict) -> None:
             markersize=4.6, linewidth=2.2, markerfacecolor="white", markeredgewidth=1.1,
         )
 
-    mi = _mingram_pp_matrix(factors)  # MinGram p=0.9 with careful (MinGram-PP) pruning
+    mi = _mingram_mi_matrix(factors)  # MinGram p=0.9 with careful (Minimum-Increase) pruning
     if not np.isnan(mi).all():
         ax.plot(
-            x, np.nanmean(mi, axis=0), label=r"MinGram-PP ($p{=}0.9$)",
+            x, np.nanmean(mi, axis=0), label=r"MinGram-MI ($p{=}0.9$)",
             color="#009E73", linestyle="-", marker="P",
             markersize=5.4, linewidth=2.4, markerfacecolor="#009E73", markeredgewidth=1.1,
         )

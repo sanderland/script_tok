@@ -26,21 +26,26 @@ RESULTS_DIR = Path("results/pathpiece")
 # it never binds for real language tokens.
 #
 # Seed budget: PathPiece-B saturates at f~=2 (init ~= 2x target); we keep the
-# paper's 2^18 budget for headroom.
-MAIN_BPE_INIT_VOCAB = 262_144  # 2^18, paper-faithful for BPE-init
-MAIN_MAX_TOKEN_WIDTH = 1024  # effectively unbounded (no L cap)
-MAIN_PRUNE_BATCH_FRACTION = 0.10  # canonical: matches the trainer/PathPiece default.
+# paper's 2^18 budget for headroom. The canonical PathPiece-N-gram needs a
+# much larger seed (2^20), but PathPiece-N is dominated by PathPiece-B and is
+# not used in the main table.
+MAIN_NGRAM_INIT_VOCAB = 1_048_576  # 2^20 — only relevant if running n-gram init
+MAIN_BPE_INIT_VOCAB = 262_144      # 2^18, paper-faithful for BPE-init
+MAIN_MAX_TOKEN_WIDTH = 1024        # effectively unbounded (no L cap)
+MAIN_PRUNE_BATCH_FRACTION = 0.10  # canonical: matches the trainer/PathPiece default; 0.20 was an
+# unmotivated earlier choice. pb=0.1 is intrinsically ~0.1pp better, removes the f=1.25 overshoot
+# kink, and was downstream/glitch-neutral in the branch reruns (n=20).
 
-PATHPIECE_INIT = "bpe"
+VARIANTS = ("ngram", "bpe")
 
-# Legacy alias for callers that don't care about per-init defaults.
+# Legacy alias for callers that don't care about per-init defaults; resolves
+# to the BPE budget, since that's the smaller of the two and matches what
+# we treat as the "headline" PathPiece configuration.
 MAIN_INIT_VOCAB = MAIN_BPE_INIT_VOCAB
 
 
 def _default_init_vocab(init: str) -> int:
-    if init != PATHPIECE_INIT:
-        raise ValueError(f"Unknown PathPiece init {init!r}; expected {PATHPIECE_INIT!r}")
-    return MAIN_BPE_INIT_VOCAB
+    return MAIN_NGRAM_INIT_VOCAB if init == "ngram" else MAIN_BPE_INIT_VOCAB
 
 
 def get_model_path(
@@ -52,10 +57,10 @@ def get_model_path(
     additional_vocab_size: int = ADDITIONAL_VOCAB_SIZE,
     skip_substring_in_batch: bool = False,
 ) -> Path:
+    if init not in VARIANTS:
+        raise ValueError(f"Unknown PathPiece init {init!r}; expected one of {VARIANTS}")
     if init_vocab_size is None:
         init_vocab_size = _default_init_vocab(init)
-    elif init != PATHPIECE_INIT:
-        raise ValueError(f"Unknown PathPiece init {init!r}; expected {PATHPIECE_INIT!r}")
     hash_dict = {
         "model": "pathpiece",
         "corpus": corpus_name,

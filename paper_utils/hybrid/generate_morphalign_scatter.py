@@ -23,7 +23,9 @@ from paper_utils.hybrid.utils import (
     save_cache,
 )
 from paper_utils.hybrid.train_mingram import ADDITIONAL_VOCAB_SIZE, get_model_path as get_mingram_model_path
-from paper_utils.hybrid.train_pathpiece import get_model_path as get_pathpiece_model_path
+from paper_utils.hybrid.train_pathpiece import (
+    get_model_path as get_pathpiece_model_path,
+)
 from paper_utils.unigram.train_hyperparameters import DEFAULTS, get_model_path as get_unigram_model_path
 from script_bpe.corpus.registry import load_corpus_by_name
 from script_bpe.tokenizers.bpe import BPETokenizer
@@ -35,7 +37,7 @@ RESULTS_DIR = Path("results/hybrid")
 MORPHALIGN_CACHE_PATH = RESULTS_DIR / "cache_morphalign_scatter.json"
 MORPHALIGN_SEGMENTED_DIR = RESULTS_DIR / "morphalign_segmented"
 
-MORPH_TOK_EVAL_DIR = Path(__file__).parents[2] / "eval/morph-tok-eval"
+MORPH_TOK_EVAL_DIR = Path(__file__).parents[2] / "data/morph-tok-eval"
 MORPHALIGN_THRESHOLDS = [0.01]
 MORPHALIGN_ITERATIONS = 10
 MORPHALIGN_MODEL = "IBM1"
@@ -280,7 +282,7 @@ def collect_pathpiece_refs(
     cache: dict,
     lang: str,
 ) -> dict[str, dict]:
-    """Return PathPiece-BPE as a reference point for the scatter."""
+    """Return PathPiece (n-gram + BPE init) as reference points for the scatter."""
     refs: dict[str, dict] = {}
     eval_corpus = None
     init_to_ref = {"bpe": "PathPiece-B"}
@@ -423,7 +425,7 @@ def get_reference_points(
             "morphalign": fsp_score,
         }
 
-    # PathPiece-BPE is a single reference point, not part of this MorphAlign f-sweep.
+    # PathPiece (n-gram + BPE init) — single points, not part of an f-sweep
     pp_refs = collect_pathpiece_refs(
         train_corpus=train_corpus,
         eval_corpus_name=eval_corpus_name,

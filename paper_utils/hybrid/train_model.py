@@ -175,7 +175,7 @@ def main():
     parser.add_argument("--additional-vocab-size", type=int, default=ADDITIONAL_VOCAB_SIZE)
     parser.add_argument("--num-workers", type=int, default=int(os.environ.get("SCRIPT_BPE_TRAIN_NUM_WORKERS", "4")))
     parser.add_argument("--prune-criterion", choices=["usage_count", "mi"], default="usage_count",
-                        help="mingram only: 'mi' = careful MinGram-PP prune (vs default usage-count)")
+                        help="mingram only: 'mi' = careful Minimum-Increase prune (vs default usage-count)")
     parser.add_argument("--skip-substring", action="store_true",
                         help="mingram mi only: Craig's rule -- skip dropping a token that is a substring of an already-dropped one in the batch")
     args = parser.parse_args()
