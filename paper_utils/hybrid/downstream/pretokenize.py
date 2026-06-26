@@ -8,7 +8,7 @@ shards through `pynanochat.pretok_dataloader`.
 Usage:
   uv run python paper_utils/hybrid/downstream/pretokenize.py \
     --tokenizer-path <.json.gz> --tokenizer-class <dotted> \
-    --base-dir /fsx/sander/nanochat_d24_bpe32k --out-dir /fsx/sander/nc_runs/pretok/<key> \
+    --base-dir /path/to/nanochat_d24_bpe32k --out-dir /path/to/nc_runs/pretok/<key> \
     --workers 90
 """
 

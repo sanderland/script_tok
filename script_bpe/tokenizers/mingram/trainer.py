@@ -26,9 +26,10 @@ class MinGramTrainerConfig(TrainerConfig):
     # (Minimum Increase, Schmidt et al. 2024), recomputed each prune round; log_prob kept as
     # tie-break. Pairs best with iterative pruning (pruning_shrinking_factor > 0).
     prune_criterion: Literal["usage_count", "mi"] = "usage_count"
-    # Craig's rule (mi criterion only): within a prune batch, skip a candidate whose atomic
-    # sequence is a contiguous substring of an already-selected token -- avoids dropping too
-    # many overlapping tokens at once (default off).
+    # skip_substring (mi prune_criterion only, i.e. PathPiece-style MI pruning; Craig Schmidt,
+    # pers. comm.): within a prune batch, skip a candidate whose atomic sequence is a contiguous
+    # substring of an already-selected token -- avoids dropping too many overlapping tokens at
+    # once (limited effect in practice; default off).
     skip_substring_in_batch: bool = False
     model_config = ConfigDict(extra="forbid")
 

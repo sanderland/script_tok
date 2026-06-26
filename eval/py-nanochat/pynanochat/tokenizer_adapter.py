@@ -68,18 +68,15 @@ def init_encode_pool(adapter, workers: int):
     """Create the fork pool for parallel batch encode. MUST run before CUDA init.
 
     Sets the worker tokenizer + id remap in this process, then forks `workers` children
-    that inherit them copy-on-write. Idempotent; on failure leaves the pool unset.
+    that inherit them copy-on-write. Idempotent.
     """
     global _POOL, _WORKER_TOK, _WORKER_REMAP
     if _POOL is not None or workers <= 1:
         return _POOL
     _WORKER_TOK = adapter._st
     _WORKER_REMAP = adapter._old2dense
-    try:
-        _POOL = multiprocessing.get_context("fork").Pool(workers)
-        atexit.register(_close_pool)  # avoid a noisy Pool.__del__ traceback at shutdown
-    except Exception:
-        _POOL = None
+    _POOL = multiprocessing.get_context("fork").Pool(workers)
+    atexit.register(_close_pool)  # avoid a noisy Pool.__del__ traceback at shutdown
     return _POOL
 
 

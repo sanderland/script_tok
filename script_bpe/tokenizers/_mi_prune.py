@@ -157,7 +157,7 @@ def select_drop_batch(ordered_ids, k, tokens_by_id, skip_substring=False, max_su
     """Pick up to ``k`` token ids to drop from ``ordered_ids`` (already in drop-priority
     order, lowest MI first).
 
-    With ``skip_substring`` (Craig's rule), a candidate is skipped when its atomic-token
+    With ``skip_substring`` (Craig Schmidt, personal communication), a candidate is skipped when its atomic-token
     sequence is a contiguous subsequence of an already-selected token in this batch -- i.e.
     don't drop a token together with one that contains it, which avoids removing too many
     overlapping tokens in a single (stale-MI) batch. ``max_sub_len`` bounds the enumerated

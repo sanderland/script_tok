@@ -82,7 +82,7 @@ The `paper_utils/` directory contains scripts to reproduce paper results from sc
   - `train_hyperparameters.py`: Hyperparameter tuning experiments
 
 - **`paper_utils/hybrid/`**: MinGram tokenizer paper reproduction
-  - Paper: (Soon)
+  - Paper: [MinGram: A Minimalist Unigram Tokenizer with High Compression and Competitive Morphological Alignment](https://arxiv.org/abs/2606.27019)
   - `run_all_experiments.sh`: Train the active tokenizer set and regenerate paper tables/figures.
   - `build_token_usage_counts.py`: Rebuild the rare-token count parquet used by downstream tables.
 
