@@ -91,7 +91,7 @@ def _mingram_p09_matrix(factors: list[float]) -> np.ndarray:
 
 
 def _mingram_pp_matrix(factors: list[float]) -> np.ndarray:
-    """Compression delta (%) vs Default Unigram for MinGram with CAREFUL (Minimum-Increase)
+    """Compression delta (%) vs Default Unigram for MinGram with CAREFUL (MinGram-PP)
     pruning at p=0.9 -- same iterative schedule as the p=0.9 usage-count trace, but the prune
     criterion is the corpus-token-count increase instead of usage rank."""
     cache = json.loads(COMPRESSION_CACHE.read_text())

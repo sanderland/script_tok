@@ -38,7 +38,7 @@ METHOD_SHORT_LABEL = {
     "bpe_init_f1.15": "U-BPE",
     "fsp_bpe_init_f1.15": "F-BPE",
     "mingram_f1.15": "Min",
-    "mingram_pp_f8": "Min-MI",
+    "mingram_pp_f8": "Min-PP",
     "pathpiece": "Path",
     "convextok": "Conv",
 }

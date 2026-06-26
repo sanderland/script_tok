@@ -60,7 +60,6 @@ METHOD_LABEL = {
     "fsp_bpe_init": "FSP\\hspace{0pt}-BPE\\hspace{0pt}-Init",
     "mingram": "MinGram",
     "mingram_pp": "\\mingrampp{}",
-    "pathpiece_ngram": "PathPiece\\hspace{0pt}-N\\hspace{0pt}-gram",
     "pathpiece_bpe": "PathPiece\\hspace{0pt}-BPE",
     "convextok": "ConvexTok",
 }
@@ -73,7 +72,6 @@ GRID_KEY = {
     "fsp_bpe_init": "bpe_init_fsp",
     "mingram": "mingram",
     "mingram_pp": "mingram_pp",
-    "pathpiece_ngram": "pathpiece_ngram",
     "pathpiece_bpe": "pathpiece_bpe",
     "convextok": "convextok",
 }
@@ -248,8 +246,6 @@ def _morphalign_row(cache: dict, method: str) -> dict[str, float | None]:
                 MINGRAM_PP_P,
                 prune_criterion="mi",
             )
-        elif method == "pathpiece_ngram":
-            out[lang] = _morphalign_pathpiece(cache, lang, "ngram")
         elif method == "pathpiece_bpe":
             out[lang] = _morphalign_pathpiece(cache, lang, "bpe")
         elif method == "convextok":

@@ -51,7 +51,7 @@ MAIN_F = 1.15
 PLOT_EM = 2
 PLOT_P = 0.0
 MINGRAM_PP_F = 8.0
-MINGRAM_PP_P = 0.9  # MinGram-PP MinGram uses iterative pruning (p=0.9), where MI pays off
+MINGRAM_PP_P = 0.9  # MinGram-PP uses iterative pruning (p=0.9).
 
 COMPRESSION_LANGS = ["eng", "deu", "fin", "rus", "arb", "kor"]
 MORPHALIGN_LANGS = ["eng", "deu", "fin"]
@@ -88,7 +88,6 @@ METHOD_STYLE = {
     "fsp_bpe_init": {"color": "#7E57C2", "marker": "^", "label": "FSP-BPE-Init", "filled": False, "size": 88},
     "mingram": {"color": "#0072B2", "marker": "P", "label": "MinGram", "filled": True},
     "mingram_pp": {"color": "#009E73", "marker": "x", "label": "MinGram-PP", "filled": False, "size": 82},
-    "pathpiece_ngram": {"color": "#8c564b", "marker": "s", "label": "PathPiece (n-gram)", "filled": True},
     "pathpiece_bpe": {"color": "#CC79A7", "marker": "s", "label": "PathPiece (BPE)", "filled": False, "size": 88},
     "convextok": {"color": "#C44E52", "marker": "*", "label": "ConvexTok", "filled": True, "size": 190},
 }
@@ -143,7 +142,6 @@ def _grid_method_key(method: str) -> str:
         "fsp_bpe_init": "bpe_init_fsp",
         "mingram": "mingram",
         "mingram_pp": "mingram_pp",
-        "pathpiece_ngram": "pathpiece_ngram",
         "pathpiece_bpe": "pathpiece_bpe",
     }[method]
 
@@ -398,7 +396,7 @@ def build_points(grid: dict, compression_cache: dict, morph_cache: dict) -> tupl
         if f in compression_trace and f in morphalign_trace
     ]
 
-    # MinGram-PP MinGram f-trace (p=0.9): compression mean over COMPRESSION_LANGS, morphalign
+    # MinGram-PP f-trace (p=0.9): compression mean over COMPRESSION_LANGS, morphalign
     # geomean over MORPHALIGN_LANGS, both at prune_criterion="mi".
     def _mi_comp(f):
         vals = [_compression_mingram_delta(compression_cache, morph_cache, lang, f, PLOT_EM, MINGRAM_PP_P, "mi") for lang in COMPRESSION_LANGS]

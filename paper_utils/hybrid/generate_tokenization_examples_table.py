@@ -324,7 +324,7 @@ def _load_rows(allow_fallback: bool = True) -> list[dict[str, object]]:
 def main() -> None:
     parser = ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--include-mingram-mi",
+        "--include-mingram-pp",
         action="store_true",
         help="Add the MinGram-PP column. Requires the f8 MinGram-PP tokenizer models locally.",
     )

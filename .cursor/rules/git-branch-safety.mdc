@@ -1,0 +1,10 @@
+---
+description: Require explicit user instruction before deleting branches
+alwaysApply: true
+---
+
+# Git Branch Safety
+
+- Do not delete local or remote Git branches unless the user explicitly asks for branch deletion.
+- If branch cleanup seems useful, summarize the candidate branches and wait for explicit approval before running deletion commands.
+- Treat `git push origin --delete`, `git branch -d`, and `git branch -D` as destructive branch operations that require explicit user instruction.

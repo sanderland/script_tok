@@ -496,7 +496,7 @@ def _cache_only_mingram(eval_corpus_name: str, lang: str, baseline_tokens: int, 
 
 
 def _cache_only_mingram_pp(eval_corpus_name: str, lang: str, baseline_tokens: int, cache: dict) -> list[dict]:
-    """Recover MinGram-PP MinGram points from the cache without loading models."""
+    """Recover MinGram-PP points from the cache without loading models."""
     prefix = f"{lang}/mingram/"
     tokens_prefix = f"tokens/{eval_corpus_name}/{prefix}"
     points: list[dict] = []

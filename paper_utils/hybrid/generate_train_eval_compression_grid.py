@@ -19,10 +19,7 @@ from paper_utils.hybrid.train_mingram import (
     RESULTS_DIR as MINGRAM_RESULTS_DIR,
     get_model_path as get_mingram_model_path,
 )
-from paper_utils.hybrid.train_pathpiece import (
-    VARIANTS as PATHPIECE_VARIANTS,
-    get_model_path as get_pathpiece_model_path,
-)
+from paper_utils.hybrid.train_pathpiece import get_model_path as get_pathpiece_model_path
 from paper_utils.hybrid.utils import FSP_OVERRIDES, FSP_PARAMS, load_cache, paper_figure_path, save_cache
 from paper_utils.unigram.train_hyperparameters import DEFAULTS, get_model_path as get_unigram_model_path
 from script_bpe.corpus.registry import load_corpus_by_name
@@ -177,7 +174,6 @@ METHOD_LABELS = {
     "bpe_init_fsp": f"FSP-BPE-Init (f={BAR_F})",
     "mingram": f"MinGram (f={BAR_F})",
     "mingram_pp": f"MinGram-PP (f={MINGRAM_PP_F:g})",
-    "pathpiece_ngram": "PathPiece (n-gram init)",
     "pathpiece_bpe": "PathPiece (BPE init)",
     "convextok": "ConvexTok",
 }
@@ -188,7 +184,6 @@ METHOD_COLORS = {
     "bpe_init_fsp": "#2ca02c",
     "mingram": "#1f77b4",
     "mingram_pp": "#009E73",
-    "pathpiece_ngram": "#8c564b",
     "pathpiece_bpe": "#e377c2",
     "convextok": "#17becf",
 }
@@ -396,18 +391,10 @@ def _build_tasks(pairing_keys: set[str] | None = None) -> tuple[list[dict], dict
                 tasks.append(task)
                 entry["methods"]["convextok"] = {"cache_key": task["cache_key"]}
 
-            # PathPiece (n-gram init, BPE init): one model per variant. Match the
-            # main-table additional_vocab_size; ignore other configurations.
-            for init in PATHPIECE_VARIANTS:
-                pp_path = get_pathpiece_model_path(train_corpus, init=init)
-                if init != "bpe" and not pp_path.exists():
-                    continue
-                method_name = f"pathpiece_{init}"
-                task = _task_for_model(
-                    train_corpus, eval_corpus, method_name, "pathpiece", pp_path
-                )
-                tasks.append(task)
-                entry["methods"][method_name] = {"cache_key": task["cache_key"]}
+            pp_path = get_pathpiece_model_path(train_corpus, init="bpe")
+            task = _task_for_model(train_corpus, eval_corpus, "pathpiece_bpe", "pathpiece", pp_path)
+            tasks.append(task)
+            entry["methods"]["pathpiece_bpe"] = {"cache_key": task["cache_key"]}
 
     unique_tasks = {(task["cache_key"], task["model_path"]): task for task in tasks}
     return list(unique_tasks.values()), pairing_data
