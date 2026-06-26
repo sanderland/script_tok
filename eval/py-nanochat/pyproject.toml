@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pynanochat"
+version = "0.0.1"
+description = "Thin wrapper for tokenizer experiments on nanochat (pretrain -> CORE + bpb)."
+requires-python = ">=3.10"
+dependencies = [
+    # nanochat is the training/eval engine. It is NOT pip-installable (flat-layout
+    # clone-and-run repo: scripts/, dev/, runs/ are all top-level), so it is VENDORED
+    # as a git clone at eval/py-nanochat/vendor/nanochat and run with cwd=that clone. These
+    # are nanochat's runtime deps (pyproject) that pip CAN install, so that
+    # `uv sync --extra downstream` reproduces an environment its scripts run in.
+    # torch is pinned by nanochat to 2.9.1 (cu128); install with its index:
+    #   uv pip install --extra-index-url https://download.pytorch.org/whl/cu128 torch==2.9.1
+    "torch>=2.9",
+    "tiktoken>=0.11.0",
+    "rustbpe>=0.1.0",
+    "wandb>=0.21.3",
+    "kernels>=0.11.7",
+    "datasets>=4.0.0",
+    "tokenizers>=0.22.0",
+    "pyarrow>=14",   # parquet shards for the dataloader
+    "psutil>=7.1.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["pynanochat"]

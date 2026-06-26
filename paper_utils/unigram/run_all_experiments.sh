@@ -40,6 +40,9 @@ CORPUS_30MB=(
 CORPUS_FINEWIKI=(
     "finewiki_en_1gb"
     "finewiki_de_1gb"
+    "finewiki_nl_1gb"
+    "finewiki_fi_1gb"
+    "finewiki_kn_1gb"
     "finewiki_ar_1gb"
     "finewiki_hi_1gb"
     "finewiki_ko_1gb"

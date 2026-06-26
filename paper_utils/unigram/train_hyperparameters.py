@@ -22,6 +22,7 @@ from script_bpe.tokenizers.unigram import UnigramModel
 
 from paper_utils.unigram.utils import (
     PRETOKENIZER_NAME,
+    NOSPLIT_PRETOKENIZER_NAME,
     RESULTS_DIR,
     load_experiment_results as _load_experiment_results,
     identify_baseline as _identify_baseline,
@@ -41,9 +42,14 @@ CORPUS_NAMES = [
 FINEWIKI_CORPUS_NAMES = [
     "finewiki_en_1gb",
     "finewiki_de_1gb",
+    "finewiki_nl_1gb",
+    "finewiki_fi_1gb",
+    "finewiki_hu_1gb",
+    "finewiki_kn_1gb",
     "finewiki_ar_1gb",
     "finewiki_hi_1gb",
     "finewiki_ko_1gb",
+    "finewiki_ru_1gb",
     "finewiki_zh_1gb",
 ]
 
@@ -61,7 +67,7 @@ DEFAULTS = {
     "m_step_low_count_threshold": 0.5,
     "pre_final_vocab_factor": 1.1,
     "pruning_shrinking_factor": 0.75,
-    "final_style_prune": False,
+    "flat_score_prune": False,
 }
 
 # Hyperparameter sweep configurations (each sweeps one parameter)
@@ -89,7 +95,7 @@ def get_experiment_configs(experiment_name: str) -> list[dict]:
         return [{**DEFAULTS, experiment_name: value} for value in SWEEP_CONFIGS[experiment_name]]
 
     if experiment_name in ["fsp", "fsp_vocab"]:
-        overrides = dict(final_style_prune=True, pre_final_vocab_factor=1.0)
+        overrides = dict(flat_score_prune=True, pre_final_vocab_factor=1.0)
         if experiment_name == "fsp":
             return [
                 {**DEFAULTS, **overrides, "pruning_shrinking_factor": val} for val in [0.0, 0.25, 0.5, 0.75, 0.9, 0.95]
@@ -186,7 +192,7 @@ def _train_and_evaluate(corpus_name: str, logger=None, **params) -> UnigramModel
     # Handle _no_pt init algorithms (compare init without pretokenizer)
     if params.get("init_vocab_algo", "").endswith("_no_pt"):
         logger.info("Loading nosplit pretokenizer for _no_pt mode")
-        ns_pretokenizer = get_pretokenizer("scriptenc_nosplit_cb")
+        ns_pretokenizer = get_pretokenizer(NOSPLIT_PRETOKENIZER_NAME)
         corpus = load_corpus_by_name(corpus_name, ns_pretokenizer)
         cfg.init_vocab_algo = (params["init_vocab_algo"], corpus)
 

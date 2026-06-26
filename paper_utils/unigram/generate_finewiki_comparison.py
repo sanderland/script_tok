@@ -66,7 +66,7 @@ def check_experiment_status():
                     params = {
                         **DEFAULTS,
                         "additional_vocab_size": vocab_size,
-                        "final_style_prune": True,
+                        "flat_score_prune": True,
                         "pre_final_vocab_factor": 1.0,
                         "pruning_shrinking_factor": 0.75,
                     }
@@ -85,7 +85,7 @@ def check_experiment_status():
                     params = {
                         **DEFAULTS,
                         "additional_vocab_size": vocab_size,
-                        "final_style_prune": True,
+                        "flat_score_prune": True,
                         "pre_final_vocab_factor": 1.0,
                         "pruning_shrinking_factor": 0.75,
                     }
@@ -218,7 +218,7 @@ def generate_bidirectional_table() -> str:
             params_fsp = {
                 **DEFAULTS,
                 "additional_vocab_size": vocab_size,
-                "final_style_prune": True,
+                "flat_score_prune": True,
                 "pre_final_vocab_factor": 1.0,
                 "pruning_shrinking_factor": 0.75,
             }
@@ -252,7 +252,7 @@ def generate_bidirectional_table() -> str:
             params_fsp = {
                 **DEFAULTS,
                 "additional_vocab_size": vocab_size,
-                "final_style_prune": True,
+                "flat_score_prune": True,
                 "pre_final_vocab_factor": 1.0,
                 "pruning_shrinking_factor": 0.75,
             }

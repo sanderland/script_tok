@@ -1,11 +1,12 @@
 # SCRIPT: Script/Category Representation In (Pre-)Tokenization
 
 This repository provides tools for tokenization, focused on SCRIPT encoding, but also supporting UTF-8.
-It contains implementations for both **BPE** and **Unigram** tokenization algorithms.
+It contains implementations for **BPE**, **Unigram**, **MinGram**, **PathPiece**, and **ConvexTok** tokenization algorithms.
 
-For details of the methods, see our papers:
+For details of the methods, see the papers:
 * [BPE Stays on SCRIPT: Structured Encoding for Robust Multilingual Pretokenization](https://arxiv.org/abs/2505.24689)
 * [Which Pieces Does Unigram Tokenization Really Need?](https://arxiv.org/abs/2512.12641)
+* [MinGram: A Minimalist Unigram Tokenizer with High Compression and Competitive Morphological Alignment](https://arxiv.org/abs/2606.27019)
 
 ## Overview
 
@@ -23,6 +24,9 @@ This repository provides tools for SCRIPT encoding-based pre-tokenization with B
 - **`tokenizers/`**: Tokenization algorithms
   - `bpe/`: Byte Pair Encoding implementation with multi-worker training
   - `unigram/`: Unigram language model with EM training, Trie, and Lattice-based Viterbi decoding
+  - `mingram/`: MinGram hard-EM tokenizer and MinGram-PP via MI pruning
+  - `pathpiece/`: PathPiece-style minimum-token inference baseline
+  - `convextok/`: ConvexTok vocabulary-selection baseline
 
 - **`corpus/`**: Pretokenized corpus management
   - `PretokenizedCorpus`: Partitioned storage for efficient parallel training
@@ -35,6 +39,12 @@ This repository provides tools for SCRIPT encoding-based pre-tokenization with B
 ### Installation
 
 Ensure you have [uv](https://docs.astral.sh/uv/), it should take care of the rest.
+
+For MorphAlign evaluations, you need to initialize the submodule with:
+
+```bash
+git submodule update --init eval/morph-tok-eval
+```
 
 ### Training
 
@@ -65,14 +75,18 @@ The `paper_utils/` directory contains scripts to reproduce paper results from sc
   - `train_monolingual.sh` / `train_multilingual.sh`: Training scripts
   - `monolingual_compression.ipynb` / `multilingual_compression.ipynb`: Analysis notebooks
 
-- **`paper_utils/unigram/`**: Unigram paper reproduction
+- **`paper_utils/unigram/`**: Unigram Pieces paper reproduction
   - Paper: [Which Pieces Does Unigram Tokenization Really Need?](https://arxiv.org/abs/2512.12641)
   - `run_all_experiments.sh`: Run all experiments
   - `generate_main_tables.py` / `generate_appendix_tables.py`: Generate paper tables
   - `train_hyperparameters.py`: Hyperparameter tuning experiments
 
+- **`paper_utils/hybrid/`**: MinGram tokenizer paper reproduction
+  - Paper: (Soon)
+  - `run_all_experiments.sh`: Train the active tokenizer set and regenerate paper tables/figures.
+  - `build_token_usage_counts.py`: Rebuild the rare-token count parquet used by downstream tables.
+
 ## Sources
 
 * An interesting explanation of UTF-8 is given by [Computerphile](https://www.youtube.com/watch?v=MijmeoH9LT4)
 * For more information on Unicode character properties, refer to the [Wikipedia article](https://en.wikipedia.org/wiki/Unicode_character_property#General_Category).
-

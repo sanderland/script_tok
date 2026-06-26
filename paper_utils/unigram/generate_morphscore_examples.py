@@ -16,7 +16,7 @@ CORPUS = "eng_latn_300mb"
 MORPHSCORE_LANG = "eng_latn"
 
 # FSP params
-FSP_PARAMS = {**DEFAULTS, "final_style_prune": True, "pre_final_vocab_factor": 1.0}
+FSP_PARAMS = {**DEFAULTS, "flat_score_prune": True, "pre_final_vocab_factor": 1.0}
 
 # Variant names for display (Baseline instead of Default for paper consistency)
 VARIANTS = ["Baseline", "FSP", "BPE"]
@@ -139,7 +139,7 @@ def generate_latex(tokenizers: dict[str, object]) -> str:
 
 \label{app:morphscore}
 
-Table~\ref{tab:morphscore-examples} shows MorphScore evaluation results comparing our Baseline unigram tokenizer, the FSP (Final-Style Prune) variant, and BPE on English morphological segmentation.
+Table~\ref{tab:morphscore-examples} shows MorphScore evaluation results comparing our Baseline unigram tokenizer, the FSP (Flat-Score Prune) variant, and BPE on English morphological segmentation.
 
 \begin{table}[H]
 \centering

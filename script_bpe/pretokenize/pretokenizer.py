@@ -141,7 +141,8 @@ class Pretokenizer:
     def hash(self) -> str:
         h = hashlib.sha1()
         config = self.config.model_copy(deep=True)
-        h.update(json.dumps(config.model_dump(mode="json", by_alias=True), sort_keys=True).encode("utf-8"))
+        dumped = config.model_dump(mode="json", by_alias=True)
+        h.update(json.dumps(dumped, sort_keys=True).encode("utf-8"))
         return "PT-" + h.hexdigest()[:8]
 
     def pretokenize(self, text: str) -> PretokenizedT:

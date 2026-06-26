@@ -58,10 +58,10 @@ class PretokenizedCorpus:
         return chunk_counts, metadata
 
     @classmethod
-    def from_texts(
+    def from_text_batches(
         cls,
         name: str,
-        texts: list[str],
+        text_batches: Iterable[list[str]],
         pretokenizer: Pretokenizer,
         base_path=DEFAULT_BASE_PATH,
         num_partitions=DEFAULT_PARTITIONS,
@@ -88,21 +88,26 @@ class PretokenizedCorpus:
             version=cls.VERSION,
             max_length=max_length,
             pretokenizer_hash=pretokenizer.hash(),
-            docs=len(texts),
+            docs=0,
             atomic_tokens=0,
             chunks=0,
             chunks_skipped=0,
         )
         with pool:
-            results = [
-                pool.apply_async(cls.encode_texts, (texts[i::num_workers], pretokenizer, max_length))
-                for i in range(num_workers)
-            ]
-            for result in results:
-                part_chunk_counts, part_metadata = result.get()
-                total_chunk_counts += part_chunk_counts
-                for k, v in part_metadata.items():
-                    metadata[k] += v
+            for texts in text_batches:
+                if not texts:
+                    continue
+                metadata["docs"] += len(texts)
+                active_workers = min(num_workers, len(texts))
+                results = [
+                    pool.apply_async(cls.encode_texts, (texts[i::active_workers], pretokenizer, max_length))
+                    for i in range(active_workers)
+                ]
+                for result in results:
+                    part_chunk_counts, part_metadata = result.get()
+                    total_chunk_counts += part_chunk_counts
+                    for k, v in part_metadata.items():
+                        metadata[k] += v
 
         flattened_data: list[dict[str, int | bytes]] = [
             dict(
@@ -119,6 +124,27 @@ class PretokenizedCorpus:
                 corpus.partition_path(p), compression=cls.PARQUET_COMPRESSION
             )
         return cls(name, base_path, pretokenizer)
+
+    @classmethod
+    def from_texts(
+        cls,
+        name: str,
+        texts: list[str],
+        pretokenizer: Pretokenizer,
+        base_path=DEFAULT_BASE_PATH,
+        num_partitions=DEFAULT_PARTITIONS,
+        max_length=DEFAULT_MAX_LENGTH,
+        num_workers: int = 1,
+    ):
+        return cls.from_text_batches(
+            name=name,
+            text_batches=[texts],
+            pretokenizer=pretokenizer,
+            base_path=base_path,
+            num_partitions=num_partitions,
+            max_length=max_length,
+            num_workers=num_workers,
+        )
 
     def worker_iterate(self, worker_id: int, num_workers: int) -> Iterable[tuple[TokenSeq, int]]:
         for i, partition_file in enumerate(self.partitions):

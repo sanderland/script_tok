@@ -13,9 +13,8 @@ from paper_utils.unigram.train_hyperparameters import (
     RESULTS_DIR,
     load_experiment_results,
     load_baseline_model,
-    compute_relative_performance,
-    compute_vocab_overlap,
 )
+from paper_utils.unigram.utils import compute_relative_performance, compute_vocab_overlap
 
 SMOL_CORPUS_NAMES = ["smol_" + corpus for corpus in CORPUS_NAMES]
 
@@ -646,7 +645,7 @@ def build_fsp_subtable() -> tuple[str, bool]:
 def generate_init_and_fsp_table() -> str:
     """Generate the seed vocabulary algorithm and FSP appendix table."""
     print("\n" + "=" * 70)
-    print("GENERATING TABLE: Seed Vocabulary Algorithm and Final Style Prune (Appendix)")
+    print("GENERATING TABLE: Seed Vocabulary Algorithm and Flat Score Prune (Appendix)")
     print("=" * 70)
 
     lines = []
@@ -657,7 +656,7 @@ def generate_init_and_fsp_table() -> str:
     lines.append(r"\begin{table}[H]")
     lines.append(r"\centering")
     lines.append(
-        r"\caption{Seed Vocabulary Algorithm and Final Style Prune Results: Relative Change (\%) vs Baseline, lower is better. Each corpus shows loss (relative change), token count (relative change), and vocabulary overlap (absolute \%, 100\% = identical to baseline), with \goodoutlier{good} and \badoutlier{bad} changes above 0.5\% highlighted along with \biggestoutlier{the largest} absolute change per parameter.}"
+        r"\caption{Seed Vocabulary Algorithm and Flat Score Prune Results: Relative Change (\%) vs Baseline, lower is better. Each corpus shows loss (relative change), token count (relative change), and vocabulary overlap (absolute \%, 100\% = identical to baseline), with \goodoutlier{good} and \badoutlier{bad} changes above 0.5\% highlighted along with \biggestoutlier{the largest} absolute change per parameter.}"
     )
     lines.append(r"\label{tab:app_seed_and_final}")
     lines.append("")
@@ -703,12 +702,12 @@ def generate_init_and_fsp_table() -> str:
 
     # FSP Subtable
     lines.append(
-        r"% Final Style Prune (FSP): Relative performance. Standard configuration with final_style_prune=True, pre_final_vocab_factor=1.0"
+        r"% Flat Score Prune (FSP): Relative performance. Standard configuration with flat_score_prune=True, pre_final_vocab_factor=1.0"
     )
     lines.append(r"\begin{subtable}{\textwidth}")
     lines.append(r"\centering\small")
     lines.append(
-        r"\caption{Final Style Prune: Relative performance compared to default settings, using varying pruning shrinking factor $\alphaprune$. We use $\overshootfactor=1$ for these experiments, disabling the final pruning step, as it would be identical to normal pruning steps.}"
+        r"\caption{Flat Score Prune: Relative performance compared to default settings, using varying pruning shrinking factor $\alphaprune$. We use $\overshootfactor=1$ for these experiments, disabling the final pruning step, as it would be identical to normal pruning steps.}"
     )
 
     n_fsp_cols = len(FSP_ALPHA_VALUES)

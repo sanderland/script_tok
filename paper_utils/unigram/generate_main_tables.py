@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate LaTeX tables for unigram paper: init algorithms and final style pruning."""
+"""Generate LaTeX tables for unigram paper: init algorithms and flat score pruning."""
 
 import pandas as pd
 
@@ -12,9 +12,8 @@ from paper_utils.unigram.train_hyperparameters import (
     DEFAULTS,
     RESULTS_DIR,
     load_experiment_results,
-    load_vocab_from_model_file,
 )
-from paper_utils.unigram.utils import evaluate_on_corpus_cached, evaluate_morphscore_cached
+from paper_utils.unigram.utils import evaluate_on_corpus_cached, evaluate_morphscore_cached, load_vocab_from_model_file
 
 SMOL_CORPUS_NAMES = ["smol_" + corpus for corpus in CORPUS_NAMES]
 
@@ -317,7 +316,7 @@ def generate_generalization_table() -> str:
             params_fsp = {
                 **DEFAULTS,
                 "additional_vocab_size": vocab_size,
-                "final_style_prune": True,
+                "flat_score_prune": True,
                 "pre_final_vocab_factor": 1.0,
                 "pruning_shrinking_factor": 0.75,
             }
@@ -354,7 +353,7 @@ def generate_generalization_table() -> str:
             params_fsp = {
                 **DEFAULTS,
                 "additional_vocab_size": vocab_size,
-                "final_style_prune": True,
+                "flat_score_prune": True,
                 "pre_final_vocab_factor": 1.0,
                 "pruning_shrinking_factor": 0.75,
             }
@@ -470,7 +469,7 @@ def generate_generalization_table() -> str:
     lines.append(r"\bottomrule")
     lines.append(r"\end{tabular}")
     lines.append(
-        r"\caption{Compression (M tokens, lower is better, superscripts show \% change vs baseline) and morphological alignment across vocabulary sizes $\vocabsize$. Baseline is Unigram with our default settings; FSP uses Final-Style Pruning."
+        r"\caption{Compression (M tokens, lower is better, superscripts show \% change vs baseline) and morphological alignment across vocabulary sizes $\vocabsize$. Baseline is Unigram with our default settings; FSP uses Flat-Score Pruning."
     )
     lines.append(
         r"\emph{Train Tok.}: trained and evaluated on same 300\,MB corpora. \emph{FW Tok.}: trained on FineWiki 1\,GB, evaluated on 300\,MB corpora. Note that the gap with Baseline widens, while BPE gains a small edge over FSP."
