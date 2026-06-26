@@ -22,6 +22,15 @@ GPT4O_REGEX = "|".join(
     ]
 )
 
+# Length-limited GPT-4o regex used by the ConvexTok comparison setup:
+# caps word match at 32 and other runs at 16 to bound split-tree/pretoken size.
+# Copied verbatim from Craig's BPE tokenizer.json pre_tokenizer (the paper's exact regex).
+GPT4O_REGEX_LL = (
+    r"""[^\r\n\p{L}\p{N}]?[\p{Lu}\p{Lt}\p{Lm}\p{Lo}\p{M}]{0,32}[\p{Ll}\p{Lm}\p{Lo}\p{M}]{1,32}(?i:'s|'t|'re|'ve|'m|'ll|'d)?"""
+    r"""|[^\r\n\p{L}\p{N}]?[\p{Lu}\p{Lt}\p{Lm}\p{Lo}\p{M}]{1,32}[\p{Ll}\p{Lm}\p{Lo}\p{M}]{0,32}(?i:'s|'t|'re|'ve|'m|'ll|'d)?"""
+    r"""|\p{N}{1,3}| ?[^\s\p{L}\p{N}]{1,16}[\r\n/]{0,16}|\s{0,15}[\r\n]{1,16}|\s{1,16}(?!\S)|\s{1,16}"""
+)
+
 
 # Registry of available pretokenizers
 PRETOKENIZER_REGISTRY: dict[str, PretokenizerConfig] = {
@@ -29,6 +38,7 @@ PRETOKENIZER_REGISTRY: dict[str, PretokenizerConfig] = {
     "bytes_gpt4_cb": UTF8PretokenizerConfig(regex_pattern=GPT4_REGEX),
     "bytes_gpt4o": UTF8PretokenizerConfig(regex_pattern=GPT4O_REGEX, enforce_char_boundaries=False),
     "bytes_gpt4o_cb": UTF8PretokenizerConfig(regex_pattern=GPT4O_REGEX),
+    "bytes_gpt4o_ll_cb": UTF8PretokenizerConfig(regex_pattern=GPT4O_REGEX_LL),  # length-limited (paper's exact)
     "bytes_gpt4o_cbi": UTF8PretokenizerConfig(regex_pattern=GPT4O_REGEX, enforce_inherited=True),
     "bytes_nosplit_cb": UTF8PretokenizerConfig(regex_pattern=None),
     # Backward-compatible alias names expected by tests

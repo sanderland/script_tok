@@ -34,6 +34,24 @@ class UnigramToken(BaseToken):
         }
 
 
+def reindex_tokens(tokens: list[UnigramToken]) -> list[UnigramToken]:
+    """Return tokens with dense ids while preserving token-list order.
+
+    This only rewrites the higher-level token ids used by the model. The
+    `atomic_tokens` stored inside each token are left unchanged because they
+    refer to pretokenizer base-token ids.
+    """
+    return [
+        UnigramToken(
+            id=new_id,
+            atomic_tokens=token.atomic_tokens,
+            log_prob=token.log_prob,
+            required=token.required,
+        )
+        for new_id, token in enumerate(tokens)
+    ]
+
+
 class Trie:
     def __init__(self, tokens: list[UnigramToken]):
         self.root: dict[int, dict[int | None, UnigramToken]] = {}
@@ -59,13 +77,14 @@ class Trie:
 
 
 class Lattice:
-    def __init__(self, atomic_token_seq: TokenSeq, tokens_from_pos: list[list[UnigramToken]]):
+    def __init__(self, atomic_token_seq: TokenSeq, tokens_from_pos: list[list[UnigramToken]], token_bias: float = 0.0):
         self.atomic_token_seq = atomic_token_seq
         self.tokens_from_pos = tokens_from_pos
+        self.token_bias = token_bias
 
     def _effective_log_prob(self, token: UnigramToken) -> float:
         """Get effective log prob with bias applied."""
-        return token.log_prob
+        return token.log_prob - self.token_bias
 
     def viterbi(self, allow_single_token=True) -> tuple[list[UnigramToken], float]:
         best_at_pos = [(None, 0.0)] + [(None, float("-inf"))] * len(self.atomic_token_seq)
@@ -160,9 +179,9 @@ class UnigramModel(BaseTokenizer):
         self.metadata = metadata or {}
         self.tokens_by_id = self.tokens
 
-    def make_lattice(self, atomic_token_seq: TokenSeq) -> Lattice:
+    def make_lattice(self, atomic_token_seq: TokenSeq, token_bias: float = 0.0) -> Lattice:
         tokens_from_pos = [self.trie.find_prefixes(atomic_token_seq[i:]) for i in range(len(atomic_token_seq))]
-        return Lattice(atomic_token_seq, tokens_from_pos)
+        return Lattice(atomic_token_seq, tokens_from_pos, token_bias)
 
     def encode(self, text: str, return_tokens=False) -> list[UnigramToken] | list[int]:
         # Flatten pretokenized chunks into a single atomic token sequence
@@ -179,11 +198,16 @@ class UnigramModel(BaseTokenizer):
         return self.pretokenizer.decode([tid for token_id in ids for tid in self.tokens_by_id[token_id].atomic_tokens])
 
     @classmethod
-    def load(cls, file):
+    def load(cls, file: str, reindex: bool = False):
         """Load a UnigramModel from a file.
 
         Args:
                 file: Path to the model file (.json or .json.gz)
+                reindex: When False, preserve serialized token ids exactly.
+                    When True, rewrite model token ids to dense ``0..n-1`` in
+                    serialized token-list order. This does not modify
+                    ``atomic_tokens``, which remain aligned with the serialized
+                    pretokenizer's base-token ids.
 
         Returns:
                 UnigramModel: The loaded model
@@ -194,6 +218,8 @@ class UnigramModel(BaseTokenizer):
 
         pretokenizer = load_pretokenizer(data["pretokenizer"])
         tokens = [UnigramToken(**t) for t in data["tokens"]]
+        if reindex:
+            tokens = reindex_tokens(tokens)
         return cls(pretokenizer=pretokenizer, tokens=tokens, metadata=data.get("metadata"))
 
     def save(self, file_path: str) -> str:

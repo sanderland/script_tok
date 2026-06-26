@@ -49,7 +49,7 @@ EXPERIMENT_DISPLAY = {
         "marker": "h",
         "name": r"Pruning Shrinking Factor ($\alpha_{\mathrm{prune}}$)",
     },
-    "fsp": {"color": "#e377c2", "marker": "*", "name": "Final Style Prune"},
+    "fsp": {"color": "#e377c2", "marker": "*", "name": "Flat Score Prune"},
 }
 PLOT_ALL_POINTS = False
 

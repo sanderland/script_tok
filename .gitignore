@@ -1,8 +1,26 @@
+local_datasets/
+local_tokens/
+train/tokenizers/
+results_old/
+tokenizer-intrinsic-evals/
+
+# downstream LM eval: commit our wrapper (eval/py-nanochat/pynanochat + pyproject), but NOT the
+# vendored third-party nanochat clone. Recreate the clone with:
+#   git clone https://github.com/karpathy/nanochat eval/py-nanochat/vendor/nanochat
+eval/py-nanochat/vendor/
+
 # debug
 log*.txt
 profile*
 *.log
 archive/
+
+# root scratch artifacts
+/*.ipynb
+/*.parquet
+/*.zip
+/*_log.txt
+/Untitled
 
 # results are growing too big, so do not check them in
 results/*
@@ -20,6 +38,14 @@ dist/
 wheels/
 *.egg-info
 .pytest_cache
+*.so
+
+# mac
+.DS_Store
+
+# vscode
+.vscode/
+.claude/
 
 # Virtual environments
 .venv/

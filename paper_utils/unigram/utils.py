@@ -20,6 +20,10 @@ from script_bpe.tokenizers.unigram import UnigramModel
 # ========== PRETOKENIZER & RESULTS CONFIG ==========
 
 PRETOKENIZER_NAME = "scriptenc_cb"
+NOSPLIT_PRETOKENIZER_NAME = "scriptenc_nosplit_cb"
+
+#PRETOKENIZER_NAME = "bytes_gpt4o_cb"
+#NOSPLIT_PRETOKENIZER_NAME = "bytes_nosplit_cb"
 
 RESULTS_DIR = Path("results/unigram_sweeps") / PRETOKENIZER_NAME
 
@@ -29,11 +33,16 @@ RESULTS_DIR = Path("results/unigram_sweeps") / PRETOKENIZER_NAME
 FINEWIKI_MAP = {
     "eng_latn_300mb": "finewiki_en_1gb",
     "deu_latn_300mb": "finewiki_de_1gb",
+    "fin_latn_300mb": "finewiki_fi_1gb",
+    "hun_latn_300mb": "finewiki_hu_1gb",
     "arb_arab_300mb": "finewiki_ar_1gb",
     "hin_deva_300mb": "finewiki_hi_1gb",
     "kor_hang_300mb": "finewiki_ko_1gb",
+    "rus_cyrl_300mb": "finewiki_ru_1gb",
     "zho_hans_300mb": "finewiki_zh_1gb",
 }
+
+FINEWIKI_REVERSE_MAP = {v: k for k, v in FINEWIKI_MAP.items()}
 
 # Language display names
 LANG_NAMES = {
@@ -49,6 +58,11 @@ LANG_NAMES = {
 def get_finewiki_corpus_name(corpus_name: str) -> str | None:
     """Get the FineWiki corpus name corresponding to a training corpus."""
     return FINEWIKI_MAP.get(corpus_name)
+
+
+def get_300mb_corpus_name(finewiki_name: str) -> str:
+    """Get the 300MB corpus name corresponding to a FineWiki corpus."""
+    return FINEWIKI_REVERSE_MAP[finewiki_name]
 
 
 # ========== UNIFIED JSON CACHE ==========

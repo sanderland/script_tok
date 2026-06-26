@@ -1,6 +1,6 @@
 [project]
 name = "script_bpe"
-version = "0.6.0"
+version = "0.7.0"
 description = "BPE with support for SCRIPT encoding"
 authors = [
     {name = "Sander Land", email = "sander@writer.com"},
@@ -26,7 +26,13 @@ dependencies = [
     "huggingface-hub<1.0",
     "transformers>=4.57.1",
     "openai>=2.8.0",
+    "zstandard>=0.25.0",
 ]
+
+[project.optional-dependencies]
+# Downstream LM eval (nanochat-based, pulls torch + nanochat). Opt-in so the
+# core tokenizer library stays lightweight: `uv sync --extra downstream`.
+downstream = ["pynanochat"]
 
 [project.scripts]
 train = "script_bpe.train:main"
@@ -50,6 +56,9 @@ line-length = 120
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
+
+[tool.uv.sources]
+"pynanochat" = { path = "./eval/py-nanochat", editable = true }
 
 [build-system]
 requires = ["hatchling"]
