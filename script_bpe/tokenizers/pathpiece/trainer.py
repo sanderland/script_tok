@@ -24,7 +24,7 @@ tokens are included in V".
 
 from __future__ import annotations
 
-from collections import Counter, defaultdict
+from collections import Counter
 from typing import Literal
 
 from pydantic import ConfigDict
@@ -53,9 +53,9 @@ class PathPieceTrainerConfig(TrainerConfig):
     # ``count * (width - 1)`` -- a proxy for compression value (each
     # occurrence of a width-w token saves w-1 single-character tokens).
     ngram_init_rank: Literal["count", "count_width"] = "count"
-    # Craig's rule: within a prune batch, skip a candidate whose atomic sequence is a
-    # contiguous substring of an already-selected token -- avoids dropping too many
-    # overlapping tokens at once (default off = paper behaviour).
+    # skip_substring (Craig Schmidt, personal communication): within a prune batch, skip a
+    # candidate whose atomic sequence is a contiguous substring of an already-selected token
+    # -- avoids dropping too many overlapping tokens at once (default off = paper behaviour).
     skip_substring_in_batch: bool = False
 
     model_config = ConfigDict(extra="forbid")
@@ -94,7 +94,6 @@ class PathPieceTrainer(BaseTrainer):
         )
 
         history: list[dict] = []
-        last_ctc = -1
         for it in range(self.MAX_ITERATIONS):
             if len(model.tokens) <= target_size:
                 break
@@ -117,7 +116,6 @@ class PathPieceTrainer(BaseTrainer):
                 f"Iter {it + 1}: |V|={len(model.tokens):,} CTC={total_ctc:,} removed {len(to_remove):,} -> |V|={len(kept):,}"
             )
             model = PathPieceModel(self.pretokenizer, kept)
-            last_ctc = total_ctc
 
         _, total_ctc = self._compute_mi_table(model, L)
         history.append({"iter": "final", "vocab_before": len(model.tokens), "ctc": total_ctc, "removed": 0})
@@ -186,7 +184,7 @@ class PathPieceTrainer(BaseTrainer):
             scored = [(ngram, count * (len(ngram) - 1)) for ngram, count in counter.items()]
             scored.sort(key=lambda kv: -kv[1])
             ranked = scored[:budget]
-            self.logger.info(f"Using non-canonical ngram_init_rank=count_width (count*(width-1))")
+            self.logger.info("Using non-canonical ngram_init_rank=count_width (count*(width-1))")
         else:
             raise ValueError(f"Unknown ngram_init_rank: {self.config.ngram_init_rank!r}")
 

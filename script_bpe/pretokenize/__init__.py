@@ -24,7 +24,7 @@ GPT4O_REGEX = "|".join(
 
 # Length-limited GPT-4o regex used by the ConvexTok comparison setup:
 # caps word match at 32 and other runs at 16 to bound split-tree/pretoken size.
-# Copied verbatim from Craig's BPE tokenizer.json pre_tokenizer (the paper's exact regex).
+# This is the ConvexTok paper's exact pre-tokenizer regex (Craig Schmidt, personal communication).
 GPT4O_REGEX_LL = (
     r"""[^\r\n\p{L}\p{N}]?[\p{Lu}\p{Lt}\p{Lm}\p{Lo}\p{M}]{0,32}[\p{Ll}\p{Lm}\p{Lo}\p{M}]{1,32}(?i:'s|'t|'re|'ve|'m|'ll|'d)?"""
     r"""|[^\r\n\p{L}\p{N}]?[\p{Lu}\p{Lt}\p{Lm}\p{Lo}\p{M}]{1,32}[\p{Ll}\p{Lm}\p{Lo}\p{M}]{0,32}(?i:'s|'t|'re|'ve|'m|'ll|'d)?"""

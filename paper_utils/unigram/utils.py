@@ -22,9 +22,6 @@ from script_bpe.tokenizers.unigram import UnigramModel
 PRETOKENIZER_NAME = "scriptenc_cb"
 NOSPLIT_PRETOKENIZER_NAME = "scriptenc_nosplit_cb"
 
-#PRETOKENIZER_NAME = "bytes_gpt4o_cb"
-#NOSPLIT_PRETOKENIZER_NAME = "bytes_nosplit_cb"
-
 RESULTS_DIR = Path("results/unigram_sweeps") / PRETOKENIZER_NAME
 
 # ========== CORPUS MAPPINGS ==========

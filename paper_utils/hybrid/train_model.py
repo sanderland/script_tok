@@ -177,7 +177,7 @@ def main():
     parser.add_argument("--prune-criterion", choices=["usage_count", "mi"], default="usage_count",
                         help="mingram only: 'mi' = careful MinGram-PP prune (vs default usage-count)")
     parser.add_argument("--skip-substring", action="store_true",
-                        help="mingram mi only: Craig's rule -- skip dropping a token that is a substring of an already-dropped one in the batch")
+                        help="mingram mi only: skip dropping a token that is a substring of an already-dropped one in the batch (Craig Schmidt, pers. comm.)")
     args = parser.parse_args()
 
     if args.method in ("bpe_init", "bpe_init_fsp", "mingram") and args.overshoot_factor is None:

@@ -124,7 +124,7 @@ def run_experiment(
     env["PYTHONPATH"] = os.pathsep.join(p for p in (str(repo), env.get("PYTHONPATH", "")) if p)
     env.setdefault("OMP_NUM_THREADS", "1")
     if encode_workers is not None:
-        # parallel on-the-fly tokenization (adapter spawns a forkserver pool of this size)
+        # parallel on-the-fly tokenization (adapter spawns a fork pool of this size)
         env["PYNANOCHAT_ENCODE_WORKERS"] = str(encode_workers)
     if seed is not None:
         env["PYNANOCHAT_SEED"] = str(seed)  # bootstrap overrides nanochat's hardcoded seed 42
@@ -201,9 +201,11 @@ def run_experiment(
     )
 
 
-def _search_float(pattern: str, text: str) -> float | None:
+def _search_float(pattern: str, text: str) -> float:
     m = re.findall(pattern, text)
-    return float(m[-1]) if m else None
+    if not m:
+        raise ValueError(f"metric pattern {pattern!r} not found in subprocess output")
+    return float(m[-1])
 
 
 def _read_core_csv(eval_dir: Path) -> dict:
@@ -217,10 +219,7 @@ def _read_core_csv(eval_dir: Path) -> dict:
     for line in csvs[-1].read_text().splitlines()[1:]:  # skip header
         parts = [c.strip() for c in line.split(",")]
         if len(parts) >= 3 and parts[0] not in ("", "CORE"):
-            try:
-                per_task[parts[0]] = float(parts[2])
-            except ValueError:
-                pass
+            per_task[parts[0]] = float(parts[2])
     return per_task
 
 

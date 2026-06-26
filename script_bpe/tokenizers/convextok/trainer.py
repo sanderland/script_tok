@@ -66,7 +66,6 @@ class ConvexTokTrainer(BaseTrainer):
     def train(self) -> ConvexTokModel:
         cfg = self.config
         atomic_ids = sorted(self.pretokenizer.atomic_tokens.keys())
-        n_atomic = len(atomic_ids)
         budget = cfg.additional_vocab_size  # K: number of non-atomic tokens the LP may select
 
         pretokens = self._select_pretokens(cfg.max_pretokens)
