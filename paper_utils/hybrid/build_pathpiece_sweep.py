@@ -32,7 +32,7 @@ def main() -> None:
     # optional 4th arg: prune_batch_fraction (default = paper main 10% batch).
     # Encoded in the filename (pbX) so it caches separately.
     pb = float(sys.argv[4]) if len(sys.argv) > 4 else MAIN_PRUNE_BATCH_FRACTION
-    # optional 5th arg: skip_substring_in_batch (1/true; Craig Schmidt, pers. comm.)
+    # optional 5th arg: skip_substring_in_batch (1/true is used in PathPiece; Craig Schmidt, pers. comm.; limited effect in practice)
     skip = len(sys.argv) > 5 and sys.argv[5].lower() in ("1", "true", "yes")
     logger = create_logger(f"pp[{corpus_name},iv{iv},pb{pb},ss{int(skip)}]", verbose=True)
 

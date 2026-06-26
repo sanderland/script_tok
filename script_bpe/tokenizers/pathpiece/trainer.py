@@ -53,9 +53,10 @@ class PathPieceTrainerConfig(TrainerConfig):
     # ``count * (width - 1)`` -- a proxy for compression value (each
     # occurrence of a width-w token saves w-1 single-character tokens).
     ngram_init_rank: Literal["count", "count_width"] = "count"
-    # skip_substring (Craig Schmidt, personal communication): within a prune batch, skip a
-    # candidate whose atomic sequence is a contiguous substring of an already-selected token
-    # -- avoids dropping too many overlapping tokens at once (default off = paper behaviour).
+    # skip_substring: within a prune batch, skip a candidate whose atomic sequence is a
+    # contiguous substring of an already-selected token -- avoids dropping too many overlapping
+    # tokens at once. 1/true is used in PathPiece (Craig Schmidt, pers. comm.); limited effect
+    # in practice, so we default off here.
     skip_substring_in_batch: bool = False
 
     model_config = ConfigDict(extra="forbid")
