@@ -2,8 +2,8 @@
 
 Compares:
   * MinGram-score, no L cap     -- existing native MinGram
-  * MinGram-MI hybrid, no L cap -- new (L=1024 used as effective unbounded)
-  * MinGram-MI hybrid, L=32     -- new (paper-effective L for our pretokenizer)
+  * MinGram-PP hybrid, no L cap -- new (L=1024 used as effective unbounded)
+  * MinGram-PP hybrid, L=32     -- new (paper-effective L for our pretokenizer)
   * PathPiece-B, L=32           -- canonical PathPiece-V at paper-effective L
 
 All values are compression Δ vs Unigram on the English Goldfish corpus.

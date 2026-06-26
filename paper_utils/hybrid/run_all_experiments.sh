@@ -11,7 +11,7 @@
 #   bpe, default, fsp              - no factor
 #   bpe_init, bpe_init_fsp         - f sweep
 #   mingram                        - f x p sweep
-#   mingram + --prune-criterion mi - MinGram-MI, p=0.9, f sweep including f=8
+#   mingram + --prune-criterion mi - MinGram-PP, p=0.9, f sweep including f=8
 # External trainers (own scripts, all skip-if-exists):
 #   pathpiece_bpe                  - build_pathpiece.py
 #   pathpiece_bpe f-sweep          - build_pathpiece_sweep.py
@@ -45,8 +45,8 @@ FISHFOOD_CORPORA=(eng_latn_fishfood deu_latn_fishfood fin_latn_fishfood rus_cyrl
 ALL_MONO_CORPORA=("${MONOLINGUAL_CORPORA[@]}" "${FISHFOOD_CORPORA[@]}")
 MONOLINGUAL_OVERSHOOT_FACTORS=(1.0 1.05 1.1 1.15 1.25 1.5 2.0 3.0 5.0)
 MONOLINGUAL_PRUNING_FACTORS=(0.0 0.9)
-MINGRAM_MI_OVERSHOOT_FACTORS=(1.0 1.05 1.1 1.15 1.25 1.5 2.0 3.0 5.0 8.0)
-MINGRAM_MI_PRUNING_FACTOR=0.9
+MINGRAM_PP_OVERSHOOT_FACTORS=(1.0 1.05 1.1 1.15 1.25 1.5 2.0 3.0 5.0 8.0)
+MINGRAM_PP_PRUNING_FACTOR=0.9
 # PathPiece appendix f-sweep uses init_vocab_size = round(f * 32768) + SCRIPT atoms.
 # Keep these in the same order as MONOLINGUAL_OVERSHOOT_FACTORS.
 PATHPIECE_SWEEP_INIT_VOCAB_SIZES=(34684 36322 37961 39599 42876 51068 67452 100220 165756)
@@ -97,9 +97,9 @@ for corpus in "${ALL_MONO_CORPORA[@]}"; do
             printf "uv run python %s --method mingram --corpus %s --overshoot-factor %s --pruning-shrinking-factor %s --num-workers %s\n" "$TRAIN" "$corpus" "$f" "$p" "$NUM_WORKERS" >> "$NONBPE_JOB_FILE"
         done
     done
-    for f in "${MINGRAM_MI_OVERSHOOT_FACTORS[@]}"; do
+    for f in "${MINGRAM_PP_OVERSHOOT_FACTORS[@]}"; do
         printf "uv run python %s --method mingram --corpus %s --overshoot-factor %s --pruning-shrinking-factor %s --prune-criterion mi --num-workers %s\n" \
-            "$TRAIN" "$corpus" "$f" "$MINGRAM_MI_PRUNING_FACTOR" "$NUM_WORKERS" >> "$NONBPE_JOB_FILE"
+            "$TRAIN" "$corpus" "$f" "$MINGRAM_PP_PRUNING_FACTOR" "$NUM_WORKERS" >> "$NONBPE_JOB_FILE"
     done
 done
 

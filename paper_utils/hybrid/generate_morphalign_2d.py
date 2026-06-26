@@ -58,12 +58,12 @@ METHOD_STYLES = {
         "label": "MinGram",
         "filled": True,
     },
-    "mingram_mi": {
+    "mingram_pp": {
         "color": COLOR_CONVEXTOK,
         "marker": "P",
         "linestyle": "-",
         "linewidth": 1.8,
-        "label": "MinGram-MI",
+        "label": "MinGram-PP",
         "filled": True,
     },
     "bpe_init_fsp": {
@@ -105,7 +105,7 @@ LEFT_LEGEND_ORDER = [
     "FSP",
     "bpe_init_fsp",
     "mingram",
-    "mingram_mi",
+    "mingram_pp",
     "PathPiece-B",
     "ConvexTok",
 ]
@@ -462,7 +462,7 @@ def _cache_only_baseline(eval_corpus_name: str, lang: str, cache: dict) -> dict 
 
 
 _MINGRAM_STEM = re.compile(r"^mingram_f([\d.]+)_em(\d+)_p([\d.]+)_n\d+_[0-9a-f]+\.model\.json\.gz$")
-_MINGRAM_MI_STEM = re.compile(r"^mingram_f([\d.]+)_em(\d+)_p([\d.]+)_pcmi_n\d+_[0-9a-f]+\.model\.json\.gz$")
+_MINGRAM_PP_STEM = re.compile(r"^mingram_f([\d.]+)_em(\d+)_p([\d.]+)_pcmi_n\d+_[0-9a-f]+\.model\.json\.gz$")
 _BPE_INIT_F = re.compile(r"/f([\d.]+)/")
 
 
@@ -495,8 +495,8 @@ def _cache_only_mingram(eval_corpus_name: str, lang: str, baseline_tokens: int, 
     return points
 
 
-def _cache_only_mingram_mi(eval_corpus_name: str, lang: str, baseline_tokens: int, cache: dict) -> list[dict]:
-    """Recover careful-MI MinGram points from the cache without loading models."""
+def _cache_only_mingram_pp(eval_corpus_name: str, lang: str, baseline_tokens: int, cache: dict) -> list[dict]:
+    """Recover MinGram-PP MinGram points from the cache without loading models."""
     prefix = f"{lang}/mingram/"
     tokens_prefix = f"tokens/{eval_corpus_name}/{prefix}"
     points: list[dict] = []
@@ -504,7 +504,7 @@ def _cache_only_mingram_mi(eval_corpus_name: str, lang: str, baseline_tokens: in
         if not key.startswith(prefix):
             continue
         stem = key[len(prefix):]
-        match = _MINGRAM_MI_STEM.match(stem)
+        match = _MINGRAM_PP_STEM.match(stem)
         if match is None:
             continue
         f = float(match.group(1))
@@ -518,7 +518,7 @@ def _cache_only_mingram_mi(eval_corpus_name: str, lang: str, baseline_tokens: in
         tokens = int(cache[tokens_key])
         rel = (tokens - baseline_tokens) / baseline_tokens * 100
         points.append({
-            "f": f, "em": em, "p": p, "variant": "mingram_mi",
+            "f": f, "em": em, "p": p, "variant": "mingram_pp",
             "rel_tok": float(rel), "morphalign": float(score),
         })
     return points
@@ -623,7 +623,7 @@ def main() -> None:
             for f, pts in sorted(by_f.items())
         ]
 
-        method_lang_pts["mingram_mi"][cfg["label"]] = _cache_only_mingram_mi(
+        method_lang_pts["mingram_pp"][cfg["label"]] = _cache_only_mingram_pp(
             cfg["eval_corpus"],
             cfg["lang"],
             baseline["tokens"],

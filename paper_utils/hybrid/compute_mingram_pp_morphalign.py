@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Compute MorphAlign for the careful-MI MinGram sweep (eng/deu/fin) and the matched
+"""Compute MorphAlign for the MinGram-PP MinGram sweep (eng/deu/fin) and the matched
 stock (usage-count) p=0.9 models, folding both into cache_morphalign_scatter.json.
 
-Tests whether the careful prune criterion changes morphological alignment, holding the
-iterative schedule (p=0.9) fixed. Run after the careful-MI sweep has built these langs.
+Tests whether the MinGram-PP prune criterion changes morphological alignment, holding the
+iterative schedule (p=0.9) fixed. Run after the MinGram-PP sweep has built these langs.
 """
 
 
@@ -38,7 +38,7 @@ def _lang(train):
 
 def main() -> None:
     cache = load_cache(MORPHALIGN_CACHE_PATH)
-    print(f"{'lang':5} {'f':>5} {'stock_p09':>10} {'careful_mi':>11} {'delta':>8}")
+    print(f"{'lang':5} {'f':>5} {'stock_p09':>10} {'mingram_pp':>11} {'delta':>8}")
     for cfg in LANGUAGE_CONFIGS:
         train, gold = cfg["train_corpus"], cfg["gold_file"]
         for f in FACTORS:

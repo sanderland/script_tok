@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""PROTOTYPE: stock MinGram (usage-count prune) vs CarefulMinGram (MI prune).
+"""PROTOTYPE: stock MinGram (usage-count prune) vs MinGram-PP (MI prune).
 
 Trains both variants with an identical config on one corpus, evaluates compression on
 a held-out corpus, and reports |V|, tokens/pretoken, held-out token count, and how much
-the two vocabularies actually differ (to see whether careful pruning diverges from the
+the two vocabularies actually differ (to see whether MinGram-PP diverges from the
 usage-count prune -- and how close it lands to a PathPiece-style vocab).
 
 Separate, throwaway harness (delete to revert). Example:
-  uv run python -m paper_utils.hybrid.proto_mingram_careful \
+  uv run python -m paper_utils.hybrid.proto_mingram_pp \
       --corpus eng_latn_300mb --eval flores_plus_eng_latn --vocab 32768 --factor 1.15
 """
 
@@ -18,7 +18,6 @@ import time
 from script_bpe import get_pretokenizer
 from script_bpe.corpus.registry import load_corpus_by_name
 from script_bpe.tokenizers.mingram.trainer import MinGramTrainer, MinGramTrainerConfig
-from script_bpe.tokenizers.mingram.trainer_careful import CarefulMinGramTrainer
 from script_bpe.utils import create_logger
 
 PRETOKENIZER_NAME = "scriptenc_cb"
@@ -28,11 +27,11 @@ def _vocab_keys(model) -> set:
     return {tuple(t.atomic_tokens) for t in model.tokens.values()}
 
 
-def _train(trainer_cls, label, pretok, corpus, cfg, init_tokens, logger):
+def _train(label, pretok, corpus, cfg, init_tokens, logger):
     t0 = time.time()
-    trainer = trainer_cls(pretok, corpus, cfg)
-    # share ONE BPE init across variants (deep copy: train() mutates log_prob), so the
-    # only difference between stock and careful is the prune criterion -- not init noise.
+    trainer = MinGramTrainer(pretok, corpus, cfg)
+    # Share ONE BPE init across variants (deep copy: train() mutates log_prob), so the
+    # only difference is the prune criterion -- not init noise.
     trainer._build_bpe_init_tokens = lambda: copy.deepcopy(init_tokens)
     model = trainer.train()
     removed = model.metadata.get("totals_removed", {})
@@ -71,26 +70,28 @@ def main() -> None:
     init_tokens = MinGramTrainer(pretok, corpus, mk_cfg())._build_bpe_init_tokens()
     logger.info(f"shared init |V|={len(init_tokens):,}")
 
-    stock = _train(MinGramTrainer, "stock", pretok, corpus, mk_cfg(), init_tokens, logger)
-    careful = _train(CarefulMinGramTrainer, "careful", pretok, corpus, mk_cfg(), init_tokens, logger)
+    pp_cfg = mk_cfg()
+    pp_cfg.prune_criterion = "mi"
+    stock = _train("stock", pretok, corpus, mk_cfg(), init_tokens, logger)
+    mingram_pp = _train("mingram_pp", pretok, corpus, pp_cfg, init_tokens, logger)
 
     ps = stock.corpus_performance(eval_corpus)
-    pc = careful.corpus_performance(eval_corpus)
-    ks, kc = _vocab_keys(stock), _vocab_keys(careful)
+    pc = mingram_pp.corpus_performance(eval_corpus)
+    ks, kc = _vocab_keys(stock), _vocab_keys(mingram_pp)
     inter = len(ks & kc)
     jacc = inter / len(ks | kc) if (ks | kc) else 0.0
 
-    print("\n========== MinGram: usage-count vs careful(MI) prune ==========")
+    print("\n========== MinGram: usage-count vs MinGram-PP prune ==========")
     print(f"corpus(train)={args.corpus}  eval={args.eval}  vocab+{args.vocab}  f={args.factor} em={args.em} p={args.p}")
     print(f"{'variant':10}{'|V|':>9}{'eval_tokens':>14}{'tok/pretoken':>14}")
-    for label, m, p in [("stock", stock, ps), ("careful", careful, pc)]:
+    for label, m, p in [("stock", stock, ps), ("mingram_pp", mingram_pp, pc)]:
         tpp = m.metadata.get("tokens/pretoken", float("nan"))
         print(f"{label:10}{len(m.tokens):>9,}{p['total_tokens_len']:>14,}{tpp:>14.5f}")
     base = ps["total_tokens_len"]
     delta = (pc["total_tokens_len"] - base) / base * 100
-    print(f"\ncareful vs stock held-out token count: {delta:+.3f}%  (negative = careful compresses better)")
+    print(f"\nMinGram-PP vs stock held-out token count: {delta:+.3f}%  (negative = MinGram-PP compresses better)")
     print(f"vocab overlap: {inter:,} shared  |  Jaccard={jacc:.3f}  "
-          f"(stock-only {len(ks-kc):,}, careful-only {len(kc-ks):,})")
+          f"(stock-only {len(ks-kc):,}, MinGram-PP-only {len(kc-ks):,})")
     print("eval_perf keys:", list(ps.keys()))
 
 

@@ -40,8 +40,8 @@ CONVEXTOK_PATH = "results/convextok_tokenizers/{train}/n32768_cmin50_mp200000_L3
 MAIN_F = 1.15
 PLOT_EM = 2
 PLOT_P = 0.0
-MINGRAM_MI_F = 8.0
-MINGRAM_MI_P = 0.9
+MINGRAM_PP_F = 8.0
+MINGRAM_PP_P = 0.9
 
 PAIRINGS = [
     ("fineweb->fineweb", "\\shortstack[l]{Single-language FineWeb\\\\eval FineWeb}"),
@@ -61,7 +61,7 @@ COMPRESSION_METHOD_ORDER = [
     "bpe_init",
     "bpe_init_fsp",
     "mingram",
-    "mingram_mi",
+    "mingram_pp",
     "pathpiece_bpe",
     "convextok",
 ]
@@ -71,7 +71,7 @@ COMPRESSION_METHOD_LABEL = {
     "bpe_init": "\\shortstack{Unigram-\\\\BPE-Init}",
     "bpe_init_fsp": "\\shortstack{FSP-\\\\BPE-Init}",
     "mingram": "MinGram",
-    "mingram_mi": "\\mingrammitab{}",
+    "mingram_pp": "\\mingrampptab{}",
     "pathpiece_bpe": "\\shortstack{PathPiece-\\\\BPE}",
     "convextok": "ConvexTok",
 }
@@ -83,7 +83,7 @@ MORPHALIGN_METHOD_ORDER = [
     "bpe_init",
     "bpe_init_fsp",
     "mingram",
-    "mingram_mi",
+    "mingram_pp",
     "pathpiece_bpe",
     "convextok",
 ]
@@ -94,7 +94,7 @@ MORPHALIGN_METHOD_LABEL = {
     "bpe_init": "Unigram\\hspace{0pt}-BPE\\hspace{0pt}-Init",
     "bpe_init_fsp": "FSP\\hspace{0pt}-BPE\\hspace{0pt}-Init",
     "mingram": "MinGram",
-    "mingram_mi": "\\mingrammi{}",
+    "mingram_pp": "\\mingrampp{}",
     "pathpiece_bpe": "PathPiece\\hspace{0pt}-BPE",
     "convextok": "ConvexTok",
 }
@@ -125,8 +125,8 @@ def _fmt_morph(value: float | None) -> str:
 
 
 def _morphalign_cache_key(train_corpus: str, lang: str, method: str, model_path: Path) -> str:
-    if method == "mingram_mi":
-        return f"train_corpus/{train_corpus}/{lang}/mingram_mi/{model_path.name}"
+    if method == "mingram_pp":
+        return f"train_corpus/{train_corpus}/{lang}/mingram_pp/{model_path.name}"
     if method == "mingram":
         return f"{lang}/mingram/{model_path.name}"
     if method == "pathpiece_bpe":
@@ -155,12 +155,12 @@ def _model_path(train_corpus: str, method: str) -> Path:
         )
     if method == "mingram":
         return get_mingram_model_path(train_corpus, MAIN_F, PLOT_EM, PLOT_P)
-    if method == "mingram_mi":
+    if method == "mingram_pp":
         return get_mingram_model_path(
             train_corpus,
-            MINGRAM_MI_F,
+            MINGRAM_PP_F,
             PLOT_EM,
-            MINGRAM_MI_P,
+            MINGRAM_PP_P,
             prune_criterion="mi",
         )
     if method == "pathpiece_bpe":
@@ -176,7 +176,7 @@ def _load_model(train_corpus: str, method: str):
         return BPETokenizer.load(str(model_path)), model_path
     if method in {"default", "fsp", "bpe_init", "bpe_init_fsp"}:
         return UnigramModel.load(str(model_path)), model_path
-    if method in {"mingram", "mingram_mi"}:
+    if method in {"mingram", "mingram_pp"}:
         return MinGramModel.load(str(model_path)), model_path
     if method == "pathpiece_bpe":
         return PathPieceModel.load(str(model_path)), model_path

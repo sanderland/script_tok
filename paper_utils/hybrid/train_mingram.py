@@ -30,7 +30,7 @@ def get_model_path(
     }
     prefix = f"mingram_f{overshoot_factor}_em{num_em_iterations}_p{pruning_shrinking_factor}"
     # Default (usage_count, no skip) keeps the historical hash/filename bit-identical; the
-    # careful-MI and substring-skip variants get distinct tags so caches don't collide.
+    # MinGram-PP and substring-skip variants get distinct tags so caches don't collide.
     if prune_criterion != "usage_count":
         hash_dict["prune_criterion"] = prune_criterion
         prefix += f"_pc{prune_criterion}"

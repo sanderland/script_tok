@@ -40,8 +40,8 @@ OUT_JSON = RESULTS_DIR / "compression_train_eval_grid.json"
 CACHE_PATH = RESULTS_DIR / "cache_train_eval_compression_grid.json"
 BAR_F = 1.15
 PLOT_EM = 2
-MINGRAM_MI_F = 8.0
-MINGRAM_MI_P = 0.9
+MINGRAM_PP_F = 8.0
+MINGRAM_PP_P = 0.9
 CULTURAX_CORPUS = "CulturaX-subsample-100-bal2"
 H6_TRAIN_CORPORA = {
     "fineweb_h6": "fineweb:hybrid6",
@@ -154,7 +154,7 @@ METHOD_ORDER = [
     "bpe_init",
     "bpe_init_fsp",
     "mingram",
-    "mingram_mi",
+    "mingram_pp",
     "pathpiece_bpe",
     "convextok",
 ]
@@ -166,7 +166,7 @@ GRID_PLOT_METHODS = [
     "bpe_init",
     "bpe_init_fsp",
     "mingram",
-    "mingram_mi",
+    "mingram_pp",
     "pathpiece_bpe",
     "convextok",
 ]
@@ -176,7 +176,7 @@ METHOD_LABELS = {
     "bpe_init": f"Unigram-BPE-Init (f={BAR_F})",
     "bpe_init_fsp": f"FSP-BPE-Init (f={BAR_F})",
     "mingram": f"MinGram (f={BAR_F})",
-    "mingram_mi": f"MinGram-MI (f={MINGRAM_MI_F:g})",
+    "mingram_pp": f"MinGram-PP (f={MINGRAM_PP_F:g})",
     "pathpiece_ngram": "PathPiece (n-gram init)",
     "pathpiece_bpe": "PathPiece (BPE init)",
     "convextok": "ConvexTok",
@@ -187,7 +187,7 @@ METHOD_COLORS = {
     "bpe_init": "#d62728",
     "bpe_init_fsp": "#2ca02c",
     "mingram": "#1f77b4",
-    "mingram_mi": "#009E73",
+    "mingram_pp": "#009E73",
     "pathpiece_ngram": "#8c564b",
     "pathpiece_bpe": "#e377c2",
     "convextok": "#17becf",
@@ -379,16 +379,16 @@ def _build_tasks(pairing_keys: set[str] | None = None) -> tuple[list[dict], dict
             if mingram_cache_keys:
                 entry["methods"]["mingram"] = {"cache_keys": mingram_cache_keys}
 
-            mingram_mi_path = get_mingram_model_path(
+            mingram_pp_path = get_mingram_model_path(
                 train_corpus,
-                MINGRAM_MI_F,
+                MINGRAM_PP_F,
                 PLOT_EM,
-                MINGRAM_MI_P,
+                MINGRAM_PP_P,
                 prune_criterion="mi",
             )
-            task = _task_for_model(train_corpus, eval_corpus, "mingram_mi", "mingram", mingram_mi_path)
+            task = _task_for_model(train_corpus, eval_corpus, "mingram_pp", "mingram", mingram_pp_path)
             tasks.append(task)
-            entry["methods"]["mingram_mi"] = {"cache_key": task["cache_key"]}
+            entry["methods"]["mingram_pp"] = {"cache_key": task["cache_key"]}
 
             convextok_path = Path(CONVEXTOK_PATH.format(train=train_corpus))
             if convextok_path.exists():

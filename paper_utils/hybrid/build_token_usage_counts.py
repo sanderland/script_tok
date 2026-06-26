@@ -43,7 +43,7 @@ def tokenizer_specs(corpus_name: str) -> list[TokenizerSpec]:
         TokenizerSpec("bpe_init_f1.15", get_hybrid_model_path(corpus_name, {**DEFAULTS, "overshoot_factor": 1.15})),
         TokenizerSpec("fsp_bpe_init_f1.15", get_hybrid_model_path(corpus_name, {**FSP_PARAMS, "overshoot_factor": 1.15})),
         TokenizerSpec("mingram_f1.15", get_mingram_model_path(corpus_name, 1.15, 2, 0.0)),
-        TokenizerSpec("mingram_mi_f8", get_mingram_model_path(corpus_name, 8.0, 2, 0.9, prune_criterion="mi")),
+        TokenizerSpec("mingram_pp_f8", get_mingram_model_path(corpus_name, 8.0, 2, 0.9, prune_criterion="mi")),
         TokenizerSpec("pathpiece_pb0.1", get_pathpiece_model_path(corpus_name, init="bpe")),
         TokenizerSpec(
             "convextok",

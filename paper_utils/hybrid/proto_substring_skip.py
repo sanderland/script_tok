@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Test Craig's substring-skip batch rule in careful-MI MinGram and PathPiece.
+"""Test Craig's substring-skip batch rule in MinGram-PP MinGram and PathPiece.
 
 For each method, trains skip=off vs skip=on at a heavy-pruning overshoot (shared BPE init,
 so the only difference is the batch rule) and compares held-out compression. Throwaway harness.
@@ -41,7 +41,7 @@ def main() -> None:
     iv = round(args.factor * VOCAB) + ATOMS
     rows = []
 
-    # ---- MinGram-MI (p=0.9), shared BPE init ----
+    # ---- MinGram-PP (p=0.9), shared BPE init ----
     def mg_cfg(skip):
         return MinGramTrainerConfig(additional_vocab_size=VOCAB, overshoot_factor=args.factor,
                                     num_em_iterations=2, pruning_shrinking_factor=0.9,
@@ -54,8 +54,8 @@ def main() -> None:
         tr._build_bpe_init_tokens = lambda init=mg_init: copy.deepcopy(init)
         t0 = time.time()
         m = tr.train()
-        rows.append(("MinGram-MI", skip, len(m.tokens), _evaltok(m, eval_corpus), time.time() - t0))
-        logger.info(f"MinGram-MI skip={skip}: |V|={len(m.tokens):,} tok={rows[-1][3]:,} ({rows[-1][4]:.0f}s)")
+        rows.append(("MinGram-PP", skip, len(m.tokens), _evaltok(m, eval_corpus), time.time() - t0))
+        logger.info(f"MinGram-PP skip={skip}: |V|={len(m.tokens):,} tok={rows[-1][3]:,} ({rows[-1][4]:.0f}s)")
 
     # ---- PathPiece (pb=0.1, init=bpe), shared BPE init ----
     def pp_cfg(skip):
@@ -76,7 +76,7 @@ def main() -> None:
 
     print(f"\n===== Craig substring-skip test  (corpus={args.corpus} eval={args.eval} f={args.factor}) =====")
     print(f"{'method':12}{'skip':>6}{'|V|':>9}{'eval_tokens':>13}{'vs skip=off':>13}")
-    for method in ("MinGram-MI", "PathPiece"):
+    for method in ("MinGram-PP", "PathPiece"):
         base = next(r[3] for r in rows if r[0] == method and r[1] is False)
         for r in rows:
             if r[0] != method:

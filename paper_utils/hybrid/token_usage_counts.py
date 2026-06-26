@@ -18,7 +18,7 @@ TOKENIZER_TO_METHOD = {
     "bpe_init_f1.15": "bpe_init_f1.15",
     "fsp_bpe_init_f1.15": "fsp_bpe_init_f1.15",
     "mingram_f1.15": "mingram_f1.15",
-    "mingram_mi_f8": "mingram_mi_f8",
+    "mingram_pp_f8": "mingram_pp_f8",
     "pathpiece_pb0.1": "pathpiece",
     "convextok": "convextok",
 }

@@ -66,7 +66,7 @@ METHOD_ORDER = [
     "bpe_init",
     "fsp_bpe_init",
     "mingram",
-    "mingram_mi",
+    "mingram_pp",
     "pathpiece_bpe",
     "convextok",
 ]
@@ -77,7 +77,7 @@ METHOD_LABEL = {
     "bpe_init": "Unigram\\hspace{0pt}-BPE\\hspace{0pt}-Init",
     "fsp_bpe_init": "FSP\\hspace{0pt}-BPE\\hspace{0pt}-Init",
     "mingram": "MinGram",
-    "mingram_mi": "\\mingrammi{}",
+    "mingram_pp": "\\mingrampp{}",
     "pathpiece_bpe": "PathPiece\\hspace{0pt}-BPE",
     "convextok": "ConvexTok",
 }
@@ -96,8 +96,8 @@ def _model_path(train_corpus: str, method: str) -> Path:
         return get_hybrid_model_path(train_corpus, {**DEFAULTS, **FSP_OVERRIDES, "overshoot_factor": MAIN_F})
     if method == "mingram":
         return get_mingram_model_path(train_corpus, MAIN_F, PLOT_EM, PLOT_P)
-    if method == "mingram_mi":
-        # MinGram-MI candidate = f=8 (its compression optimum; f=1.15 is only stock MinGram's)
+    if method == "mingram_pp":
+        # MinGram-PP candidate = f=8 (its compression optimum; f=1.15 is only stock MinGram's)
         return get_mingram_model_path(train_corpus, 8.0, PLOT_EM, 0.9, prune_criterion="mi")
     if method == "pathpiece_bpe":
         return get_pathpiece_model_path(train_corpus, init="bpe")

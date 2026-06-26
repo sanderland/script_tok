@@ -16,7 +16,7 @@ METHOD_ORDER = [
     "bpe_init_f1.15",
     "fsp_bpe_init_f1.15",
     "mingram_f1.15",
-    "mingram_mi_f8",
+    "mingram_pp_f8",
     "pathpiece",
     "convextok",
 ]
@@ -27,7 +27,7 @@ METHOD_LABEL = {
     "bpe_init_f1.15": "Unigram\\hspace{0pt}-BPE\\hspace{0pt}-Init",
     "fsp_bpe_init_f1.15": "FSP\\hspace{0pt}-BPE\\hspace{0pt}-Init",
     "mingram_f1.15": "MinGram",
-    "mingram_mi_f8": "\\mingrammi{}",
+    "mingram_pp_f8": "\\mingrampp{}",
     "pathpiece": "PathPiece\\hspace{0pt}-BPE",
     "convextok": "ConvexTok",
 }
@@ -38,12 +38,12 @@ METHOD_SHORT_LABEL = {
     "bpe_init_f1.15": "U-BPE",
     "fsp_bpe_init_f1.15": "F-BPE",
     "mingram_f1.15": "Min",
-    "mingram_mi_f8": "Min-MI",
+    "mingram_pp_f8": "Min-MI",
     "pathpiece": "Path",
     "convextok": "Conv",
 }
 GLITCH_KEY = {
-    "mingram_mi_f8": "mingram_mi",
+    "mingram_pp_f8": "mingram_pp",
 }
 TASK_LABEL = {
     "hellaswag_zeroshot": "HellaSwag-0",

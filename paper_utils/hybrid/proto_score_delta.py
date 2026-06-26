@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Test the score_delta reparameterization of MinGram-MI:
+"""Test the score_delta reparameterization of MinGram-PP:
   - delta = 1/100_000 (default) should match the historical behaviour
   - delta = 0 should recover PathPiece (min-token + longest tiebreak + MI prune)
 All share ONE BPE init so the only differences are the score/criterion. Compares vocab overlap

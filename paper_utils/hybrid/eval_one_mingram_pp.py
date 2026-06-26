@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Compute held-out token count for one careful-MI MinGram model and print a cache line.
+"""Compute held-out token count for one MinGram-PP MinGram model and print a cache line.
 
-Usage: eval_one_mingram_mi.py <train_corpus> <eval_corpus> <factor>
+Usage: eval_one_mingram_pp.py <train_corpus> <eval_corpus> <factor>
 Prints: RESULT tokens/<train>/<eval>/mingram/<model_name> <total_tokens_len>
 (matching the cache_train_eval_compression_grid.json key format, so it folds in directly.)
 """
