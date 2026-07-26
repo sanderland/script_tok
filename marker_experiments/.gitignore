@@ -1,6 +1,6 @@
 # Rebuildable and far too large to track: pretokenized corpora (~90MB each x24),
 # on-disk text blocks (~1GB per language), held-out eval slices, BPE init caches.
 corpora/
-text_blocks/
+# (text blocks no longer written: streamed straight from parquet)
 eval_texts/
 bpe_init_cache/

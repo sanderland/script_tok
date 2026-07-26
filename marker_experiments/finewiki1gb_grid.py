@@ -49,7 +49,7 @@ import pyarrow.parquet as pq
 
 from script_bpe.pretokenize import get_pretokenizer
 from script_bpe.corpus.base import PretokenizedCorpus
-from script_bpe.corpus.registry import normalize_whitespace, _write_text_batch, _read_text_batches
+from script_bpe.corpus.registry import normalize_whitespace
 from script_bpe.tokenizers.bpe.trainer import BPETrainer, BPETrainerConfig
 from script_bpe.tokenizers.bpe.tokenizer import BPETokenizer
 from script_bpe.tokenizers.mingram.trainer import MinGramTrainer, MinGramTrainerConfig
@@ -67,7 +67,6 @@ OVERSHOOT = 1.15
 NUM_WORKERS = 4
 
 CORPORA = os.path.join(HERE, "corpora")
-BLOCKS = os.path.join(HERE, "text_blocks")
 EVAL_DIR = os.path.join(HERE, "eval_texts")
 TOKENIZERS = os.path.join(HERE, "tokenizers")
 RESULT_PATH = os.path.join(HERE, "finewiki1gb_result.json")
@@ -105,21 +104,16 @@ def commit_cell(key):
     log(f"WARNING: push failed for {key}; commit is local only")
 
 
-def ensure_blocks(lang):
-    """Write 1 GB of normalized text to disk in batches, plus the held-out eval slice."""
-    lang_dir = os.path.join(BLOCKS, lang)
-    done = os.path.join(lang_dir, "DONE")
-    eval_path = os.path.join(EVAL_DIR, f"{lang}.json")
-    if os.path.exists(done) and os.path.exists(eval_path):
-        paths = sorted(json.load(open(done)))
-        return paths, json.load(open(eval_path))
+def stream_batches(lang):
+    """Yield ~BLOCK_CHARS batches of normalized text straight from parquet row groups.
 
-    os.makedirs(lang_dir, exist_ok=True)
-    os.makedirs(EVAL_DIR, exist_ok=True)
-    t = time.time()
+    Nothing is staged on disk: writing 1 GB of text blocks per language is what
+    exhausted the session's disk allowance and wiped the working tree. Re-reading
+    per pretokenizer costs ~186s and keeps peak disk to the corpora alone.
+    """
     f = fsspec.open(URL.format(lang=lang)).open()
     pf = pq.ParquetFile(f)
-    paths, cur, cur_chars, total, tail = [], [], 0, 0, []
+    cur, cur_chars, total = [], 0, 0
     for rg in range(pf.num_row_groups):
         for x in pf.read_row_group(rg, columns=["text"]).column("text").to_pylist():
             if not x:
@@ -130,24 +124,40 @@ def ensure_blocks(lang):
             cur.append(x)
             cur_chars += len(x)
             total += len(x)
-            tail.append(x)
-            if len(tail) > EVAL_DOCS:
-                tail.pop(0)
             if cur_chars >= BLOCK_CHARS:
-                p = os.path.join(lang_dir, f"block_{len(paths):05d}.parquet")
-                _write_text_batch(p, cur)
-                paths.append(p)
+                yield cur
                 cur, cur_chars = [], 0
         if total >= CHARS_PER_LANG:
             break
     if cur:
-        p = os.path.join(lang_dir, f"block_{len(paths):05d}.parquet")
-        _write_text_batch(p, cur)
-        paths.append(p)
-    log(f"[{lang}] {total:,} chars in {len(paths)} blocks, {time.time()-t:.0f}s")
+        yield cur
+
+
+def ensure_eval(lang):
+    """Held-out slice: the last EVAL_DOCS documents of the same 1 GB stream."""
+    eval_path = os.path.join(EVAL_DIR, f"{lang}.json")
+    if os.path.exists(eval_path):
+        return json.load(open(eval_path))
+    os.makedirs(EVAL_DIR, exist_ok=True)
+    t = time.time()
+    tail, total = [], 0
+    for batch in stream_batches(lang):
+        total += sum(map(len, batch))
+        tail.extend(batch)
+        del tail[:-EVAL_DOCS]
+    log(f"[{lang}] {total:,} chars streamed, eval slice {len(tail)} docs, {time.time()-t:.0f}s")
     json.dump(tail, open(eval_path, "w"))
-    json.dump(paths, open(done, "w"))
-    return paths, tail
+    return tail
+
+
+def drop_corpora(lang):
+    """Free a language's corpora once all its cells are done; peak disk is what wipes us."""
+    import shutil
+    for tag in PRETOKENIZERS:
+        d = os.path.join(CORPORA, f"fw1gb_{lang}_{tag}")
+        if os.path.isdir(d):
+            shutil.rmtree(d, ignore_errors=True)
+    log(f"[{lang}] corpora removed")
 
 
 class CachedInitMinGramTrainer(MinGramTrainer):
@@ -214,15 +224,15 @@ def main():
     os.makedirs(TOKENIZERS, exist_ok=True)
     results = json.load(open(RESULT_PATH)) if os.path.exists(RESULT_PATH) else {}
 
-    # BPE for every language first: an interrupted run then still gives one complete trainer.
-    for method in ["bpe", "mingram"]:
-        for lang in LANGS:
-            if all(f"{lang}_{tag}_{method}" in results for tag in PRETOKENIZERS):
-                log(f"{lang}/{method}: complete, skipping")
-                continue
-            block_paths, eval_texts = ensure_blocks(lang)
-            eval_chars = sum(map(len, eval_texts))
-
+    # One language at a time, both trainers, then free its corpora. Keeping six
+    # languages' corpora alive at once is what exceeded the disk allowance.
+    for lang in LANGS:
+        if all(f"{lang}_{tag}_{m}" in results for tag in PRETOKENIZERS for m in ("bpe", "mingram")):
+            log(f"{lang}: complete, skipping")
+            continue
+        eval_texts = ensure_eval(lang)
+        eval_chars = sum(map(len, eval_texts))
+        for method in ["bpe", "mingram"]:
             for tag, make_pt in PRETOKENIZERS.items():
                 key = f"{lang}_{tag}_{method}"
                 if key in results:
@@ -235,7 +245,7 @@ def main():
                     t = time.time()
                     corpus = PretokenizedCorpus.from_text_batches(
                         name=corpus_name, base_path=CORPORA, pretokenizer=pt,
-                        text_batches=_read_text_batches(block_paths), num_workers=NUM_WORKERS,
+                        text_batches=stream_batches(lang), num_workers=NUM_WORKERS,
                     )
                     log(f"{lang}/{tag}: corpus built in {time.time()-t:.0f}s "
                         f"unique_chunks={corpus.metadata.get('unique_chunks'):,}")
@@ -284,6 +294,7 @@ def main():
                 del tokenizer
                 gc.collect()
                 commit_cell(key)
+        drop_corpora(lang)
 
     log(f"DONE: {len(results)} cells")
 
