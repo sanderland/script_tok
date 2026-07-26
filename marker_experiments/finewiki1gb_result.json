@@ -1,0 +1,23 @@
+{
+  "en_plain_bpe": {
+    "lang": "en",
+    "pretokenizer": "plain",
+    "method": "bpe",
+    "additional_vocab_size": 32768,
+    "vocab_size": 34478,
+    "train_seconds": 152,
+    "train_chars": 2005507886,
+    "unique_chunks": 2350831,
+    "eval_docs": 500,
+    "eval_chars": 3602925,
+    "eval_tokens": 940477,
+    "eval_chars_per_token": 3.830954930317275,
+    "roundtrip_failures": 0,
+    "tokenizer_file": "marker_experiments/tokenizers/en_plain_bpe_32k.json.gz",
+    "distinct_alpha_words_with_own_token": 27729,
+    "space_dup_pairs": 3196,
+    "space_dup_vocab_frac": 0.18539358431463543,
+    "marker_variant_extra_slots": 0,
+    "whitespace_only_vocab_entries": 28
+  }
+}
