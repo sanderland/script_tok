@@ -191,7 +191,28 @@ word-wrapped by the marker schemes. Setup matches the registry's `finewiki_{lang
 removes multi-space runs by construction) except for a smaller per-language character
 budget, for compute reasons; see `multilang_grid.py` for the exact deviation.
 
-*(table inserted from `multilang_result.json` on completion)*
+This is also the first test of v5 on **prose-only training**: §4.2's prose column comes
+from a tokenizer trained on mixed data, so it left open whether the crossover survives
+without code in the training set. English says it does, at every vocabulary size:
+
+| en | plain | v4 | v5 |
+|---|---|---|---|
+| BPE 16k | 3.5852 | −2.66% | **+1.46%** |
+| BPE 32k | 3.8430 | −2.20% | **+2.63%** |
+| BPE 64k | 4.0464 | −2.03% | **+3.16%** |
+| MinGram 64k | 4.0817 | −2.29% | **+2.89%** |
+
+Duplicate pairs: plain 1,381 / 3,058 / 6,767 (15.6% → 20.6% of vocabulary) against v4 and
+v5's 4 / 4 / 6. Zero roundtrip failures in every cell.
+
+The English margin (+3.16% at 64k) is markedly larger than on mixed prose+code (+1.17%),
+and v5 wins here already at 16k where the mixed corpus needed 32k. Two plausible
+contributors: FineWiki is encyclopedic and therefore digit-dense (dates, measurements,
+counts), so digit marking pays more per character; and the registry's
+`normalize_whitespace` removes multi-space runs, which is visible in v4/v5 duplicate pairs
+falling to 4–6 rather than the 36–120 seen on unnormalized mixed text.
+
+*(de, fi, ru, ar, ko inserted from `multilang_result.json` on completion)*
 
 ## 5. Why the early versions cost anything at all
 
@@ -233,8 +254,10 @@ mechanism accounts for the gap, and v5 removes it.
 
 ## 6. Limitations
 
-- **Below ~16k vocabulary v5 is at parity or slightly behind.** The crossover sits between
-  16k and 32k on the mixed corpus. Small-vocabulary settings do not benefit.
+- **The crossover point is corpus-dependent.** On mixed prose+code it sits between 16k and
+  32k, so a 16k mixed vocabulary gets no benefit (−0.10% BPE). On FineWiki English v5 is
+  already ahead at 16k (+1.46%). We have not identified the smallest vocabulary at which
+  the scheme still pays on either corpus.
 - **Marker-only tokens are pure overhead**: 382 emissions (0.27% of code tokens) are lone
   `<|>` carrying no characters.
 - **One roundtrip failure per code cell, for plain and markers alike**: `U+F8FF`
