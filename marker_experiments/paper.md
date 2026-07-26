@@ -9,15 +9,18 @@ Byte-pair and unigram vocabularies built over space-separated writing systems sp
 large fraction of their capacity representing the same word twice — once with a leading
 space and once without (`' the'` and `'the'`). We measure this at **20–43% of the
 vocabulary**, and **64% of all emitted tokens**, depending on corpus and vocabulary size.
+
 We propose replacing the leading-space convention with an explicit boundary marker token
 `<|>`: word spans are wrapped unconditionally, so a word has one canonical form
 everywhere, and the single space between two adjacent spans is *elided* at encode time
 and reconstructed at decode time from the resulting pair of touching markers. Applied to
 words alone the scheme costs 7.5% compression. Extended to punctuation it costs 1.0–1.6%.
-Extended further to digits it **overtakes the baseline**, reaching +1.17% chars/token at
-64k vocabulary on a mixed prose+code corpus while reducing duplicate pairs from 13,480 to
-120 and training faster than the baseline. The result is a tokenizer with a canonical word
-form, ~41% of vocabulary freed, and no compression penalty.
+Extended further to digits it **overtakes the baseline**: +1.17% chars/token at 64k on a
+mixed prose+code corpus, and **+2.74% on average across six FineWiki languages** (Latin,
+Cyrillic, Arabic, Hangul), winning in all six at 32k and 64k, with duplicate pairs reduced
+by three orders of magnitude and training no slower than the baseline. The result is a
+tokenizer with a canonical word form, 20–41% of vocabulary freed, and a compression *gain*
+rather than a penalty.
 
 ## 1. The duplication we are trying to remove
 
@@ -212,7 +215,45 @@ counts), so digit marking pays more per character; and the registry's
 `normalize_whitespace` removes multi-space runs, which is visible in v4/v5 duplicate pairs
 falling to 4–6 rather than the 36–120 seen on unnormalized mixed text.
 
-*(de, fi, ru, ar, ko inserted from `multilang_result.json` on completion)*
+Across all six languages (BPE, gap versus plain, positive = better than baseline):
+
+| lang | script | 16k v4 / v5 | 32k v4 / v5 | 64k v4 / v5 | plain 64k ch/tok |
+|---|---|---|---|---|---|
+| en | Latin | −2.66 / **+1.46** | −2.20 / **+2.63** | −2.03 / **+3.16** | 4.0464 |
+| de | Latin | −4.66 / **+0.43** | −4.03 / **+1.90** | −3.46 / **+3.14** | 4.2991 |
+| fi | Latin | −2.76 / **+1.17** | −2.54 / **+2.29** | −2.32 / **+3.22** | 4.3995 |
+| ru | Cyrillic | −2.58 / **+1.46** | −2.14 / **+2.61** | −1.95 / **+3.39** | 4.1510 |
+| ar | Arabic | −2.96 / **+0.76** | −2.48 / **+1.76** | −2.13 / **+2.53** | 4.0587 |
+| ko | Hangul | −4.59 / **−1.28** | −3.77 / **+0.08** | −3.24 / **+1.01** | 2.2837 |
+| **mean** | | −3.37 / **+0.67** | −2.86 / **+1.88** | −2.52 / **+2.74** | |
+
+MinGram at 64k on the three script families confirms the ordering is not a BPE artifact:
+en +2.89%, ru +3.21%, ko +0.88% for v5 (−2.29 / −2.18 / −3.38 for v4). **Zero roundtrip
+failures across all 63 cells.**
+
+v5 wins in all six languages at 32k and 64k, and in five of six at 16k. The pattern is
+consistent rather than driven by any one language: v4 is uniformly negative (−1.95% to
+−4.66%), v5 uniformly positive except Korean at 16k, and the margin grows monotonically
+with vocabulary in every language.
+
+Vocabulary structure at 64k, which is the point of the exercise:
+
+| lang | plain duplicate pairs | plain vocab on duplicates | v5 pairs | v5 marker-variant slots |
+|---|---|---|---|---|
+| en | 6,767 | 20.6% | 6 | 285 |
+| de | 6,677 | 20.3% | 5 | 238 |
+| fi | 7,634 | 23.2% | 5 | 186 |
+| ru | 7,016 | 21.4% | 9 | 234 |
+| ar | 6,489 | 19.8% | 10 | 290 |
+| ko | 10,201 | **31.0%** | 6 | 324 |
+
+**Korean is the hardest case and it is instructive.** It has both the largest duplicate tax
+to remove (31.0% of vocabulary) and the smallest gain from removing it (+1.01% at 64k,
+−1.28% at 16k). Hangul syllable blocks give Korean by far the lowest absolute compression
+(2.28 vs 4.05–4.40 chars/token), so each word span is few tokens long and the two marker
+tokens are a proportionally larger overhead; the config's own annotation notes Hangul sits
+adjacent to a space 28.8% of the time, the highest of the 20 space-using scripts. Where
+words are short relative to the marker pair, the scheme has less room to win.
 
 ## 5. Why the early versions cost anything at all
 
@@ -272,6 +313,14 @@ mechanism accounts for the gap, and v5 removes it.
   the question these numbers cannot answer, and is the obvious next experiment.
 - **Open-set scripts are unmarked.** Han, emoji and other non-space scripts keep baseline
   behaviour, so ~2% of single spaces remain non-elided. CJK-heavy corpora were not studied.
+- **Gains shrink where words are short relative to the marker pair.** Korean is the clearest
+  case (+1.01% at 64k, −1.28% at 16k) despite having the largest duplicate tax to remove.
+  Scripts with low absolute chars/token have less headroom, and the six languages studied
+  are all space-using — the scheme does nothing for Han, Thai, or other spaceless scripts.
+- **Per-language budget below the registry's 1 GB.** §4.3 uses a smaller per-language
+  character budget than `finewiki_{lang}_1gb`; absolute chars/token would shift with more
+  data, though the plain/v4/v5 ordering is consistent across three vocabulary sizes, two
+  trainers and six languages.
 
 ## 7. Reproduction
 
