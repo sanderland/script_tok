@@ -1,0 +1,156 @@
+{
+  "_note": "Results measured earlier in this investigation. The scratchpad holding the original result JSONs was wiped twice by the environment; these values are transcribed from the run logs of those sessions. The FineWiki 6-language results live in multilang_result.json, produced by multilang_grid.py.",
+  "_common": {
+    "pretokenizer_base": "ScriptEncodingV3, enforce_char_boundaries=True (registry name scriptenc3_cb)",
+    "metric": "chars per token on held-out documents, higher is better",
+    "mingram_overshoot_factor": 1.15,
+    "num_workers": 4
+  },
+
+  "fineweb_prose": {
+    "setup": "HuggingFaceFW/fineweb sample-10BT, 80M chars train (26,351 docs), 1000 held-out docs (3,104,566 chars), no whitespace normalization",
+    "chars_per_token": {
+      "plain_bpe":    {"16k": 3.9909, "32k": 4.2611, "64k": 4.4412},
+      "v4_bpe":       {"16k": 3.9266, "32k": 4.2170, "64k": 4.4032},
+      "plain_mingram":{"16k": 4.0474, "32k": 4.3012, "64k": 4.4678},
+      "v4_mingram":   {"16k": 3.9670, "32k": 4.2483, "64k": 4.4204}
+    },
+    "gap_vs_plain_pct": {
+      "bpe":     {"16k": -1.61, "32k": -1.03, "64k": -0.86},
+      "mingram": {"16k": -1.99, "32k": -1.23, "64k": -1.06}
+    },
+    "space_dup_pairs": {
+      "plain_bpe": {"16k": 1792, "32k": 4201, "64k": 9871},
+      "v4_bpe":    {"16k": 1, "32k": 2, "64k": 2}
+    },
+    "space_dup_vocab_frac_pct": {
+      "plain_bpe":     {"16k": 20.24, "32k": 24.92, "64k": 30.04},
+      "plain_mingram": {"16k": 21.31, "32k": 25.84, "64k": 31.51},
+      "v4":            {"16k": 0.01, "32k": 0.01, "64k": 0.01}
+    },
+    "marker_variant_extra_slots_v4": {"bpe": {"16k": 115, "32k": 191, "64k": 341},
+                                      "mingram": {"16k": 121, "32k": 199, "64k": 355}},
+    "distinct_alpha_words_with_own_token": {
+      "plain_bpe":     {"16k": 13836, "32k": 27011, "64k": 52355},
+      "v4_bpe":        {"16k": 7717, "32k": 17296, "64k": 37401},
+      "plain_mingram": {"16k": 13713, "32k": 26741, "64k": 51695},
+      "v4_mingram":    {"16k": 8820, "32k": 19598, "64k": 42395}
+    },
+    "unique_chunks": {"plain": 334837, "v4": 277862, "v3_fused": 1764948},
+    "bpe_train_seconds": {"plain": {"16k": 63, "32k": 71, "64k": 107},
+                          "v4": {"16k": 60, "32k": 65, "64k": 139}},
+    "mingram_train_seconds": {"plain": {"16k": 127, "32k": 157, "64k": 237},
+                              "v4": {"16k": 107, "32k": 143, "64k": 227}},
+    "roundtrip_failures": "0 for every cell"
+  },
+
+  "earlier_variants_prose_16k": {
+    "_note": "Design iterations at 16k on the 80M-char FineWeb corpus, BPE.",
+    "plain": 3.9909,
+    "v1_rename_merged_space": 3.9909,
+    "v2_hard_chunk_boundary_no_elision": 2.4201,
+    "v3_words_only_elided_mergeable": 3.6815,
+    "v3_words_only_plus_merge_ban": 3.6920,
+    "v3_dup_pairs": 45,
+    "v3_unique_chunks": 1764948,
+    "v3_bpe_train_seconds": 442
+  },
+
+  "mingram_overshoot_sweep_prose_16k": {
+    "_note": "Does a larger BPE-init overshoot let MinGram buy back the marker penalty? No.",
+    "plain":    {"1.10": 4.0455, "1.15": 4.0474, "1.25": 4.0470},
+    "v3":       {"1.10": 3.7286, "1.15": 3.7282, "1.25": 3.7252},
+    "v3_word_coverage": {"1.10": 8674, "1.15": 8856, "1.25": 8964},
+    "plain_word_coverage": {"1.10": 13734, "1.15": 13713, "1.25": 13674}
+  },
+
+  "mixed_prose_code": {
+    "setup": "40.0M chars FineWeb prose + 40.0M chars code (codeparrot-clean-valid Python files + christopher/rosetta-code multi-language snippets); 500 held-out docs per domain; no whitespace normalization",
+    "chars_per_token": {
+      "plain_bpe":     {"16k": {"mixed": 3.5810, "prose": 3.8479, "code": 2.7715},
+                        "32k": {"mixed": 3.8295, "prose": 4.1471, "code": 2.8956},
+                        "64k": {"mixed": 4.0087, "prose": 4.3546, "code": 3.0039}},
+      "v4_bpe":        {"16k": {"mixed": 3.5046, "prose": 3.7862, "code": 2.6685},
+                        "32k": {"mixed": 3.7669, "prose": 4.0988, "code": 2.8090},
+                        "64k": {"mixed": 3.9554, "prose": 4.3111, "code": 2.9355}},
+      "v5_bpe":        {"16k": {"mixed": 3.5774, "prose": 3.8500, "code": 2.7558},
+                        "32k": {"mixed": 3.8552, "prose": 4.1798, "code": 2.9051},
+                        "64k": {"mixed": 4.0557, "prose": 4.4040, "code": 3.0425}},
+      "plain_mingram": {"16k": {"mixed": 3.6310, "prose": 3.9085, "code": 2.7951},
+                        "32k": {"mixed": 3.8721, "prose": 4.1937, "code": 2.9269},
+                        "64k": {"mixed": 4.0363, "prose": 4.3885, "code": 3.0167}},
+      "v4_mingram":    {"16k": {"mixed": 3.5438, "prose": 3.8304, "code": 2.6946},
+                        "32k": {"mixed": 3.7994, "prose": 4.1350, "code": 2.8317},
+                        "64k": {"mixed": 3.9780, "prose": 4.3376, "code": 2.9485}},
+      "v5_mingram":    {"16k": {"mixed": 3.6180, "prose": 3.8962, "code": 2.7817},
+                        "32k": {"mixed": 3.8884, "prose": 4.2166, "code": 2.9284},
+                        "64k": {"mixed": 4.0795, "prose": 4.4315, "code": 3.0569}}
+    },
+    "gap_vs_plain_pct": {
+      "v4_bpe":     {"16k": {"mixed": -2.13, "prose": -1.60, "code": -3.71},
+                     "32k": {"mixed": -1.64, "prose": -1.17, "code": -2.99},
+                     "64k": {"mixed": -1.33, "prose": -1.00, "code": -2.28}},
+      "v5_bpe":     {"16k": {"mixed": -0.10, "prose":  0.05, "code": -0.56},
+                     "32k": {"mixed":  0.67, "prose":  0.79, "code":  0.33},
+                     "64k": {"mixed":  1.17, "prose":  1.13, "code":  1.29}},
+      "v4_mingram": {"16k": {"mixed": -2.40, "prose": -2.00, "code": -3.60},
+                     "32k": {"mixed": -1.88, "prose": -1.40, "code": -3.25},
+                     "64k": {"mixed": -1.44, "prose": -1.16, "code": -2.26}},
+      "v5_mingram": {"16k": {"mixed": -0.36, "prose": -0.32, "code": -0.48},
+                     "32k": {"mixed":  0.42, "prose":  0.55, "code":  0.05},
+                     "64k": {"mixed":  1.07, "prose":  0.98, "code":  1.33}}
+    },
+    "space_dup_pairs": {
+      "plain_bpe": {"16k": 3364, "32k": 6887, "64k": 13480},
+      "plain_mingram": {"16k": 3506, "32k": 7139, "64k": 14038},
+      "v4_bpe": {"16k": 36, "32k": 67, "64k": 120},
+      "v5_bpe": {"16k": 36, "32k": 66, "64k": 120},
+      "v5_mingram": {"16k": 40, "32k": 77, "64k": 129}
+    },
+    "space_dup_vocab_frac_pct": {
+      "plain_bpe": {"16k": 38.0, "32k": 40.9, "64k": 41.0},
+      "plain_mingram": {"16k": 39.6, "32k": 42.4, "64k": 42.7},
+      "v4_or_v5": {"16k": 0.4, "32k": 0.4, "64k": 0.4}
+    },
+    "marker_variant_extra_slots_v5": {"bpe": {"16k": 310, "32k": 520, "64k": 993},
+                                      "mingram": {"16k": 343, "32k": 570, "64k": 1084}},
+    "bpe_train_seconds_64k": {"plain": 108, "v5": 92},
+    "mingram_train_seconds_64k": {"plain": 222, "v5": 191},
+    "roundtrip_failures": "1 for every cell, plain included: U+F8FF (private use) is absent from the V3 char_encoding and is dropped. Pre-existing, not marker-related."
+  },
+
+  "diagnostics": {
+    "space_run_profile_1gb_scans": {
+      "fineweb_en": {"chars": 1000001224, "docs": 326173, "single_spaces": 163068065,
+                     "multi_space_runs": 3940,
+                     "left_neighbour_pct": {"lower": 86.26, "punct": 10.67, "upper": 1.81, "digit": 1.15, "symbol": 0.10},
+                     "right_neighbour_pct": {"lower": 82.07, "upper": 14.49, "digit": 1.69, "punct": 1.56, "symbol": 0.17}},
+      "finewiki_en_raw": {"chars": 1000003320, "docs": 189736, "single_spaces": 113157392,
+                          "multi_space_runs": 11749474, "chars_in_runs": 275771070, "max_run": 112665,
+                          "_note": "raw text field retains wikitable markup; '|' is the #2 left neighbour at 12.9M. The registry's finewiki loader applies normalize_whitespace, which removes these runs."}
+    },
+    "domain_space_profile": {
+      "prose_sample": {"chars": 583155, "single_space_pct_of_chars": 16.09, "multi_runs": 3},
+      "code_sample": {"chars": 1789198, "single_space_pct_of_chars": 5.92, "multi_runs": 33221,
+                      "pct_chars_in_runs": 16.77, "modal_run_lengths": [8, 4, 12, 16]}
+    },
+    "indentation_token_cost_code_eval": {
+      "_note": "Multi-space indentation is ~1 token either way and cannot explain the code gap.",
+      "pure_space_tokens_len_gt_1": 1717, "pct_of_all_code_tokens": 1.24,
+      "identical_under_plain_and_v4": true,
+      "whitespace_bucket_chars_per_token": {"plain": 4.59, "v4": 4.30}
+    },
+    "token_delta_v4_minus_plain_code_eval": {
+      "total": 3256, "whitespace": 1708, "alpha": 721, "punct": 434, "marker_only": 382, "digit": 11
+    },
+    "non_elided_single_spaces": {
+      "code": {"v4_pct": 12.5, "v5_pct": 0.3, "digit_adjacent_share_of_non_elided_pct": 97.9},
+      "prose": {"v4_pct": 3.3, "v5_pct": 0.0, "digit_adjacent_share_of_non_elided_pct": 98.7}
+    },
+    "duplicate_token_mass_prose_16k_plain": {
+      "pairs": 1792, "vocab_slots": 3584, "vocab_frac_pct": 22.4,
+      "share_of_emitted_tokens_pct": 64.23,
+      "top_pairs": [[" .", ".", 700931], [" ,", ",", 680504], [" the", "the", 639584]]
+    }
+  }
+}

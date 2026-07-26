@@ -1,0 +1,7 @@
+# Regenerable artifacts: rerun multilang_grid.py to rebuild.
+corpora/
+eval_texts/
+bpe_init_cache/
+__pycache__/
+*.log
+*.json.gz
