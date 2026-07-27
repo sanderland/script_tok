@@ -121,11 +121,11 @@ is a whole run, so the marked set is one entry per distinct *number*, not per di
 | ko | 927 | 1,082 | 441 (vs 927) | 641 (1.86%) |
 
 That is the very duplication the scheme exists to remove, reintroduced for numbers: more
-entries spent, less than half the coverage. The fix is to bound the markable set with
-`digit_handling`, which splits digit runs so only the run's first and last *group* can
-carry a marker — 10 markable strings under `SPLIT`, 1110 under `RTL3` (`pretokenizer.py`
-registers exactly those). §4.1 used `digit_handling=None`, so its `bnd_wpd` numbers are
-achieved *while paying* this 2–3% tax, and should improve once it is removed.
+entries spent, less than half the coverage. `digit_handling` bounds the markable set by
+splitting digit runs so only the run's first and last *group* can carry a marker — 10
+markable strings under `SPLIT`, 1110 under `RTL3` (`pretokenizer.py` registers exactly
+those). §4.4 measures what that is worth: the bound holds exactly, and it buys very
+little.
 
 ### 2.3 Merge constraint and chunking
 
@@ -220,6 +220,34 @@ vocabulary holds one canonical form.
 At 100M characters per language MinGram reproduced the BPE ordering for an earlier variant
 (en +2.89%, ru +3.21%, ko +0.88%), so the effect is not a BPE-specific artifact.
 
+### 4.4 Digit handling
+
+en, 250M characters, 32,768 vocabulary, BPE, evaluation documents withheld from training.
+Both sides use the same `digit_handling`, so each row is a matched comparison; rows are
+**not** comparable to each other, since splitting digits changes absolute compression for
+everyone.
+
+| `digit_handling` | plain | `bnd_wpd` | gap | digit-variant slots | distinct numbers |
+|---|---|---|---|---|---|
+| `None` | 3.7580 | 3.8849 | **+3.38%** | 1,083 | 608 |
+| `SPLIT` | 3.4437 | 3.5714 | **+3.71%** | **34** | 14 |
+| `RTL3` | 3.7096 | 3.8345 | **+3.37%** | 1,478 | 1,114 |
+
+The bound behaves exactly as predicted. `SPLIT` collapses the variant waste from 1,083
+slots to 34 — at most ten digits times four forms — and `RTL3` lands at 1,114 distinct
+numbers against a ceiling of 1110.
+
+**Recovering ~1,050 vocabulary slots is worth only +0.33pp.** We expected removing a 3.17%
+vocabulary tax to move the headline; it does not. This is the same lesson as §1: the
+duplicated number entries are wasteful *and* still used, and low-frequency number tokens
+carry little mass. Vocabulary waste and compression loss are not interchangeable.
+
+The practically useful result is the invariance: **the boundary advantage sits between
++3.37% and +3.71% regardless of digit policy.** Practitioners who split digits for
+arithmetic reasons lose nothing, and those who do not lose nothing either. `RTL3` costs
+the baseline 1.3% absolute against `SPLIT`'s 8.4%, so it is the better default — and that
+choice is independent of this work.
+
 ### 4.3 Smaller scale, earlier per-script variant
 
 These predate the span merging of §2.1 and delimited each script run separately. They are
@@ -303,9 +331,10 @@ out: the scheme pays in proportion to span length relative to its two markers.
   training data. The leak is identical for every pretokenizer, so the *gaps* in §4.1 are
   unaffected; absolute chars/token is optimistic for all four alike. Fixed for the digit
   axis (§4.4), which withholds them.
-- **§4.1 ran with `digit_handling=None`**, so it pays the 2–3% digit-variant tax described
-  in §2.2. Combining boundaries with digit splitting is implemented and tested but not yet
-  measured at scale; it should only improve the reported figures.
+- **§4.1 ran with `digit_handling=None`**, so it pays the digit-variant tax of §2.2. §4.4
+  measures the effect of removing it on English: +0.33pp, so the §4.1 figures are close to
+  what a digit-split configuration would give. §4.4 is English-only, one vocabulary size,
+  BPE only.
 
 ## 7. Reproduction
 
