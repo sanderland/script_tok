@@ -338,5 +338,25 @@
     "space_dup_vocab_frac": 0.30547015488137363,
     "marker_variant_extra_slots": 0,
     "whitespace_only_vocab_entries": 26
+  },
+  "ko_plain_mingram": {
+    "lang": "ko",
+    "pretokenizer": "plain",
+    "method": "mingram",
+    "additional_vocab_size": 32768,
+    "vocab_size": 34478,
+    "train_seconds": 749,
+    "unique_chunks": 4337052,
+    "eval_docs": 500,
+    "eval_chars": 636262,
+    "eval_tokens": 288487,
+    "eval_chars_per_token": 2.205513593333495,
+    "roundtrip_failures": 0,
+    "tokenizer_file": "marker_experiments/tokenizers/mg250_ko_plain_mingram_32k.json.gz",
+    "distinct_alpha_words_with_own_token": 26192,
+    "space_dup_pairs": 5134,
+    "space_dup_vocab_frac": 0.29781309820755264,
+    "marker_variant_extra_slots": 0,
+    "whitespace_only_vocab_entries": 23
   }
 }
