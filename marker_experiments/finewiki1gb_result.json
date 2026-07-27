@@ -376,5 +376,26 @@
     "space_dup_vocab_frac": 0.00040604425882421184,
     "marker_variant_extra_slots": 12,
     "whitespace_only_vocab_entries": 28
+  },
+  "ar_bnd_wp_bpe": {
+    "lang": "ar",
+    "pretokenizer": "bnd_wp",
+    "method": "bpe",
+    "additional_vocab_size": 32768,
+    "vocab_size": 34479,
+    "train_seconds": 200,
+    "train_chars": 2037071426,
+    "unique_chunks": 2884490,
+    "eval_docs": 500,
+    "eval_chars": 745245,
+    "eval_tokens": 192202,
+    "eval_chars_per_token": 3.8774050217999814,
+    "roundtrip_failures": 0,
+    "tokenizer_file": "marker_experiments/tokenizers/ar_bnd_wp_bpe_32k.json.gz",
+    "distinct_alpha_words_with_own_token": 16093,
+    "space_dup_pairs": 7,
+    "space_dup_vocab_frac": 0.00040604425882421184,
+    "marker_variant_extra_slots": 209,
+    "whitespace_only_vocab_entries": 28
   }
 }
