@@ -19,5 +19,26 @@
     "pure_digit_entries": 1486,
     "distinct_numbers": 1486,
     "digit_variant_extra_slots": 0
+  },
+  "en_bnd_wpd_None": {
+    "lang": "en",
+    "pretokenizer": "bnd_wpd",
+    "digit_handling": "None",
+    "atomic_vocab": 1711,
+    "vocab_size": 34479,
+    "train_seconds": 92,
+    "unique_chunks": 906491,
+    "eval_chars": 2219281,
+    "eval_tokens": 571265,
+    "eval_chars_per_token": 3.884853789397215,
+    "roundtrip_failures": 0,
+    "distinct_alpha_words_with_own_token": 15021,
+    "space_dup_pairs": 5,
+    "space_dup_vocab_frac": 0.0002900316134458656,
+    "marker_variant_extra_slots": 212,
+    "whitespace_only_vocab_entries": 28,
+    "pure_digit_entries": 1691,
+    "distinct_numbers": 608,
+    "digit_variant_extra_slots": 1083
   }
 }
