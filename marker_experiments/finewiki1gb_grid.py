@@ -224,15 +224,18 @@ def main():
     os.makedirs(TOKENIZERS, exist_ok=True)
     results = json.load(open(RESULT_PATH)) if os.path.exists(RESULT_PATH) else {}
 
-    # One language at a time, both trainers, then free its corpora. Keeping six
-    # languages' corpora alive at once is what exceeded the disk allowance.
-    for lang in LANGS:
-        if all(f"{lang}_{tag}_{m}" in results for tag in PRETOKENIZERS for m in ("bpe", "mingram")):
-            log(f"{lang}: complete, skipping")
-            continue
-        eval_texts = ensure_eval(lang)
-        eval_chars = sum(map(len, eval_texts))
-        for method in ["bpe", "mingram"]:
+    # Trainer-major: every BPE cell (~8 min each) finishes before any MinGram cell
+    # (~25-50 min each). The container wipes the working tree every ~30-60 min, and a
+    # cell longer than that interval can never complete, so the cheap trainer is run to
+    # completion across all six languages first. Corpora are still freed per language,
+    # and rebuilt for the MinGram pass -- ~300s, cheap next to the training it feeds.
+    for method in ["bpe", "mingram"]:
+        for lang in LANGS:
+            if all(f"{lang}_{tag}_{method}" in results for tag in PRETOKENIZERS):
+                log(f"{lang}/{method}: complete, skipping")
+                continue
+            eval_texts = ensure_eval(lang)
+            eval_chars = sum(map(len, eval_texts))
             for tag, make_pt in PRETOKENIZERS.items():
                 key = f"{lang}_{tag}_{method}"
                 if key in results:
@@ -294,7 +297,7 @@ def main():
                 del tokenizer
                 gc.collect()
                 commit_cell(key)
-        drop_corpora(lang)
+            drop_corpora(lang)
 
     log(f"DONE: {len(results)} cells")
 
