@@ -1,0 +1,23 @@
+{
+  "en_plain_None": {
+    "lang": "en",
+    "pretokenizer": "plain",
+    "digit_handling": "None",
+    "atomic_vocab": 1710,
+    "vocab_size": 34478,
+    "train_seconds": 95,
+    "unique_chunks": 1020944,
+    "eval_chars": 2219281,
+    "eval_tokens": 590550,
+    "eval_chars_per_token": 3.757990009313352,
+    "roundtrip_failures": 0,
+    "distinct_alpha_words_with_own_token": 27667,
+    "space_dup_pairs": 3212,
+    "space_dup_vocab_frac": 0.18632171239631068,
+    "marker_variant_extra_slots": 0,
+    "whitespace_only_vocab_entries": 29,
+    "pure_digit_entries": 1486,
+    "distinct_numbers": 1486,
+    "digit_variant_extra_slots": 0
+  }
+}
