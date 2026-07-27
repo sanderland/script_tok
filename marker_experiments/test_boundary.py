@@ -327,3 +327,26 @@ def test_digit_handling_changes_hash(digit_handling):
     """Corpus cache keys must distinguish digit handling."""
     hashes = {dh: boundary_pt(digit_handling=dh).hash() for dh in [None, "SPLIT", "RTL3"]}
     assert len(set(hashes.values())) == 3, hashes
+
+
+NON_ASCII_NUMERIC_TEXTS = [
+    "½ cup", "a ½ b", "1½", "٣ عربي", "Ⅻ century", "⅓ and 2", "½", "½½", "2½ hours",
+]
+
+
+@pytest.mark.parametrize("digit_handling", [None, "SPLIT", "RTL3"])
+@pytest.mark.parametrize("text", NON_ASCII_NUMERIC_TEXTS)
+def test_non_ascii_numerics_roundtrip(digit_handling, text):
+    """Category N covers far more than ASCII 0-9 -- Nd for every script plus Nl/No
+    ('½', '⅓', '٣', 'Ⅻ') -- but group_digits/encode_digits only have tokens for ASCII,
+    because the base pipeline splits on re.split("([0-9]+)"). Grouping a non-ASCII
+    numeric raised KeyError and killed a training run mid-corpus."""
+    pt = boundary_pt(digit_handling=digit_handling)
+    assert pt.decode(flat(pt, text)) == pt.normalize(text)
+
+
+@pytest.mark.parametrize("digit_handling", ["SPLIT", "RTL3"])
+def test_mixed_ascii_and_non_ascii_numerics(digit_handling):
+    pt = boundary_pt(digit_handling=digit_handling)
+    for text in ["1½ cups", "٣ and 3", "12 ½ 34"]:
+        assert pt.decode(flat(pt, text)) == pt.normalize(text)

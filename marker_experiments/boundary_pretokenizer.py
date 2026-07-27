@@ -244,7 +244,13 @@ class BoundaryScriptPretokenizer(ScriptPretokenizer, config_type=BoundaryScriptP
                 if not elided[i]:
                     chunks.append([e for _, e in runs[0]])  # exactly as the baseline emits it
                 continue
-            if kind == self.DIGIT and self.config.digit_handling is not None:
+            digits = "".join(c for run in runs for c, _ in run) if kind == self.DIGIT else ""
+            # group_digits/encode_digits only have tokens for ASCII 0-9 -- the base pipeline
+            # splits on re.split("([0-9]+)"). Category N is far broader (Nd for every script,
+            # plus Nl/No: '½', '⅓', '٣', 'Ⅻ'), so grouping those raises KeyError. They stay on
+            # the ordinary script path; they are still delimited, but their marked forms are
+            # not bounded by grouping.
+            if kind == self.DIGIT and self.config.digit_handling is not None and digits.isascii() and digits.isdigit():
                 # Split the digit run into groups so marked forms stay bounded: with a
                 # whole run as one unit, every distinct number acquires up to four marked
                 # variants, which measured 1,093 wasted vocabulary slots (3.17%) for
