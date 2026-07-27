@@ -1,342 +1,308 @@
-# Boundary markers: removing with/without-space token duplication from SCRIPT tokenizers
+# Boundary markers: one canonical word form, and better compression, for SCRIPT tokenizers
 
-**Status:** working draft. All numbers are measured; the FineWiki 6-language table is
-filled in from `multilang_result.json` once `multilang_grid.py` completes.
+**Status:** draft. The FineWiki 1 GB BPE results (§4.1) are complete; the MinGram
+half (§4.2) is running and its table is marked pending. Results at smaller scale
+(§4.3) come from an earlier per-script variant of the scheme and are labelled so.
 
 ## Abstract
 
-Byte-pair and unigram vocabularies built over space-separated writing systems spend a
-large fraction of their capacity representing the same word twice — once with a leading
-space and once without (`' the'` and `'the'`). We measure this at **20–43% of the
-vocabulary**, and **64% of all emitted tokens**, depending on corpus and vocabulary size.
+Subword vocabularies built over space-separated writing systems spend a large
+fraction of their capacity representing the same word twice — once with a leading
+space and once without (`' the'` and `'the'`). Across six languages at 1 GB each we
+measure this at **18–30% of a 32,768-entry vocabulary**, and at 16k vocabulary on web
+text it accounts for **64% of all emitted tokens**. We replace the leading-space
+convention with an explicit boundary marker `<|>`: spans are delimited, and the single
+space between two adjacent delimited spans is elided at encode time and reconstructed
+at decode time from the resulting pair of touching markers. *Which* units get delimited
+decides everything. Delimiting words alone costs **−13.75%** compression on average;
+adding punctuation brings it to **−2.99%**; adding digits makes it **+2.14%**, beating
+the baseline in **all six languages** (range +0.88% to +3.77%) while reducing duplicate
+vocabulary pairs from thousands to fewer than ten, with zero roundtrip failures and no
+increase in training cost. The result is a tokenizer with one canonical form per word,
+~20% of vocabulary reclaimed, and *better* compression than the convention it replaces.
 
-We propose replacing the leading-space convention with an explicit boundary marker token
-`<|>`: word spans are wrapped unconditionally, so a word has one canonical form
-everywhere, and the single space between two adjacent spans is *elided* at encode time
-and reconstructed at decode time from the resulting pair of touching markers. Applied to
-words alone the scheme costs 7.5% compression. Extended to punctuation it costs 1.0–1.6%.
-Extended further to digits it **overtakes the baseline**: +1.17% chars/token at 64k on a
-mixed prose+code corpus, and **+2.74% on average across six FineWiki languages** (Latin,
-Cyrillic, Arabic, Hangul), winning in all six at 32k and 64k, with duplicate pairs reduced
-by three orders of magnitude and training no slower than the baseline. The result is a
-tokenizer with a canonical word form, 20–41% of vocabulary freed, and a compression *gain*
-rather than a penalty.
+## 1. The duplication
 
-## 1. The duplication we are trying to remove
+SCRIPT encoding (`ScriptEncodingV3`, registry name `scriptenc3_cb`) pretokenizes into
+script/category runs and lets a lone space attach to the following span, producing the
+`' word'` / `'word'` pair. Measured on FineWiki, 1 GB per language, 32,768 additional
+vocabulary, BPE:
 
-SCRIPT encoding (`ScriptEncodingV3`, registry name `scriptenc3_cb`) pretokenizes text into
-script/category runs and lets a lone space attach to the following span, which is what
-produces the familiar `' word'` / `'word'` pair. Measured on 80M characters of FineWeb
-English at 16k additional vocabulary:
+| lang | duplicate pairs | share of vocabulary |
+|---|---|---|
+| en | 3,196 | 18.5% |
+| de | 3,226 | 18.7% |
+| fi | 3,835 | 22.2% |
+| ru | 3,297 | 19.1% |
+| ar | 3,159 | 18.3% |
+| ko | 5,244 | **30.4%** |
 
-| | value |
-|---|---|
-| duplicate `' X'`/`'X'` pairs | 1,792 |
-| vocabulary slots consumed | 3,584 (**22.4%**) |
-| share of all emitted tokens | **64.23%** |
-| largest pairs | `' .'`/`'.'` 700,931 · `' ,'`/`','` 680,504 · `' the'`/`'the'` 639,584 |
+At 16k vocabulary on 80M characters of FineWeb the same measurement gives 1,792 pairs
+occupying 22.4% of the vocabulary and accounting for **64.23%** of all emitted tokens —
+the largest being `' .'`/`'.'` (700,931), `' ,'`/`','` (680,504), `' the'`/`'the'`
+(639,584).
 
-The tax grows with vocabulary, because every additional word costs two slots rather than
-one: 20.2% → 24.9% → 30.0% at 16k/32k/64k on prose, and 38.0% → 40.9% → **41.0%** on a
-mixed prose+code corpus.
-
-An important caveat, which took us a while to accept: this duplication is not *waste* in
-compression terms. Both forms are used, and they earn their slots. Section 4 shows the
-baseline compresses *better* than an early marker scheme despite spending 30% of its
-vocabulary on duplicates. The motivation for removing duplication is representational —
-one canonical form per word, and capacity freed for genuinely distinct content — not a
-free compression win. Getting to *no compression cost* took three design iterations.
+A caveat we had to accept early: this duplication is not *waste* in compression terms.
+Both forms are used and both earn their slots; §3 shows the baseline beating an early
+marker scheme by 7.5% despite spending 30% of its vocabulary on duplicates. The
+motivation is representational — one form per word, capacity freed for distinct content.
+That the final scheme also compresses *better* is a separate result, and it took three
+iterations to reach.
 
 ## 2. Method
 
-A single atomic token `<|>` is added to the pretokenizer's vocabulary. Text is grouped into
-units (maximal script/category runs, absorbing inherited marks), each classified as
+One atomic token `<|>` is added. Text is grouped into maximal script/category runs, then
+collected into units:
 
-- **word** — a script in `DEFAULT_SCRIPTS_LM_WITH_SPACES` with category `LM`
-  (the 20 space-using writing systems: Latin, Cyrillic, Arabic, Hangul, Devanagari, …),
-- **punct** — `combines_with_spaces` but not a letter (V3's `(✭, PSF)` blocks),
-- **digit** — category `N` (v5 only; see §3),
-- **space** — exactly one space character,
+- **word** — a maximal run of characters from *any* space-using script
+  (`DEFAULT_SCRIPTS_LM_WITH_SPACES`, category LM), **merged across script changes**;
+- **punct** — `combines_with_spaces` but not letters (V3's `(✭, PSF)` blocks);
+- **digit** — category `N`;
+- **space** — exactly one space character;
 - **other** — everything else (multi-space runs, newlines, Han, emoji).
 
 Marker placement:
 
-- a **word** span carries `<|>` on **both** sides, unconditionally;
-- **punct** and **digit** units carry `<|>` only on a side whose adjacent single space was
-  elided;
+- **word** spans are delimited on **both** sides, unconditionally — the point of the
+  scheme: a word looks the same regardless of what precedes it;
+- **punct** and **digit** units are delimited only on a side whose adjacent single space
+  was elided;
 - **other** units and non-elided spaces are emitted exactly as the baseline emits them.
 
-A single space is elided when **both** neighbours are markable. Its two neighbours then
-carry facing markers, which land adjacent in the atomic stream. Decoding is therefore:
+A single space is elided when **both** neighbours are delimited. Decoding is then:
 
 ```
-<|> immediately followed by <|>   ->  emit exactly one space
-a lone <|>                        ->  emit nothing (structural boundary)
+<|> immediately followed by <|>  ->  emit exactly one space
+a lone <|>                       ->  emit nothing (structural boundary)
 ```
 
-This is unambiguous precisely because only word spans are marked unconditionally. Had
-punctuation also been wrapped unconditionally, `a,b` would encode as
-`<|>a<|> <|>,<|> <|>b<|>` — touching markers at both junctions, indistinguishable from
-`a , b`. Marking punctuation only on a space side gives:
+### 2.1 Why spans merge across scripts
+
+Merging word runs across script changes is what makes the invariant hold without
+exceptions. If each script run were delimited separately, `latin` immediately followed by
+Cyrillic `кириллица` would put two unconditional markers face to face — indistinguishable
+from an elided space — and decode would fabricate one. We found this empirically: Greek
+letters used as identifiers (`sπ`, `upperΔ`, `Δx`) broke 5 of 500 held-out code documents.
+Merging first means two delimited word spans can never be adjacent, so a touching pair is
+unambiguously an elided space:
 
 ```
-a,b     ->  <|>a<|>  ,     <|>b<|>          (no touch, no space)
-a, b    ->  <|>a<|>  ,<|>  <|>b<|>          (one touch, one space)
-a = b   ->  <|>a<|>  <|>=<|>  <|>b<|>       (two touches, two spaces)
-a ,b    ->  <|>a<|>  <|>,   <|>b<|>         (asymmetric, correct)
+latinкириллица          ->  <|>latin | кириллица<|>          (one span, no inner marker)
+123 latinкириллица 123  ->  123<|> | <|>latin | кириллица<|> | <|>123
 ```
 
-**Word-adjacency exception.** Two *different* word scripts directly adjacent with no space
-would both emit unconditional markers, they would touch, and decode would insert a phantom
-space. We initially dismissed this as vanishingly rare; it is not, once code is in scope —
-Greek letters as mathematical identifiers (`sπ`, `upperΔ`, `Δx`, `łʒλπ` in Julia, Tcl and
-Python) broke **5 of 500** held-out code documents. A word therefore drops its *opening*
-marker when the preceding unit is also a word, which (since same-script runs are absorbed
-into one unit) can only mean a script change with no space. The preceding word keeps its
-closing marker, which becomes a lone marker and decodes to nothing.
+Inside a span the baseline's script split is preserved — the marker rides the first and
+last chunk — so no BPE merge crosses a script change the baseline would forbid.
 
-**Merge constraint.** `bpe_merge_allowed` forbids any merge across two touching markers.
-Without it, BPE learns tokens like `'<|>the<|><|>'` that swallow the dangling half of the
-*next* word's opening marker, reintroducing per-word duplication keyed on what follows
-instead of what precedes.
+### 2.2 Why punctuation and digits are asymmetric
 
-**Chunking.** Units are *not* fused across an elided space. Given the merge constraint,
-fusing admits exactly the same set of legal merges, while inflating the corpus from 335k to
-**1.76M** unique chunks and BPE training from 40s to **442s**. Decoding reads the flat
-atomic stream, so chunk boundaries do not affect reconstruction — the markers still touch
-across a chunk boundary. This one change accounts for a ~10× training speedup.
+Delimiting punctuation unconditionally would make `a,b` encode as
+`<|>a<|> <|>,<|> <|>b<|>`: touching markers at both junctions, indistinguishable from
+`a , b`. Marking only on a side that actually had a space keeps the invariant:
+
+```
+a,b   ->  <|>a<|>  ,     <|>b<|>        a, b   ->  <|>a<|>  ,<|>     <|>b<|>
+a ,b  ->  <|>a<|>  <|>,  <|>b<|>        a = b  ->  <|>a<|>  <|>=<|>  <|>b<|>
+```
+
+The cost is up to four variants per mark (`,` `,<|>` `<|>,` `<|>,<|>`), affordable only
+because punctuation and digits are *closed* sets: measured at 32,768 vocabulary this is
+146–225 slots, under 0.7%. Words are an open set and are never treated this way.
+
+### 2.3 Merge constraint and chunking
+
+`bpe_merge_allowed` forbids any merge across two touching markers. Without it BPE learns
+tokens like `'<|>the<|><|>'` that swallow the dangling half of the next span's opening
+marker, reintroducing per-word duplication keyed on what *follows*.
+
+Units are not fused across an elided space. Given the merge constraint, fusing admits
+exactly the same legal merges while inflating an early prototype's corpus from 335k to
+1.76M unique chunks and BPE training from 40s to 442s — ~10× cost for no benefit, since
+decoding reads the flat atomic stream and markers still touch across a chunk boundary.
 
 ## 3. Design iterations
 
-| variant | prose 16k chars/token | vs plain | note |
+| variant | prose 16k chars/token | vs plain | why |
 |---|---|---|---|
 | plain `scriptenc3_cb` | 3.9909 | — | baseline |
-| v1: rename the merged space token | 3.9909 | 0.00% | no-op: BPE's *first* learned merge already reattaches the space to the same token id, so pre-collapsing it changes nothing |
-| v2: hard chunk boundary, space left in place | 2.4201 | −39.4% | not the proposal — leaving the literal space and merely forbidding merges across it destroys compression |
-| v3: words only, space elided, merge-ban | 3.6920 | −7.49% | correct mechanism, words only |
-| **v4: + punctuation** | **3.9266** | **−1.61%** | closes 79% of v3's gap |
-| **v5: + digits** | see §4 | **positive** | overtakes the baseline at ≥32k |
+| rename the merged space token | 3.9909 | 0.00% | no-op: BPE's *first* learned merge already reattaches the space to the same token id |
+| hard chunk boundary, space kept | 2.4201 | −39.4% | not the proposal: forbidding merges across a retained space destroys compression |
+| words only | 3.6920 | −7.49% | right mechanism, wrong scope |
+| + punctuation | 3.9266 | −1.61% | removes bare space tokens after punctuation |
+| + digits | see §4 | positive | removes the last non-elided spaces |
 
-The step from v3 to v4 is worth dwelling on. v3 left punctuation unmarked, so `', b'`
-became an unmarked `,` **plus a standalone `' '` token** plus `<|>b<|>`. Marking
-punctuation on the space side turns that into `,<|>` + `<|>b<|>`, eliminating the bare
-space. This closed 79% of the gap *without* improving word coverage at all (7,717 vs
-v3's 7,752 single-token words) — the entire gain came from removing bare spaces.
+The words-only → punctuation step closed 79% of the gap *without improving word coverage
+at all* (7,717 vs 7,752 single-token words). The gain came entirely from eliminating bare
+space tokens: with only words delimited, `', b'` emits an unmarked `,`, a standalone
+`' '`, and `<|>b<|>`, where the baseline absorbs the space into `' b'`.
 
-The step from v4 to v5 was found by measuring which spaces v4 *failed* to elide:
+The punctuation → digits step was found by measuring which spaces the scheme *failed* to
+elide:
 
-| domain | single spaces | elided (v4) | not elided | of those, digit-adjacent |
+| domain | single spaces | elided | not elided | of those, digit-adjacent |
 |---|---|---|---|---|
 | code | 42,242 | 87.5% | 12.5% | **97.9%** |
 | prose | 287,220 | 96.7% | 3.3% | **98.7%** |
 
-Digits account for ~98% of every miss. The cause is structural: `script_category_v3` folds
-`L/M → LM`, `Z/Cc → ZC`, `So → So` and `P/S/Cf → PSF`, but leaves category `N` untouched,
-so digits land in `(✭, N)` blocks that are absent from `script_cat_with_spaces` and were
-therefore non-markable. Making digits markable under the same asymmetric rule as
-punctuation drops non-elided spaces to **0.3%** (code) and **0.0%** (prose).
-
-Digits and punctuation are safe to mark because they are *closed* sets, so the variant cost
-is bounded — at 64k, marker variants occupy 993 slots (~1.5% of vocabulary). We deliberately
-did **not** extend marking to Han, emoji or other open-set scripts, which account for only
-~2% of remaining misses.
+Digits are ~98% of every miss. The cause is structural: `script_category_v3` folds
+`L/M → LM`, `Z/Cc → ZC`, `So → So` and `P/S/Cf → PSF` but leaves category `N` alone, so
+digits are neither letters nor `combines_with_spaces` and were invisible to the scheme.
+Delimiting them drops non-elided spaces to 0.3% (code) and 0.0% (prose).
 
 ## 4. Results
 
-Setup: `ScriptEncodingV3` with `enforce_char_boundaries=True` throughout. BPE is the
-repository's greedy trainer; MinGram uses `overshoot_factor=1.15`, the repository's own
-working default. Metric is characters per token on held-out documents (higher is better).
-Roundtrip is verified on every held-out document of every cell.
+`ScriptEncodingV3` with `enforce_char_boundaries=True` throughout; the four pretokenizers
+differ *only* in which units carry a boundary, so the comparison isolates the scheme.
+Metric is characters per token on held-out documents (higher is better); roundtrip is
+verified on every held-out document of every cell.
 
-### 4.1 FineWeb English prose (80M chars train, 1000 held-out docs)
+### 4.1 FineWiki, 1 GB per language, 32,768 vocabulary, BPE
 
-| vocab | plain BPE | v4 BPE | gap | plain MinGram | v4 MinGram | gap |
-|---|---|---|---|---|---|---|
-| 16k | 3.9909 | 3.9266 | −1.61% | 4.0474 | 3.9670 | −1.99% |
-| 32k | 4.2611 | 4.2170 | −1.03% | 4.3012 | 4.2483 | −1.23% |
-| 64k | 4.4412 | 4.4032 | −0.86% | 4.4678 | 4.4204 | −1.06% |
+Languages are those of `FINEWIKI_HYBRID6_CORPORA`. `normalize_whitespace` is applied as
+the registry's finewiki loader does, so multi-space runs are absent by construction.
+Held-out slice is the last 500 documents.
 
-Duplicate pairs collapse from 1,792/4,201/9,871 to 1/2/2, i.e. 20–30% of vocabulary to
-0.01%. MinGram is uniformly ~1.0–1.4% better than BPE for both pretokenizers, and does not
-change the ordering. v5 was not run on this corpus; §4.2 and §4.3 cover it.
-
-### 4.2 Mixed prose + code (40M chars FineWeb + 40M chars code, 500 held-out docs per domain)
-
-Code half: `codeparrot/codeparrot-clean-valid` whole Python files plus
-`christopher/rosetta-code` multi-language snippets. No whitespace normalization.
-Gaps are relative to plain; positive means **better than the baseline**.
-
-| trainer | vocab | mixed v4 → v5 | prose v4 → v5 | code v4 → v5 |
-|---|---|---|---|---|
-| BPE | 16k | −2.13 → **−0.10** | −1.60 → **+0.05** | −3.71 → **−0.56** |
-| BPE | 32k | −1.64 → **+0.67** | −1.17 → **+0.79** | −2.99 → **+0.33** |
-| BPE | 64k | −1.33 → **+1.17** | −1.00 → **+1.13** | −2.28 → **+1.29** |
-| MinGram | 16k | −2.40 → **−0.36** | −2.00 → **−0.32** | −3.60 → **−0.48** |
-| MinGram | 32k | −1.88 → **+0.42** | −1.40 → **+0.55** | −3.25 → **+0.05** |
-| MinGram | 64k | −1.44 → **+1.07** | −1.16 → **+0.98** | −2.26 → **+1.33** |
-
-v5 crosses over between 16k and 32k and the advantage is still growing at 64k. At 64k BPE:
-
-| | chars/token | duplicate pairs | vocab on duplicates | train time |
-|---|---|---|---|---|
-| plain | 4.0087 | 13,480 | **41.0%** | 108s |
-| **v5** | **4.0557** | **120** | **0.4%** | **92s** |
-
-So v5 is simultaneously better compressing, ~100× lower in duplicate pairs, 41% of
-vocabulary freed, and faster to train.
-
-### 4.3 FineWiki, 6 languages
-
-Languages are those of `FINEWIKI_HYBRID6_CORPORA`: **en, de, fi, ru, ar, ko** — three
-Latin, plus Cyrillic, Arabic and Hangul; all six are space-using scripts and hence
-word-wrapped by the marker schemes. Setup matches the registry's `finewiki_{lang}_1gb`
-(same dataset, same `normalize_whitespace` transform, which collapses `[ \t]+` and so
-removes multi-space runs by construction) except for a smaller per-language character
-budget, for compute reasons; see `multilang_grid.py` for the exact deviation.
-
-This is also the first test of v5 on **prose-only training**: §4.2's prose column comes
-from a tokenizer trained on mixed data, so it left open whether the crossover survives
-without code in the training set. English says it does, at every vocabulary size:
-
-| en | plain | v4 | v5 |
-|---|---|---|---|
-| BPE 16k | 3.5852 | −2.66% | **+1.46%** |
-| BPE 32k | 3.8430 | −2.20% | **+2.63%** |
-| BPE 64k | 4.0464 | −2.03% | **+3.16%** |
-| MinGram 64k | 4.0817 | −2.29% | **+2.89%** |
-
-Duplicate pairs: plain 1,381 / 3,058 / 6,767 (15.6% → 20.6% of vocabulary) against v4 and
-v5's 4 / 4 / 6. Zero roundtrip failures in every cell.
-
-The English margin (+3.16% at 64k) is markedly larger than on mixed prose+code (+1.17%),
-and v5 wins here already at 16k where the mixed corpus needed 32k. Two plausible
-contributors: FineWiki is encyclopedic and therefore digit-dense (dates, measurements,
-counts), so digit marking pays more per character; and the registry's
-`normalize_whitespace` removes multi-space runs, which is visible in v4/v5 duplicate pairs
-falling to 4–6 rather than the 36–120 seen on unnormalized mixed text.
-
-Across all six languages (BPE, gap versus plain, positive = better than baseline):
-
-| lang | script | 16k v4 / v5 | 32k v4 / v5 | 64k v4 / v5 | plain 64k ch/tok |
+| lang | script | plain | `bnd_w` | `bnd_wp` | `bnd_wpd` |
 |---|---|---|---|---|---|
-| en | Latin | −2.66 / **+1.46** | −2.20 / **+2.63** | −2.03 / **+3.16** | 4.0464 |
-| de | Latin | −4.66 / **+0.43** | −4.03 / **+1.90** | −3.46 / **+3.14** | 4.2991 |
-| fi | Latin | −2.76 / **+1.17** | −2.54 / **+2.29** | −2.32 / **+3.22** | 4.3995 |
-| ru | Cyrillic | −2.58 / **+1.46** | −2.14 / **+2.61** | −1.95 / **+3.39** | 4.1510 |
-| ar | Arabic | −2.96 / **+0.76** | −2.48 / **+1.76** | −2.13 / **+2.53** | 4.0587 |
-| ko | Hangul | −4.59 / **−1.28** | −3.77 / **+0.08** | −3.24 / **+1.01** | 2.2837 |
-| **mean** | | −3.37 / **+0.67** | −2.86 / **+1.88** | −2.52 / **+2.74** | |
+| en | Latin | 3.8310 | −15.97% | −2.90% | **+3.77%** |
+| de | Latin | 4.1110 | −12.56% | −3.59% | **+1.60%** |
+| fi | Latin | 3.9836 | −12.64% | −2.94% | **+2.02%** |
+| ru | Cyrillic | 3.7955 | −13.72% | −2.35% | **+2.67%** |
+| ar | Arabic | 3.9838 | −12.41% | −2.67% | **+1.91%** |
+| ko | Hangul | 2.2310 | −15.21% | −3.48% | **+0.88%** |
+| **mean** | | | **−13.75%** | **−2.99%** | **+2.14%** |
 
-MinGram at 64k on the three script families confirms the ordering is not a BPE artifact:
-en +2.89%, ru +3.21%, ko +0.88% for v5 (−2.29 / −2.18 / −3.38 for v4). **Zero roundtrip
-failures across all 63 cells.**
+**Zero roundtrip failures across all 24 cells.** The progression is tight across scripts:
+`bnd_w` clusters in −12 to −16%, `bnd_wp` in −2.4 to −3.6%, `bnd_wpd` positive everywhere.
 
-v5 wins in all six languages at 32k and 64k, and in five of six at 16k. The pattern is
-consistent rather than driven by any one language: v4 is uniformly negative (−1.95% to
-−4.66%), v5 uniformly positive except Korean at 16k, and the margin grows monotonically
-with vocabulary in every language.
+Vocabulary structure at the same setting:
 
-Vocabulary structure at 64k, which is the point of the exercise:
-
-| lang | plain duplicate pairs | plain vocab on duplicates | v5 pairs | v5 marker-variant slots |
+| lang | plain dup pairs | plain vocab on dups | `bnd_wpd` pairs | `bnd_wpd` variant slots |
 |---|---|---|---|---|
-| en | 6,767 | 20.6% | 6 | 285 |
-| de | 6,677 | 20.3% | 5 | 238 |
-| fi | 7,634 | 23.2% | 5 | 186 |
-| ru | 7,016 | 21.4% | 9 | 234 |
-| ar | 6,489 | 19.8% | 10 | 290 |
-| ko | 10,201 | **31.0%** | 6 | 324 |
+| en | 3,196 | 18.5% | 4 | 213 |
+| de | 3,226 | 18.7% | 4 | 188 |
+| fi | 3,835 | 22.2% | 4 | 146 |
+| ru | 3,297 | 19.1% | 5 | 185 |
+| ar | 3,159 | 18.3% | 6 | 198 |
+| ko | 5,244 | 30.4% | 4 | 218 |
 
-**Korean is the hardest case and it is instructive.** It has both the largest duplicate tax
-to remove (31.0% of vocabulary) and the smallest gain from removing it (+1.01% at 64k,
-−1.28% at 16k). Hangul syllable blocks give Korean by far the lowest absolute compression
-(2.28 vs 4.05–4.40 chars/token), so each word span is few tokens long and the two marker
-tokens are a proportionally larger overhead; the config's own annotation notes Hangul sits
-adjacent to a space 28.8% of the time, the highest of the 20 space-using scripts. Where
-words are short relative to the marker pair, the scheme has less room to win.
+Training cost is not a penalty: `bnd_wpd` is at or below baseline time in every language
+(en 160s vs 152s, de 286s vs 329s, fi 322s vs 353s, ru 231s vs 241s, ar 200s vs 206s, ko
+388s vs 456s) and yields fewer unique chunks (ko 8.60M vs 9.47M).
 
-## 5. Why the early versions cost anything at all
+One metric misleads if read directly: *distinct words with their own token* falls from
+~27k (plain) to ~11–16k (`bnd_wpd`). That is not lost coverage — the baseline
+double-counts, holding `' the'` and `'the'` as two entries for one word, while the marker
+vocabulary holds one canonical form.
 
-The v3 penalty was not an artifact of a bad merge order, and larger candidate pools do not
-fix it. Sweeping MinGram's BPE-init overshoot over 1.10 / 1.15 / 1.25:
+### 4.2 FineWiki, 1 GB per language, MinGram
 
-| f | plain | v3 | gap | v3 single-token words |
+*(pending — 24 cells running, `overshoot_factor=1.15`, the repository's working default)*
+
+At 100M characters per language MinGram reproduced the BPE ordering for an earlier variant
+(en +2.89%, ru +3.21%, ko +0.88%), so the effect is not a BPE-specific artifact.
+
+### 4.3 Smaller scale, earlier per-script variant
+
+These predate the span merging of §2.1 and delimited each script run separately. They are
+included because they establish scale and domain behaviour, and because the mixed
+prose+code corpus is the only place code was studied.
+
+**FineWeb English prose**, 80M chars, 1000 held-out docs, `+punct` variant:
+
+| vocab | plain BPE | +punct | plain MinGram | +punct |
+|---|---|---|---|---|
+| 16k | 3.9909 | −1.61% | 4.0474 | −1.99% |
+| 32k | 4.2611 | −1.03% | 4.3012 | −1.23% |
+| 64k | 4.4412 | −0.86% | 4.4678 | −1.06% |
+
+**Mixed prose + code**, 40M FineWeb + 40M code (codeparrot Python files, rosetta-code
+snippets), no whitespace normalization, 500 held-out docs per domain, `+digits` against
+baseline:
+
+| trainer | vocab | mixed | prose | code |
+|---|---|---|---|---|
+| BPE | 16k | −0.10% | +0.05% | −0.56% |
+| BPE | 32k | +0.67% | +0.79% | +0.33% |
+| BPE | 64k | **+1.17%** | +1.13% | +1.29% |
+| MinGram | 64k | +1.07% | +0.98% | +1.33% |
+
+The span-merged design at 1 GB (+3.77% for en at 32k) outperforms the per-script design at
+100M (+2.63% for en at 32k), so removing the inner boundary cost nothing and gained.
+
+## 5. Analysis
+
+**Overshoot does not substitute for the right boundary set.** Sweeping MinGram's BPE-init
+overshoot at 16k on the words-only variant:
+
+| f | plain | words-only | gap | words-only single-token words |
 |---|---|---|---|---|
 | 1.10 | 4.0455 | 3.7286 | −7.83% | 8,674 |
 | 1.15 | 4.0474 | 3.7282 | −7.89% | 8,856 |
 | 1.25 | 4.0470 | 3.7252 | −7.95% | 8,964 |
 
-A 2.5× increase in overshoot budget bought 290 words and made compression marginally
-*worse*. Switching from BPE to MinGram does recover a one-time ~900 words (7,752 → 8,674)
-by pruning dead intermediates that permanently occupy BPE vocabulary slots, but that is
-~900 of a ~5,000-word deficit, and further overshoot adds almost nothing.
+A 2.5× larger candidate pool bought 290 words and made compression marginally *worse*.
+MinGram does recover a one-time ~900 words by pruning dead BPE intermediates, but that is
+~900 of a ~5,000-word deficit.
 
-The real cost of v3 was **bare space tokens**, not vocabulary accounting — which is why
-marking punctuation (v4) and then digits (v5) recovered it entirely, while overshoot could
-not. Bucketing the token stream on held-out code makes this concrete; v4's +3,256-token
-deficit versus plain decomposes as:
+**The deficit was bare space tokens, not vocabulary accounting.** Bucketing the token
+stream on held-out code, the words+punct variant's +3,256-token deficit versus baseline
+decomposes as whitespace +1,708 (52%), alpha +721, punct +434, marker-only +382, digit
++11. The whitespace term is *not* indentation — pure space tokens of length > 1 are 1.24%
+of code tokens with identical counts under both schemes, and BPE folds them into
+`"\n    "`-style tokens running at 4.59 chars/token. It is the digit case: in `1 item` the
+baseline absorbs the space into `' item'` while an undelimited digit blocks elision.
+Counting cases where the following unit is delimited but the preceding is not gives 1,834,
+against the measured +1,708.
 
-| bucket | delta | share |
-|---|---|---|
-| whitespace | +1,708 | 52% |
-| alpha | +721 | 22% |
-| punct/symbol | +434 | 13% |
-| marker-only (empty) | +382 | 12% |
-| digit | +11 | 0% |
-
-The whitespace term is *not* indentation. Multi-space runs are ~1 token either way: pure
-space tokens of length > 1 account for **1.24%** of code tokens, with identical counts
-under plain and v4, and BPE folds them into `"\n    "`-style tokens that run at 4.59
-chars/token — better than alpha's 3.91. The whitespace deficit is entirely the digit case:
-in `1 item`, plain absorbs the space into `' item'` while v4 cannot elide it (a digit is
-not markable) and must emit a standalone `' '`. Counting the cases where the following unit
-is markable but the preceding is not gives 1,834, against the measured +1,708 — the
-mechanism accounts for the gap, and v5 removes it.
+**Korean is the informative weak case.** It has the largest duplicate tax to reclaim
+(30.4%) and the smallest gain from reclaiming it (+0.88%). Hangul syllable blocks give
+Korean by far the lowest absolute compression (2.23 vs 3.80–4.11 chars/token), so word
+spans are short and the two marker tokens are proportionally heavier. The rule that falls
+out: the scheme pays in proportion to span length relative to its two markers.
 
 ## 6. Limitations
 
-- **The crossover point is corpus-dependent.** On mixed prose+code it sits between 16k and
-  32k, so a 16k mixed vocabulary gets no benefit (−0.10% BPE). On FineWiki English v5 is
-  already ahead at 16k (+1.46%). We have not identified the smallest vocabulary at which
-  the scheme still pays on either corpus.
-- **Marker-only tokens are pure overhead**: 382 emissions (0.27% of code tokens) are lone
-  `<|>` carrying no characters.
-- **One roundtrip failure per code cell, for plain and markers alike**: `U+F8FF`
-  (private use) is absent from the V3 `char_encoding` and is silently dropped. Pre-existing,
-  unrelated to this work, but it means "0 failures" is not achievable on that corpus without
-  a script-config fix.
-- **Adjacent word scripts with no separator** are handled by dropping one marker, which
-  means those specific words lose the canonical-form guarantee. Rare (~1% of code docs,
-  ~0% of prose docs) but not zero.
 - **No language-modelling evaluation.** Everything here is compression and vocabulary
-  structure. Whether a canonical word form helps or hurts downstream LM quality is exactly
-  the question these numbers cannot answer, and is the obvious next experiment.
-- **Open-set scripts are unmarked.** Han, emoji and other non-space scripts keep baseline
-  behaviour, so ~2% of single spaces remain non-elided. CJK-heavy corpora were not studied.
-- **Gains shrink where words are short relative to the marker pair.** Korean is the clearest
-  case (+1.01% at 64k, −1.28% at 16k) despite having the largest duplicate tax to remove.
-  Scripts with low absolute chars/token have less headroom, and the six languages studied
-  are all space-using — the scheme does nothing for Han, Thai, or other spaceless scripts.
-- **Per-language budget below the registry's 1 GB.** §4.3 uses a smaller per-language
-  character budget than `finewiki_{lang}_1gb`; absolute chars/token would shift with more
-  data, though the plain/v4/v5 ordering is consistent across three vocabulary sizes, two
-  trainers and six languages.
+  structure. Whether a canonical word form helps or hurts downstream quality is the
+  obvious next experiment and is not addressed.
+- **Space-using scripts only.** All six languages use spaces; the scheme does nothing for
+  Han, Thai or other spaceless scripts, which keep baseline behaviour.
+- **Open-set scripts are undelimited**, so ~2% of single spaces remain non-elided in mixed
+  text. CJK-heavy corpora were not studied.
+- **Gains shrink where spans are short** relative to the marker pair (Korean, §5).
+- **Marker-only tokens are pure overhead**: 382 emissions, 0.27% of code tokens, carrying
+  no characters.
+- **§4.3 uses first-N sampling**, not the registry's seeded reservoir sample over the full
+  source, and its corpora are 80M chars against `fineweb_en_5gb`'s 5×10⁹.
+- **One roundtrip failure per code cell in §4.3, baseline included**: `U+F8FF` is absent
+  from the V3 `char_encoding` and is dropped. Pre-existing and unrelated, but zero failures
+  is unreachable on that corpus without a script-config fix.
+- **Single vocabulary size at 1 GB.** §4.1 is 32,768 only; the smaller-scale runs show the
+  advantage growing with vocabulary, but that is not verified at 1 GB.
 
 ## 7. Reproduction
 
 ```
 marker_experiments/
-  scriptenc_marker_v4.py   # words (unconditional) + punctuation (space side)
-  scriptenc_marker_v5.py   # v4 + digits (space side)
-  multilang_grid.py        # FineWiki 6-language grid, resumable
-  prior_results.json       # English-prose and mixed-code numbers
-  multilang_result.json    # FineWiki 6-language numbers
+  boundary_pretokenizer.py   # BoundaryScriptPretokenizer, boundary_targets config
+  test_boundary.py           # 412 tests
+  finewiki1gb_grid.py        # 4.1/4.2 grid: resumable, commits each cell with its tokenizer
+  finewiki1gb_result.json    # 4.1/4.2 numbers
+  multilang_grid.py          # earlier per-script 100M multilingual grid
+  multilang_result.json
+  prior_results.json         # 4.3 and 5 numbers
+  tokenizers/                # every trained tokenizer
 ```
 
-`v5` subclasses `v4` and overrides a single hook (`_extra_markable_script_ids`), so the two
-schemes differ by exactly the digit set. Both are ordinary `ScriptPretokenizer` subclasses
-and need no changes to the trainers.
+The three variants are one class differing only in `boundary_targets`, and produce distinct
+`hash()` values so they cannot collide in the pretokenized-corpus cache — a trap the
+earlier prototypes fell into, since `Pretokenizer.hash()` is config-derived and ignores
+behaviour.
 
-One practical note for anyone extending this: `Pretokenizer.hash()` is derived from the
-config only, so two prototypes whose *behaviour* differs but whose config fields match will
-collide in the pretokenized-corpus cache. Use distinct corpus names per prototype.
+A note on running this environment: the container clears the working tree every ~30–60
+minutes and caps disk, so the grid streams text rather than staging it, frees each
+language's corpora when done, retries transient CDN failures, and commits and pushes every
+finished cell. Reading only shard `000_00000` silently under-reads languages whose first
+shard is smaller than the budget (Arabic 483M, Korean ~734M); the runner lists and reads
+all shards.
