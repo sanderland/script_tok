@@ -57,7 +57,12 @@ from typing import Literal, Sequence
 
 from pydantic import ConfigDict
 
-from script_bpe.pretokenize.pretokenizer import ScriptPretokenizer, ScriptPretokenizerConfig, CharEncT
+from script_bpe.pretokenize.pretokenizer import (
+    CharEncT,
+    ScriptPretokenizer,
+    ScriptPretokenizerConfig,
+    group_digits,
+)
 
 BoundaryTarget = Literal["word", "punct", "digit"]
 
@@ -107,6 +112,15 @@ class BoundaryScriptPretokenizer(ScriptPretokenizer, config_type=BoundaryScriptP
             if name in targets
         )
 
+    def __init__(self, config: BoundaryScriptPretokenizerConfig) -> None:
+        super().__init__(config)
+        # Digit-group tokens are registered by the base _build_digit_tokens AFTER
+        # _build_atomic_tokens runs, and ScriptPretokenizer.decode has no path for them
+        # (digit_handling was only ever exercised with UTF8Pretokenizer). Collect their
+        # ids here so decode can emit them directly; they are the only atomic tokens
+        # whose text is all digits.
+        self.digit_token_ids = {tid for tid, txt in self.atomic_tokens.items() if txt.isdigit()}
+
     def bpe_merge_allowed(self, a, b) -> bool:
         # No learned token may span an elided-space point. Without this, BPE learns tokens
         # like '<|>the<|><|>' that swallow the dangling half of the next span's opening
@@ -127,6 +141,10 @@ class BoundaryScriptPretokenizer(ScriptPretokenizer, config_type=BoundaryScriptP
                 else:
                     i += 1  # lone marker: structural boundary, no character
                 continue
+            if tokenization[i] in self.digit_token_ids:
+                decoded += self.atomic_tokens[tokenization[i]]  # digit group, single token
+                i += 1
+                continue
             script_tok = tokenization[i]
             ix_tok = tokenization[i + 1] if i + 1 < n else None
             if (script_tok, ix_tok) in self.detokenize_map:
@@ -145,12 +163,12 @@ class BoundaryScriptPretokenizer(ScriptPretokenizer, config_type=BoundaryScriptP
         return decoded
 
     def _kind(self, group) -> str:
-        script_id = group[0].script_id
+        script_id = group[0][1].script_id
         if script_id in self.word_script_ids:
             return self.WORD
         if script_id in self.digit_script_ids:
             return self.DIGIT
-        if group[0].combines_with_spaces:
+        if group[0][1].combines_with_spaces:
             return self.PUNCT
         return self.OTHER
 
@@ -162,7 +180,7 @@ class BoundaryScriptPretokenizer(ScriptPretokenizer, config_type=BoundaryScriptP
         n = len(script_groups)
         while i < n:
             group = script_groups[i]
-            if group == self.space_group:  # exactly one space character
+            if [e for _, e in group] == self.space_group:  # exactly one space character
                 units.append((self.SPACE, [list(group)]))
                 i += 1
                 continue
@@ -172,29 +190,42 @@ class BoundaryScriptPretokenizer(ScriptPretokenizer, config_type=BoundaryScriptP
             if kind == self.WORD:
                 # merge across ANY space-using-script change, plus inherited marks
                 while i < n and (
-                    script_groups[i][0].inherited or script_groups[i][0].script_id in self.word_script_ids
+                    script_groups[i][0][1].inherited or script_groups[i][0][1].script_id in self.word_script_ids
                 ):
-                    if script_groups[i][0].inherited or script_groups[i][0].script_id == runs[-1][0].script_id:
+                    if (
+                        script_groups[i][0][1].inherited
+                        or script_groups[i][0][1].script_id == runs[-1][0][1].script_id
+                    ):
                         runs[-1] = runs[-1] + list(script_groups[i])
                     else:
                         runs.append(list(script_groups[i]))
                     i += 1
             else:
-                script_id = group[0].script_id
-                while i < n and (script_groups[i][0].inherited or script_groups[i][0].script_id == script_id):
+                script_id = group[0][1].script_id
+                while i < n and (
+                    script_groups[i][0][1].inherited or script_groups[i][0][1].script_id == script_id
+                ):
                     runs[-1] = runs[-1] + list(script_groups[i])
                     i += 1
             units.append((kind, runs))
         return units
 
-    def split_encoded(self, encoding: Sequence[CharEncT]) -> list[Sequence[CharEncT]]:
-        if not self._script_split:
-            return [encoding]
-        script_encoding = [c for c in encoding if hasattr(c, "script_id")]
-        if len(script_encoding) != len(encoding):
-            raise ValueError(f"Unexpected encoding: {encoding}")
-        script_groups = [list(g) for _, g in itertools.groupby(script_encoding, key=lambda x: x.script_id)]
-        units = self._build_units(script_groups)
+    def split_unencoded_and_encode(self, text: str) -> list[Sequence[CharEncT]]:
+        """Encode and chunk in one pass, keeping source characters alongside encodings.
+
+        The base implementation splits digit runs into their own chunks *before*
+        split_encoded runs. That is fatal here: a digit unit and its neighbouring word
+        would land in different chunks, so the shared single space between them could
+        never be seen as elidable, and `digit` as a boundary target would silently do
+        nothing. The unit analysis therefore has to happen over the whole text first,
+        with digit grouping applied inside a digit unit afterwards.
+        """
+        if self.config.regex_pattern is not None:
+            raise NotImplementedError("BoundaryScriptPretokenizer does not support regex_pattern")
+        enc = self.encode_text(text)  # 1:1 with characters
+        pairs = list(zip(text, enc))
+        groups = [list(g) for _, g in itertools.groupby(pairs, key=lambda p: p[1].script_id)]
+        units = self._build_units(groups)
         marker = MarkerCharEnc(self.marker_token_id)
         marked = self.marked_kinds
 
@@ -211,24 +242,37 @@ class BoundaryScriptPretokenizer(ScriptPretokenizer, config_type=BoundaryScriptP
         for i, (kind, runs) in enumerate(units):
             if kind == self.SPACE:
                 if not elided[i]:
-                    chunks.append(runs[0])  # untouched, exactly as the baseline emits it
+                    chunks.append([e for _, e in runs[0]])  # exactly as the baseline emits it
                 continue
+            if kind == self.DIGIT and self.config.digit_handling is not None:
+                # Split the digit run into groups so marked forms stay bounded: with a
+                # whole run as one unit, every distinct number acquires up to four marked
+                # variants, which measured 1,093 wasted vocabulary slots (3.17%) for
+                # English at 32,768. Splitting means only the run's first and last GROUP
+                # can carry a marker -- 10 digits under SPLIT, 1110 under RTL3.
+                digits = "".join(c for run in runs for c, _ in run)
+                out = [self.encode_digits([g]) for g in group_digits(digits, self.config.digit_handling)]
+            else:
+                out = [[e for _, e in run] for run in runs]
             if kind not in marked:
-                chunks.extend(runs)
+                chunks.extend(out)
                 continue
             if kind == self.WORD:
                 left = right = True  # unconditional: one canonical form per span
             else:
                 left = i > 0 and elided[i - 1]
                 right = i + 1 < len(units) and elided[i + 1]
-            # marker rides the first/last script run, preserving the internal split
-            out = [list(r) for r in runs]
+            # marker rides the first/last run, preserving any internal split
             if left:
-                out[0] = [marker] + out[0]
+                out[0] = [marker] + list(out[0])
             if right:
-                out[-1] = out[-1] + [marker]
+                out[-1] = list(out[-1]) + [marker]
             chunks.extend(out)
         return chunks
+
+    def split_encoded(self, encoding: Sequence[CharEncT]) -> list[Sequence[CharEncT]]:
+        # All chunking already happened in split_unencoded_and_encode.
+        return [encoding]
 
 
 # Named variants used by the experiments. All are ScriptEncodingV3 with

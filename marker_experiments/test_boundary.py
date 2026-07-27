@@ -245,3 +245,85 @@ def test_atomic_vocab_is_baseline_plus_one():
 
 def visible_chunks(pt, text):
     return [visible(pt, list(c)) for c in pt.pretokenize(text)]
+
+
+# ------------------------------------------------------------------- digit_handling
+
+DIGIT_TEXTS = [
+    "x = 1", "version 2 of 3", "in 1984 he", "a 12345 b", "3.14 and 2",
+    "0", "007 and 42", "1a", "a1", "123 latinкириллица 123", "no digits here",
+]
+
+
+def boundary_pt(targets=("word", "punct", "digit"), digit_handling=None):
+    return BoundaryScriptPretokenizer(
+        BoundaryScriptPretokenizerConfig(
+            script_config=ScriptEncodingV3, boundary_targets=targets, digit_handling=digit_handling
+        )
+    )
+
+
+@pytest.mark.parametrize("digit_handling", [None, "SPLIT", "RTL3"])
+@pytest.mark.parametrize("text", DIGIT_TEXTS)
+def test_digit_handling_roundtrip(digit_handling, text):
+    pt = boundary_pt(digit_handling=digit_handling)
+    assert pt.decode(flat(pt, text)) == pt.normalize(text)
+
+
+@pytest.mark.parametrize("digit_handling", ["SPLIT", "RTL3"])
+def test_elision_still_happens_across_digit_boundaries(digit_handling):
+    """The base pipeline splits digit runs into separate chunks BEFORE split_encoded,
+    which would put a digit and its neighbouring word in different chunks and silently
+    disable elision. The override must keep 'x = 1' fully elided."""
+    pt = boundary_pt(digit_handling=digit_handling)
+    ids = flat(pt, "x = 1")
+    m = pt.marker_token_id
+    pairs = sum(1 for i in range(len(ids) - 1) if ids[i] == m and ids[i + 1] == m)
+    assert pairs == 2, f"expected both spaces elided, got {pairs}"
+    assert pt.decode(ids) == "x = 1"
+
+
+@pytest.mark.parametrize("digit_handling", ["SPLIT", "RTL3"])
+def test_only_outer_digit_groups_carry_markers(digit_handling):
+    """Interior groups of a digit run must never be marked; that is what bounds the
+    number of marked digit forms (10 under SPLIT, 1110 under RTL3) instead of one set
+    per distinct number."""
+    pt = boundary_pt(digit_handling=digit_handling)
+    chunks = [list(c) for c in pt.pretokenize("a 12345 b")]
+    m = pt.marker_token_id
+    digit_chunks = [c for c in chunks if any(t in pt.digit_token_ids for t in c)]
+    assert len(digit_chunks) >= 2, digit_chunks
+    for c in digit_chunks[1:-1]:
+        assert m not in c, f"interior digit group marked: {c}"
+
+
+def test_split_bounds_markable_digit_strings():
+    """Under SPLIT a marked digit form can only ever wrap a single digit."""
+    pt = boundary_pt(digit_handling="SPLIT")
+    m = pt.marker_token_id
+    marked = set()
+    for text in ["a 1 b", "a 12 b", "a 12345 b", "x 007 y", "1 2 3"]:
+        for c in pt.pretokenize(text):
+            c = list(c)
+            if m in c:
+                core = [t for t in c if t != m]
+                if core and all(t in pt.digit_token_ids for t in core):
+                    marked.add("".join(pt.atomic_tokens[t] for t in core))
+    assert all(len(s) == 1 for s in marked), marked
+
+
+def test_digit_target_off_leaves_digits_unmarked():
+    pt = boundary_pt(targets=("word", "punct"), digit_handling="SPLIT")
+    m = pt.marker_token_id
+    for c in pt.pretokenize("x = 1"):
+        c = list(c)
+        if any(t in pt.digit_token_ids for t in c):
+            assert m not in c
+    assert pt.decode(flat(pt, "x = 1")) == "x = 1"
+
+
+@pytest.mark.parametrize("digit_handling", [None, "SPLIT", "RTL3"])
+def test_digit_handling_changes_hash(digit_handling):
+    """Corpus cache keys must distinguish digit handling."""
+    hashes = {dh: boundary_pt(digit_handling=dh).hash() for dh in [None, "SPLIT", "RTL3"]}
+    assert len(set(hashes.values())) == 3, hashes

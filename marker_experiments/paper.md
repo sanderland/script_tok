@@ -105,9 +105,27 @@ a,b   ->  <|>a<|>  ,     <|>b<|>        a, b   ->  <|>a<|>  ,<|>     <|>b<|>
 a ,b  ->  <|>a<|>  <|>,  <|>b<|>        a = b  ->  <|>a<|>  <|>=<|>  <|>b<|>
 ```
 
-The cost is up to four variants per mark (`,` `,<|>` `<|>,` `<|>,<|>`), affordable only
-because punctuation and digits are *closed* sets: measured at 32,768 vocabulary this is
-146–225 slots, under 0.7%. Words are an open set and are never treated this way.
+The cost is up to four variants per mark (`,` `,<|>` `<|>,` `<|>,<|>`). For punctuation
+this is cheap because the set is genuinely closed: 146–225 slots at 32,768 vocabulary,
+under 0.7%.
+
+**For digits it is not, and this is a real cost we initially mis-stated.** A digit *unit*
+is a whole run, so the marked set is one entry per distinct *number*, not per digit. At
+32,768 vocabulary the `bnd_wpd` runs of §4.1 spend, on pure-digit entries:
+
+| lang | plain entries | `bnd_wpd` entries | distinct numbers covered | slots lost to variants |
+|---|---|---|---|---|
+| en | 1,426 | 1,682 | 589 (vs 1,426) | **1,093 (3.17%)** |
+| de | 1,128 | 1,416 | 522 (vs 1,128) | 894 (2.59%) |
+| ru | 786 | 1,269 | 445 (vs 786) | 824 (2.39%) |
+| ko | 927 | 1,082 | 441 (vs 927) | 641 (1.86%) |
+
+That is the very duplication the scheme exists to remove, reintroduced for numbers: more
+entries spent, less than half the coverage. The fix is to bound the markable set with
+`digit_handling`, which splits digit runs so only the run's first and last *group* can
+carry a marker — 10 markable strings under `SPLIT`, 1110 under `RTL3` (`pretokenizer.py`
+registers exactly those). §4.1 used `digit_handling=None`, so its `bnd_wpd` numbers are
+achieved *while paying* this 2–3% tax, and should improve once it is removed.
 
 ### 2.3 Merge constraint and chunking
 
@@ -280,6 +298,9 @@ out: the scheme pays in proportion to span length relative to its two markers.
   is unreachable on that corpus without a script-config fix.
 - **Single vocabulary size at 1 GB.** §4.1 is 32,768 only; the smaller-scale runs show the
   advantage growing with vocabulary, but that is not verified at 1 GB.
+- **§4.1 ran with `digit_handling=None`**, so it pays the 2–3% digit-variant tax described
+  in §2.2. Combining boundaries with digit splitting is implemented and tested but not yet
+  measured at scale; it should only improve the reported figures.
 
 ## 7. Reproduction
 
