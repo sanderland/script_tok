@@ -36,9 +36,16 @@ from script_bpe.pretokenize.scriptencoding import ScriptEncodingV3
 from script_bpe.tokenizers.bpe.trainer import BPETrainer, BPETrainerConfig
 
 from boundary_pretokenizer import BoundaryScriptPretokenizer, BoundaryScriptPretokenizerConfig
-from finewiki1gb_grid import CORPORA, VOCAB, NUM_WORKERS, analyse_vocab, commit_cell, ensure_eval, log, stream_batches
+import finewiki1gb_grid as G
+from finewiki1gb_grid import CORPORA, VOCAB, NUM_WORKERS, analyse_vocab, commit_cell, ensure_eval, log, train_batches
 
 LANG = "en"
+# 250M chars, not the 1 GB of the main grid: the digit-variant tax is a property of the
+# markable set, not of scale, and at 1 GB each cell needed a 716s corpus build that the
+# container's ~30-60 min working-tree wipes kept destroying mid-flight. All six cells here
+# are rebuilt at this size so the three digit_handling settings are directly comparable to
+# each other; they are NOT comparable to the 1 GB numbers in the main grid.
+DIGIT_AXIS_CHARS = 250_000_000
 RESULT_PATH = os.path.join(HERE, "digit_split_result.json")
 TOKENIZERS = os.path.join(HERE, "tokenizers")
 
@@ -139,24 +146,26 @@ def digit_stats(tokenizer, pt):
 def main():
     os.makedirs(TOKENIZERS, exist_ok=True)
     results = json.load(open(RESULT_PATH)) if os.path.exists(RESULT_PATH) else {}
+    G.CHARS_PER_LANG = DIGIT_AXIS_CHARS
     eval_texts = ensure_eval(LANG)
     eval_chars = sum(map(len, eval_texts))
 
-    for digit_handling in ["SPLIT", "RTL3"]:
+    G.CHARS_PER_LANG = DIGIT_AXIS_CHARS  # applies to train_batches/ensure_eval below
+    for digit_handling in ["None", "SPLIT", "RTL3"]:
         for tag in ["plain", "bnd_wpd"]:
             key = f"{LANG}_{tag}_{digit_handling}"
             if key in results:
                 log(f"{key}: done, skipping")
                 continue
-            pt = make_pt(tag, digit_handling)
-            corpus_name = f"digitsplit_{LANG}_{tag}_{digit_handling}"
+            pt = make_pt(tag, None if digit_handling == "None" else digit_handling)
+            corpus_name = f"digitsplit250_{LANG}_{tag}_{digit_handling}"
             try:
                 corpus = PretokenizedCorpus(name=corpus_name, base_path=CORPORA, pretokenizer=pt)
             except FileNotFoundError:
                 t = time.time()
                 corpus = PretokenizedCorpus.from_text_batches(
                     name=corpus_name, base_path=CORPORA, pretokenizer=pt,
-                    text_batches=stream_batches(LANG), num_workers=NUM_WORKERS,
+                    text_batches=train_batches(LANG), num_workers=NUM_WORKERS,
                 )
                 log(f"{key}: corpus built in {time.time()-t:.0f}s "
                     f"unique_chunks={corpus.metadata.get('unique_chunks'):,}")

@@ -298,6 +298,11 @@ out: the scheme pays in proportion to span length relative to its two markers.
   is unreachable on that corpus without a script-config fix.
 - **Single vocabulary size at 1 GB.** §4.1 is 32,768 only; the smaller-scale runs show the
   advantage growing with vocabulary, but that is not verified at 1 GB.
+- **§4.1 trains on its own evaluation slice.** The held-out documents are the last 500 of
+  the stream, but the corpus was built from the whole stream, so they are ~1.3% of the
+  training data. The leak is identical for every pretokenizer, so the *gaps* in §4.1 are
+  unaffected; absolute chars/token is optimistic for all four alike. Fixed for the digit
+  axis (§4.4), which withholds them.
 - **§4.1 ran with `digit_handling=None`**, so it pays the 2–3% digit-variant tax described
   in §2.2. Combining boundaries with digit splitting is implemented and tested but not yet
   measured at scale; it should only improve the reported figures.

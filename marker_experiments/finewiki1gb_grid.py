@@ -186,6 +186,25 @@ def stream_batches(lang):
         yield cur
 
 
+def train_batches(lang):
+    """stream_batches with the final EVAL_DOCS documents withheld.
+
+    ensure_eval() takes the last EVAL_DOCS documents of the stream as the held-out slice,
+    but stream_batches yields the whole stream, so feeding it straight to the corpus
+    trains on the evaluation documents. They are ~1.3% of the corpus and the leak is
+    identical for every pretokenizer, so reported gaps are unaffected -- but absolute
+    chars/token is optimistic, so withhold them.
+    """
+    tail = []
+    for batch in stream_batches(lang):
+        tail.extend(batch)
+        if len(tail) > EVAL_DOCS:
+            emit = tail[:-EVAL_DOCS]
+            del tail[:-EVAL_DOCS]
+            if emit:
+                yield emit
+
+
 def ensure_eval(lang):
     """Held-out slice: the last EVAL_DOCS documents of the same 1 GB stream."""
     eval_path = os.path.join(EVAL_DIR, f"{lang}.json")
