@@ -70,7 +70,8 @@ CORPORA = os.path.join(HERE, "corpora")
 EVAL_DIR = os.path.join(HERE, "eval_texts")
 TOKENIZERS = os.path.join(HERE, "tokenizers")
 RESULT_PATH = os.path.join(HERE, "finewiki1gb_result.json")
-URL = "https://huggingface.co/datasets/HuggingFaceFW/finewiki/resolve/main/data/{lang}wiki/000_00000.parquet"
+RESOLVE = "https://huggingface.co/datasets/HuggingFaceFW/finewiki/resolve/main/{path}"
+TREE_API = "https://huggingface.co/api/datasets/HuggingFaceFW/finewiki/tree/main/data/{lang}wiki"
 
 PRETOKENIZERS = {"plain": lambda: get_pretokenizer("scriptenc3_cb")}
 PRETOKENIZERS.update({n: (lambda n=n: get_boundary_pretokenizer(n)) for n in BOUNDARY_VARIANTS})
@@ -104,15 +105,38 @@ def commit_cell(key):
     log(f"WARNING: push failed for {key}; commit is local only")
 
 
-def _open_parquet(lang, attempts=6):
+def _lang_shards(lang):
+    """All parquet shards for a language, in order.
+
+    Reading only shard 0 silently short-changes languages whose first shard holds
+    fewer than CHARS_PER_LANG characters: Arabic has 4 shards and shard 0 yields
+    483M chars, Korean has 2 and shard 0 yields ~734M. English, German, Finnish
+    and Russian were unaffected because their first shard already exceeds 1 GB.
+    """
+    import json as _json
+    import urllib.request
+
+    for attempt in range(5):
+        try:
+            with urllib.request.urlopen(TREE_API.format(lang=lang), timeout=60) as r:
+                tree = _json.load(r)
+            shards = sorted(f["path"] for f in tree if f["path"].endswith(".parquet"))
+            if shards:
+                return shards
+        except Exception:
+            time.sleep(2 ** attempt)
+    raise RuntimeError(f"could not list shards for {lang}")
+
+
+def _open_parquet(path, attempts=6):
     last = None
     for attempt in range(attempts):
         try:
-            return pq.ParquetFile(fsspec.open(URL.format(lang=lang)).open())
+            return pq.ParquetFile(fsspec.open(RESOLVE.format(path=path)).open())
         except Exception as e:  # transient CDN/network failure
             last = e
             time.sleep(2 ** attempt)
-    raise RuntimeError(f"could not open parquet for {lang}") from last
+    raise RuntimeError(f"could not open {path}") from last
 
 
 def stream_batches(lang):
@@ -122,39 +146,42 @@ def stream_batches(lang):
     exhausted the session's disk allowance and wiped the working tree. Re-reading
     per pretokenizer costs ~186s and keeps peak disk to the corpora alone.
     """
-    pf = _open_parquet(lang)
     cur, cur_chars, total = [], 0, 0
-    rg = 0
-    while rg < pf.num_row_groups:
-        # The HF CDN returns transient 503s on long reads; a bare read killed a run
-        # partway through English. Retry the row group, reopening the file if needed.
-        table = None
-        for attempt in range(6):
-            try:
-                table = pf.read_row_group(rg, columns=["text"])
-                break
-            except Exception as e:
-                wait = 2 ** attempt
-                log(f"[{lang}] row group {rg} read failed ({type(e).__name__}), retry in {wait}s")
-                time.sleep(wait)
-                pf = _open_parquet(lang)
-        if table is None:
-            raise RuntimeError(f"[{lang}] row group {rg} unreadable after retries")
-        rg += 1
-        for x in table.column("text").to_pylist():
-            if not x:
-                continue
-            x = normalize_whitespace(x)
-            if not x:
-                continue
-            cur.append(x)
-            cur_chars += len(x)
-            total += len(x)
-            if cur_chars >= BLOCK_CHARS:
-                yield cur
-                cur, cur_chars = [], 0
+    for shard in _lang_shards(lang):
         if total >= CHARS_PER_LANG:
             break
+        pf = _open_parquet(shard)
+        rg = 0
+        while rg < pf.num_row_groups:
+            # The HF CDN returns transient 503s on long reads; a bare read killed a run
+            # partway through English. Retry the row group, reopening between attempts.
+            table = None
+            for attempt in range(6):
+                try:
+                    table = pf.read_row_group(rg, columns=["text"])
+                    break
+                except Exception as e:
+                    wait = 2 ** attempt
+                    log(f"[{lang}] {shard} rg{rg} failed ({type(e).__name__}), retry in {wait}s")
+                    time.sleep(wait)
+                    pf = _open_parquet(shard)
+            if table is None:
+                raise RuntimeError(f"[{lang}] {shard} row group {rg} unreadable after retries")
+            rg += 1
+            for x in table.column("text").to_pylist():
+                if not x:
+                    continue
+                x = normalize_whitespace(x)
+                if not x:
+                    continue
+                cur.append(x)
+                cur_chars += len(x)
+                total += len(x)
+                if cur_chars >= BLOCK_CHARS:
+                    yield cur
+                    cur, cur_chars = [], 0
+            if total >= CHARS_PER_LANG:
+                break
     if cur:
         yield cur
 
