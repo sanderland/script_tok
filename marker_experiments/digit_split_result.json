@@ -103,5 +103,26 @@
     "pure_digit_entries": 1114,
     "distinct_numbers": 1114,
     "digit_variant_extra_slots": 0
+  },
+  "en_bnd_wpd_RTL3": {
+    "lang": "en",
+    "pretokenizer": "bnd_wpd",
+    "digit_handling": "RTL3",
+    "atomic_vocab": 2821,
+    "vocab_size": 35589,
+    "train_seconds": 120,
+    "unique_chunks": 849383,
+    "eval_chars": 2219281,
+    "eval_tokens": 578766,
+    "eval_chars_per_token": 3.834504791228234,
+    "roundtrip_failures": 0,
+    "distinct_alpha_words_with_own_token": 15119,
+    "space_dup_pairs": 5,
+    "space_dup_vocab_frac": 0.00028098569782798055,
+    "marker_variant_extra_slots": 214,
+    "whitespace_only_vocab_entries": 28,
+    "pure_digit_entries": 2607,
+    "distinct_numbers": 1114,
+    "digit_variant_extra_slots": 1478
   }
 }
