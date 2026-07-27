@@ -16,7 +16,7 @@ space between two adjacent delimited spans is elided at encode time and reconstr
 at decode time from the resulting pair of touching markers. *Which* units get delimited
 decides everything. Delimiting words alone costs **−13.75%** compression on average;
 adding punctuation brings it to **−2.99%**; adding digits makes it **+2.14%**, beating
-the baseline in **all six languages** (range +0.88% to +3.77%) while reducing duplicate
+the baseline in **all six languages at 1 GB** (range +0.88% to +3.77%) while reducing duplicate
 vocabulary pairs from thousands to fewer than ten, with zero roundtrip failures and no
 increase in training cost. The result is a tokenizer with one canonical form per word,
 ~20% of vocabulary reclaimed, and *better* compression than the convention it replaces.
@@ -213,12 +213,34 @@ One metric misleads if read directly: *distinct words with their own token* fall
 double-counts, holding `' the'` and `'the'` as two entries for one word, while the marker
 vocabulary holds one canonical form.
 
-### 4.2 FineWiki, 1 GB per language, MinGram
+### 4.2 MinGram, and the effect of scale
 
-*(pending — 24 cells running, `overshoot_factor=1.15`, the repository's working default)*
+At 1 GB a MinGram cell takes ~26 min, which this environment's ~30–60 min working-tree
+wipes reliably destroyed: one cell of 24 survived (`en` plain, 3.8738, +1.12% over BPE).
+The comparison was therefore rerun at 250M characters with both trainers, three languages
+spanning the script families, and evaluation documents withheld from training. Rows here
+are internally comparable and **not** comparable to §4.1.
 
-At 100M characters per language MinGram reproduced the BPE ordering for an earlier variant
-(en +2.89%, ru +3.21%, ko +0.88%), so the effect is not a BPE-specific artifact.
+| lang | trainer | plain | `bnd_w` | `bnd_wp` | `bnd_wpd` |
+|---|---|---|---|---|---|
+| en | BPE | 3.7580 | −15.24% | −3.42% | **+3.38%** |
+| en | MinGram | 3.8019 | −15.64% | −3.78% | **+3.02%** |
+| ru | BPE | 3.8094 | −11.66% | −1.35% | **+2.39%** |
+| ru | MinGram | 3.8636 | −12.02% | −1.63% | **+2.27%** |
+| ko | BPE | 2.1793 | −17.04% | −4.23% | **−0.67%** |
+| ko | MinGram | 2.2055 | −17.79% | −5.05% | **−1.51%** |
+
+MinGram gains +1.17% (en), +1.42% (ru) and +1.20% (ko) over BPE on the baseline, and
+preserves the `bnd_w` < `bnd_wp` < `bnd_wpd` ordering in every language. The effect is
+therefore not a BPE artifact. MinGram consistently helps the baseline slightly more than
+it helps `bnd_wpd`, shrinking the margin by 0.1–0.8pp.
+
+**Korean changes sign with scale: +0.88% at 1 GB, −0.67% at 250M.** This is the clearest
+statement of the mechanism in §5. Hangul gives Korean the shortest spans of the six
+languages (2.18 chars/token here), so the two marker tokens are proportionally heavy
+overhead, and more data is needed before the marker vocabulary covers enough words to
+amortise them. The claim in §4.1 that `bnd_wpd` beats the baseline in all six languages
+is a statement about 1 GB, not a general one.
 
 ### 4.4 Digit handling
 
@@ -316,7 +338,9 @@ out: the scheme pays in proportion to span length relative to its two markers.
   Han, Thai or other spaceless scripts, which keep baseline behaviour.
 - **Open-set scripts are undelimited**, so ~2% of single spaces remain non-elided in mixed
   text. CJK-heavy corpora were not studied.
-- **Gains shrink where spans are short** relative to the marker pair (Korean, §5).
+- **Gains shrink where spans are short** relative to the marker pair, and can go negative:
+  Korean is +0.88% at 1 GB but −0.67% at 250M (§4.2). The scheme needs enough data to
+  amortise two marker tokens per span, and short-span scripts need more of it.
 - **Marker-only tokens are pure overhead**: 382 emissions, 0.27% of code tokens, carrying
   no characters.
 - **§4.3 uses first-N sampling**, not the registry's seeded reservoir sample over the full
