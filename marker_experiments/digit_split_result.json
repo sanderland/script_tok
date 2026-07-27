@@ -61,5 +61,26 @@
     "pure_digit_entries": 14,
     "distinct_numbers": 14,
     "digit_variant_extra_slots": 0
+  },
+  "en_bnd_wpd_SPLIT": {
+    "lang": "en",
+    "pretokenizer": "bnd_wpd",
+    "digit_handling": "SPLIT",
+    "atomic_vocab": 1721,
+    "vocab_size": 34489,
+    "train_seconds": 115,
+    "unique_chunks": 844986,
+    "eval_chars": 2219281,
+    "eval_tokens": 621408,
+    "eval_chars_per_token": 3.5713750064369947,
+    "roundtrip_failures": 0,
+    "distinct_alpha_words_with_own_token": 15951,
+    "space_dup_pairs": 5,
+    "space_dup_vocab_frac": 0.0002899475194989707,
+    "marker_variant_extra_slots": 217,
+    "whitespace_only_vocab_entries": 29,
+    "pure_digit_entries": 63,
+    "distinct_numbers": 14,
+    "digit_variant_extra_slots": 34
   }
 }
