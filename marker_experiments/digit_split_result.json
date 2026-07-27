@@ -40,5 +40,26 @@
     "pure_digit_entries": 1691,
     "distinct_numbers": 608,
     "digit_variant_extra_slots": 1083
+  },
+  "en_plain_SPLIT": {
+    "lang": "en",
+    "pretokenizer": "plain",
+    "digit_handling": "SPLIT",
+    "atomic_vocab": 1720,
+    "vocab_size": 34488,
+    "train_seconds": 92,
+    "unique_chunks": 972588,
+    "eval_chars": 2219281,
+    "eval_tokens": 644453,
+    "eval_chars_per_token": 3.4436661789145213,
+    "roundtrip_failures": 0,
+    "distinct_alpha_words_with_own_token": 28969,
+    "space_dup_pairs": 3375,
+    "space_dup_vocab_frac": 0.19572025052192066,
+    "marker_variant_extra_slots": 0,
+    "whitespace_only_vocab_entries": 29,
+    "pure_digit_entries": 14,
+    "distinct_numbers": 14,
+    "digit_variant_extra_slots": 0
   }
 }
