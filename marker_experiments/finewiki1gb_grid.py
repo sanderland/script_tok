@@ -87,7 +87,7 @@ def git(*args, check=False):
 
 def commit_cell(key):
     """Persist a finished cell immediately; a wipe or reclaim must not cost work."""
-    git("add", "marker_experiments/finewiki1gb_result.json", "marker_experiments/tokenizers")
+    git("add", "marker_experiments")
     if not git("diff", "--cached", "--quiet").returncode:
         return  # nothing staged
     msg = (
