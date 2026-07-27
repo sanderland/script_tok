@@ -82,5 +82,26 @@
     "pure_digit_entries": 63,
     "distinct_numbers": 14,
     "digit_variant_extra_slots": 34
+  },
+  "en_plain_RTL3": {
+    "lang": "en",
+    "pretokenizer": "plain",
+    "digit_handling": "RTL3",
+    "atomic_vocab": 2820,
+    "vocab_size": 35588,
+    "train_seconds": 122,
+    "unique_chunks": 973688,
+    "eval_chars": 2219281,
+    "eval_tokens": 598249,
+    "eval_chars_per_token": 3.7096275965358907,
+    "roundtrip_failures": 0,
+    "distinct_alpha_words_with_own_token": 28969,
+    "space_dup_pairs": 3375,
+    "space_dup_vocab_frac": 0.1896706755085984,
+    "marker_variant_extra_slots": 0,
+    "whitespace_only_vocab_entries": 29,
+    "pure_digit_entries": 1114,
+    "distinct_numbers": 1114,
+    "digit_variant_extra_slots": 0
   }
 }
