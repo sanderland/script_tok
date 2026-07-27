@@ -104,6 +104,17 @@ def commit_cell(key):
     log(f"WARNING: push failed for {key}; commit is local only")
 
 
+def _open_parquet(lang, attempts=6):
+    last = None
+    for attempt in range(attempts):
+        try:
+            return pq.ParquetFile(fsspec.open(URL.format(lang=lang)).open())
+        except Exception as e:  # transient CDN/network failure
+            last = e
+            time.sleep(2 ** attempt)
+    raise RuntimeError(f"could not open parquet for {lang}") from last
+
+
 def stream_batches(lang):
     """Yield ~BLOCK_CHARS batches of normalized text straight from parquet row groups.
 
@@ -111,11 +122,26 @@ def stream_batches(lang):
     exhausted the session's disk allowance and wiped the working tree. Re-reading
     per pretokenizer costs ~186s and keeps peak disk to the corpora alone.
     """
-    f = fsspec.open(URL.format(lang=lang)).open()
-    pf = pq.ParquetFile(f)
+    pf = _open_parquet(lang)
     cur, cur_chars, total = [], 0, 0
-    for rg in range(pf.num_row_groups):
-        for x in pf.read_row_group(rg, columns=["text"]).column("text").to_pylist():
+    rg = 0
+    while rg < pf.num_row_groups:
+        # The HF CDN returns transient 503s on long reads; a bare read killed a run
+        # partway through English. Retry the row group, reopening the file if needed.
+        table = None
+        for attempt in range(6):
+            try:
+                table = pf.read_row_group(rg, columns=["text"])
+                break
+            except Exception as e:
+                wait = 2 ** attempt
+                log(f"[{lang}] row group {rg} read failed ({type(e).__name__}), retry in {wait}s")
+                time.sleep(wait)
+                pf = _open_parquet(lang)
+        if table is None:
+            raise RuntimeError(f"[{lang}] row group {rg} unreadable after retries")
+        rg += 1
+        for x in table.column("text").to_pylist():
             if not x:
                 continue
             x = normalize_whitespace(x)
@@ -240,63 +266,73 @@ def main():
                 key = f"{lang}_{tag}_{method}"
                 if key in results:
                     continue
-                pt = make_pt()
-                corpus_name = f"fw1gb_{lang}_{tag}"
                 try:
-                    corpus = PretokenizedCorpus(name=corpus_name, base_path=CORPORA, pretokenizer=pt)
-                except FileNotFoundError:
+                    key = f"{lang}_{tag}_{method}"
+                    if key in results:
+                        continue
+                    pt = make_pt()
+                    corpus_name = f"fw1gb_{lang}_{tag}"
+                    try:
+                        corpus = PretokenizedCorpus(name=corpus_name, base_path=CORPORA, pretokenizer=pt)
+                    except FileNotFoundError:
+                        t = time.time()
+                        corpus = PretokenizedCorpus.from_text_batches(
+                            name=corpus_name, base_path=CORPORA, pretokenizer=pt,
+                            text_batches=stream_batches(lang), num_workers=NUM_WORKERS,
+                        )
+                        log(f"{lang}/{tag}: corpus built in {time.time()-t:.0f}s "
+                            f"unique_chunks={corpus.metadata.get('unique_chunks'):,}")
+
                     t = time.time()
-                    corpus = PretokenizedCorpus.from_text_batches(
-                        name=corpus_name, base_path=CORPORA, pretokenizer=pt,
-                        text_batches=stream_batches(lang), num_workers=NUM_WORKERS,
-                    )
-                    log(f"{lang}/{tag}: corpus built in {time.time()-t:.0f}s "
-                        f"unique_chunks={corpus.metadata.get('unique_chunks'):,}")
+                    if method == "bpe":
+                        tokenizer = BPETrainer(
+                            pt, corpus, BPETrainerConfig(additional_vocab_size=VOCAB, num_workers=NUM_WORKERS)
+                        ).train()
+                    else:
+                        tr = CachedInitMinGramTrainer(
+                            pt, corpus,
+                            MinGramTrainerConfig(additional_vocab_size=VOCAB, num_workers=NUM_WORKERS,
+                                                 overshoot_factor=OVERSHOOT),
+                        )
+                        tr.cache_tag = f"{lang}_{tag}"
+                        tokenizer = tr.train()
+                    train_time = time.time() - t
 
-                t = time.time()
-                if method == "bpe":
-                    tokenizer = BPETrainer(
-                        pt, corpus, BPETrainerConfig(additional_vocab_size=VOCAB, num_workers=NUM_WORKERS)
-                    ).train()
-                else:
-                    tr = CachedInitMinGramTrainer(
-                        pt, corpus,
-                        MinGramTrainerConfig(additional_vocab_size=VOCAB, num_workers=NUM_WORKERS,
-                                             overshoot_factor=OVERSHOOT),
-                    )
-                    tr.cache_tag = f"{lang}_{tag}"
-                    tokenizer = tr.train()
-                train_time = time.time() - t
+                    out = os.path.join(TOKENIZERS, f"{lang}_{tag}_{method}_{VOCAB//1024}k.json.gz")
+                    tokenizer.save(out)
 
-                out = os.path.join(TOKENIZERS, f"{lang}_{tag}_{method}_{VOCAB//1024}k.json.gz")
-                tokenizer.save(out)
+                    toks = fails = 0
+                    for text in eval_texts:
+                        ids = tokenizer.encode(text)
+                        toks += len(ids)
+                        if tokenizer.decode(ids) != text:
+                            fails += 1
 
-                toks = fails = 0
-                for text in eval_texts:
-                    ids = tokenizer.encode(text)
-                    toks += len(ids)
-                    if tokenizer.decode(ids) != text:
-                        fails += 1
+                    results[key] = {
+                        "lang": lang, "pretokenizer": tag, "method": method,
+                        "additional_vocab_size": VOCAB, "vocab_size": len(tokenizer.tokens),
+                        "train_seconds": round(train_time),
+                        "train_chars": corpus.metadata.get("atomic_tokens"),
+                        "unique_chunks": corpus.metadata.get("unique_chunks"),
+                        "eval_docs": len(eval_texts), "eval_chars": eval_chars, "eval_tokens": toks,
+                        "eval_chars_per_token": eval_chars / toks,
+                        "roundtrip_failures": fails,
+                        "tokenizer_file": os.path.relpath(out, os.path.dirname(HERE)),
+                        **analyse_vocab(tokenizer, pt),
+                    }
+                    with open(RESULT_PATH, "w") as f:
+                        json.dump(results, f, indent=2)
+                    log(f"  {key}: {eval_chars/toks:.4f} ch/tok  "
+                        f"dup={results[key]['space_dup_pairs']}  {round(train_time)}s  rt={fails}")
+                    del tokenizer
+                    gc.collect()
+                    commit_cell(key)
+                except Exception as e:
+                    # One flaky cell must not abort the remaining grid; it is retried
+                    # on the next run because it never entered results.
+                    log(f"  {key}: FAILED ({type(e).__name__}: {e}); continuing")
+                    gc.collect()
 
-                results[key] = {
-                    "lang": lang, "pretokenizer": tag, "method": method,
-                    "additional_vocab_size": VOCAB, "vocab_size": len(tokenizer.tokens),
-                    "train_seconds": round(train_time),
-                    "train_chars": corpus.metadata.get("atomic_tokens"),
-                    "unique_chunks": corpus.metadata.get("unique_chunks"),
-                    "eval_docs": len(eval_texts), "eval_chars": eval_chars, "eval_tokens": toks,
-                    "eval_chars_per_token": eval_chars / toks,
-                    "roundtrip_failures": fails,
-                    "tokenizer_file": os.path.relpath(out, os.path.dirname(HERE)),
-                    **analyse_vocab(tokenizer, pt),
-                }
-                with open(RESULT_PATH, "w") as f:
-                    json.dump(results, f, indent=2)
-                log(f"  {key}: {eval_chars/toks:.4f} ch/tok  "
-                    f"dup={results[key]['space_dup_pairs']}  {round(train_time)}s  rt={fails}")
-                del tokenizer
-                gc.collect()
-                commit_cell(key)
             drop_corpora(lang)
 
     log(f"DONE: {len(results)} cells")
