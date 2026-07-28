@@ -1,0 +1,142 @@
+% Bibliography for the boundary-marker paper.
+%
+% VERIFY BEFORE SUBMISSION. Entries are marked with a confidence note:
+%   [repo]      cited in this repository's source, so venue/id come from there
+%   [standard]  widely-cited work, details believed correct but not machine-checked here
+%   [check]     details reconstructed from memory -- verify author list, venue, year, pages
+%
+% This environment has no network access to the ACL Anthology, so nothing below was
+% resolved against an authoritative source.
+
+% ---------------------------------------------------------------- subword tokenization
+
+% [standard] The original BPE compression algorithm, later adapted to NLP.
+@article{gage1994bpe,
+  title   = {A New Algorithm for Data Compression},
+  author  = {Gage, Philip},
+  journal = {The C Users Journal},
+  volume  = {12},
+  number  = {2},
+  pages   = {23--38},
+  year    = {1994}
+}
+
+% [standard] BPE for NLP. Introduces the subword vocabulary this work modifies.
+@inproceedings{sennrich2016bpe,
+  title     = {Neural Machine Translation of Rare Words with Subword Units},
+  author    = {Sennrich, Rico and Haddow, Barry and Birch, Alexandra},
+  booktitle = {Proceedings of the 54th Annual Meeting of the Association for Computational Linguistics},
+  pages     = {1715--1725},
+  year      = {2016}
+}
+
+% [standard] Unigram LM tokenization.
+@inproceedings{kudo2018subword,
+  title     = {Subword Regularization: Improving Neural Network Translation Models with Multiple Subword Candidates},
+  author    = {Kudo, Taku},
+  booktitle = {Proceedings of the 56th Annual Meeting of the Association for Computational Linguistics},
+  pages     = {66--75},
+  year      = {2018}
+}
+
+% [standard] SentencePiece, source of the U+2581 leading-space convention that this work
+% replaces with an explicit boundary marker.
+@inproceedings{kudo2018sentencepiece,
+  title     = {SentencePiece: A Simple and Language Independent Subword Tokenizer and Detokenizer for Neural Text Processing},
+  author    = {Kudo, Taku and Richardson, John},
+  booktitle = {Proceedings of the 2018 Conference on Empirical Methods in Natural Language Processing: System Demonstrations},
+  pages     = {66--71},
+  year      = {2018}
+}
+
+% [check] Byte-level BPE with leading-space merges; the convention is described in the
+% tokenizer rather than the paper body. Verify how you wish to cite GPT-2.
+@techreport{radford2019gpt2,
+  title       = {Language Models are Unsupervised Multitask Learners},
+  author      = {Radford, Alec and Wu, Jeffrey and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
+  institution = {OpenAI},
+  year        = {2019}
+}
+
+% ------------------------------------------------------- tokenizer evaluation and theory
+
+% [repo] PathPiece and the minimum-increase pruning criterion. Cited in
+% script_bpe/tokenizers/pathpiece/ and script_bpe/tokenizers/_mi_prune.py.
+@inproceedings{schmidt2024tokenization,
+  title     = {Tokenization Is More Than Compression},
+  author    = {Schmidt, Craig W. and Reddy, Varshini and Zhang, Haoran and Alameddine, Alec and Uzan, Omri and Pinter, Yuval and Tanner, Chris},
+  booktitle = {Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing},
+  year      = {2024}
+}
+
+% [standard] Tokenizer quality is not the same as compression; motivates our limitation
+% that no downstream evaluation is reported.
+@inproceedings{rust2021tokenizer,
+  title     = {How Good is Your Tokenizer? On the Monolingual Performance of Multilingual Language Models},
+  author    = {Rust, Phillip and Pfeiffer, Jonas and Vuli\'{c}, Ivan and Ruder, Sebastian and Gurevych, Iryna},
+  booktitle = {Proceedings of the 59th Annual Meeting of the Association for Computational Linguistics},
+  year      = {2021}
+}
+
+% [check] Information-theoretic view of tokenizer quality. Verify venue and year.
+@inproceedings{zouhar2023noiseless,
+  title     = {Tokenization and the Noiseless Channel},
+  author    = {Zouhar, Vil\'{e}m and Meister, Clara and Gastaldi, Juan Luis and Du, Li and Sachan, Mrinmaya and Cotterell, Ryan},
+  booktitle = {Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics},
+  year      = {2023}
+}
+
+% ---------------------------------------------------------------------------- corpora
+
+% [check] FineWeb. Verify the exact venue string for the Datasets and Benchmarks track.
+@inproceedings{penedo2024fineweb,
+  title     = {The FineWeb Datasets: Decanting the Web for the Finest Text Data at Scale},
+  author    = {Penedo, Guilherme and Kydl\'{i}\v{c}ek, Hynek and Ben Allal, Loubna and Lozhkov, Anton and Mitchell, Margaret and Raffel, Colin and Von Werra, Leandro and Wolf, Thomas},
+  booktitle = {Advances in Neural Information Processing Systems, Datasets and Benchmarks Track},
+  year      = {2024}
+}
+
+% [check] FineWiki is distributed as a HuggingFace dataset; we are not aware of a separate
+% paper. Cite as a resource unless one exists.
+@misc{finewiki2025,
+  title        = {FineWiki},
+  author       = {{HuggingFaceFW}},
+  howpublished = {\url{https://huggingface.co/datasets/HuggingFaceFW/finewiki}},
+  year         = {2025}
+}
+
+% [repo] Goldfish. Cited in script_bpe/corpus/registry.py as Chang et al., LREC 2026,
+% arXiv 2408.10441.
+@inproceedings{chang2026goldfish,
+  title     = {Goldfish: Monolingual Language Models for 350 Languages},
+  author    = {Chang, Tyler A. and Arnett, Catherine and Tu, Zhuowen and Bergen, Benjamin K.},
+  booktitle = {Proceedings of the Joint International Conference on Computational Linguistics, Language Resources and Evaluation (LREC)},
+  year      = {2026},
+  note      = {arXiv:2408.10441}
+}
+
+% [check] Python corpus used for the code half of the mixed-domain experiment.
+@misc{codeparrot,
+  title        = {CodeParrot Clean},
+  author       = {{CodeParrot}},
+  howpublished = {\url{https://huggingface.co/datasets/codeparrot/codeparrot-clean}},
+  year         = {2022}
+}
+
+% [check] Multi-language snippet corpus used alongside CodeParrot.
+@misc{rosettacode,
+  title        = {Rosetta Code},
+  howpublished = {\url{https://huggingface.co/datasets/christopher/rosetta-code}},
+  year         = {2023}
+}
+
+% ---------------------------------------------------------------------- digit handling
+
+% [check] Digit splitting adopted for arithmetic reasons rather than compression; verify
+% which model paper you wish to attribute the convention to.
+@article{touvron2023llama,
+  title   = {Llama 2: Open Foundation and Fine-Tuned Chat Models},
+  author  = {Touvron, Hugo and Martin, Louis and Stone, Kevin and others},
+  journal = {arXiv preprint arXiv:2307.09288},
+  year    = {2023}
+}
