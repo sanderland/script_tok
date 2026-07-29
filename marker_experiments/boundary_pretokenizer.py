@@ -82,14 +82,30 @@ class MarkerCharEnc:
         return f"MarkerCharEnc(atomic_token_ids={self.atomic_token_ids})"
 
 
+class CodeCharEnc(MarkerCharEnc):
+    """Stand-in char encoding for a caps code. Distinct sentinel so it never groups with
+    real text or with the boundary marker."""
+
+    def __init__(self, token_id: int):
+        super().__init__(token_id)
+        self.script_id = -3
+
+
 class BoundaryScriptPretokenizerConfig(ScriptPretokenizerConfig):
     cls: str = "BoundaryScriptPretokenizer"
     boundary_targets: tuple[BoundaryTarget, ...] = ("word", "punct", "digit")
+    # Caps codes, in the style of the older Claude tokenizer: a title-case word is emitted
+    # as a shift code plus its lowercased form, an all-caps word as a caps-lock code plus
+    # its lowercased form, so 'The'/'the' and 'NASA'/'nasa' share vocabulary entries. Whole
+    # spans only; mixed case ('GaN', 'WiFi') is left literal.
+    caps_codes: bool = False
     model_config = ConfigDict(extra="forbid")
 
 
 class BoundaryScriptPretokenizer(ScriptPretokenizer, config_type=BoundaryScriptPretokenizerConfig):
     MARKER_TEXT = "<|>"
+    SHIFT_TEXT = "<^>"   # title case: next span is Xxxx
+    CAPS_TEXT = "<^^>"   # caps lock: next span is XXXX
 
     # unit kinds
     WORD, PUNCT, DIGIT, SPACE, OTHER = "word", "punct", "digit", "space", "other"
@@ -98,6 +114,13 @@ class BoundaryScriptPretokenizer(ScriptPretokenizer, config_type=BoundaryScriptP
         super()._build_atomic_tokens()
         self.marker_token_id = self._register_token(self.MARKER_TEXT)
         self.is_initial_char_tokens.add(self.marker_token_id)
+        if self.config.caps_codes:
+            self.shift_token_id = self._register_token(self.SHIFT_TEXT)
+            self.caps_token_id = self._register_token(self.CAPS_TEXT)
+            self.is_initial_char_tokens.add(self.shift_token_id)
+            self.is_initial_char_tokens.add(self.caps_token_id)
+        else:
+            self.shift_token_id = self.caps_token_id = None
         blocks = self.config.script_config.blocks
         # the ~20 space-using writing systems, as letters
         self.word_script_ids = {b.script_id for b in blocks if b.category == "LM" and b.combines_with_spaces}
@@ -131,10 +154,35 @@ class BoundaryScriptPretokenizer(ScriptPretokenizer, config_type=BoundaryScriptP
 
     def decode(self, tokenization, errors="replace") -> str:
         decoded = ""
+        pending = None   # caps code awaiting its span
+        buf = ""
         i = 0
         n = len(tokenization)
+
+        def emit(text):
+            nonlocal decoded, pending, buf
+            if pending is None:
+                decoded += text
+            else:
+                buf += text
+
+        def flush():
+            """Close a caps-coded span at its terminating marker."""
+            nonlocal decoded, pending, buf
+            if pending is None:
+                return
+            decoded += (buf[:1].upper() + buf[1:]) if pending == "shift" else buf.upper()
+            pending, buf = None, ""
+
         while i < n:
+            if self.config.caps_codes and tokenization[i] in (self.shift_token_id, self.caps_token_id):
+                flush()  # a code immediately after another closes the previous span
+                pending = "shift" if tokenization[i] == self.shift_token_id else "caps"
+                buf = ""
+                i += 1
+                continue
             if tokenization[i] == self.marker_token_id:
+                flush()
                 if i + 1 < n and tokenization[i + 1] == self.marker_token_id:
                     decoded += " "  # two markers touching == one elided space
                     i += 2
@@ -142,17 +190,17 @@ class BoundaryScriptPretokenizer(ScriptPretokenizer, config_type=BoundaryScriptP
                     i += 1  # lone marker: structural boundary, no character
                 continue
             if tokenization[i] in self.digit_token_ids:
-                decoded += self.atomic_tokens[tokenization[i]]  # digit group, single token
+                emit(self.atomic_tokens[tokenization[i]])  # digit group, single token
                 i += 1
                 continue
             script_tok = tokenization[i]
             ix_tok = tokenization[i + 1] if i + 1 < n else None
             if (script_tok, ix_tok) in self.detokenize_map:
-                decoded += self.detokenize_map[(script_tok, ix_tok)]
+                emit(self.detokenize_map[(script_tok, ix_tok)])
                 i += 2
             else:
                 if errors == "backslashreplace":
-                    decoded += self.atomic_tokens[script_tok]
+                    emit(self.atomic_tokens[script_tok])
                 elif errors == "replace":
                     decoded += "�"
                 elif errors == "strict":
@@ -160,7 +208,30 @@ class BoundaryScriptPretokenizer(ScriptPretokenizer, config_type=BoundaryScriptP
                 else:
                     raise ValueError(f"Unknown error handling mode: {errors}")
                 i += 1
+        flush()  # span running to end of stream
         return decoded
+
+    @staticmethod
+    def _caps_form(text: str):
+        """Return (code_kind, lowercased) if text is title or all caps AND the transform is
+        exactly invertible, else None.
+
+        Invertibility cannot be assumed. Unicode case mapping is not a bijection: 'I'.lower()
+        is 'i' but Turkish dotless/dotted i break the pair, '\u0130'.lower() is two
+        characters, and '\u1e9e'.lower() is '\u00df' whose upper is 'SS'. Every candidate is
+        therefore verified by re-applying the transform and comparing, and anything that does
+        not reproduce the source exactly is left literal.
+        """
+        if not text or text.islower():
+            return None
+        low = text.lower()
+        if len(low) != len(text):
+            return None
+        if low[0].upper() + low[1:] == text:
+            return "shift", low
+        if len(text) > 1 and low.upper() == text:
+            return "caps", low
+        return None
 
     def _kind(self, group) -> str:
         script_id = group[0][1].script_id
@@ -260,6 +331,18 @@ class BoundaryScriptPretokenizer(ScriptPretokenizer, config_type=BoundaryScriptP
                 out = [self.encode_digits([g]) for g in group_digits(digits, self.config.digit_handling)]
             else:
                 out = [[e for _, e in run] for run in runs]
+                if kind == self.WORD and self.config.caps_codes:
+                    text = "".join(c for run in runs for c, _ in run)
+                    form = self._caps_form(text)
+                    if form is not None:
+                        code, low = form
+                        # Re-encode the lowercased span and regroup, so a span that crosses
+                        # scripts keeps the same internal split it would have had untouched.
+                        low_pairs = list(zip(low, self.encode_text(low)))
+                        low_runs = [list(g) for _, g in itertools.groupby(low_pairs, key=lambda x: x[1].script_id)]
+                        out = [[e for _, e in r] for r in low_runs]
+                        code_id = self.shift_token_id if code == "shift" else self.caps_token_id
+                        out[0] = [CodeCharEnc(code_id)] + out[0]
             if kind not in marked:
                 chunks.extend(out)
                 continue

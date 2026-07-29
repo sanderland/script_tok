@@ -350,3 +350,83 @@ def test_mixed_ascii_and_non_ascii_numerics(digit_handling):
     pt = boundary_pt(digit_handling=digit_handling)
     for text in ["1½ cups", "٣ and 3", "12 ½ 34"]:
         assert pt.decode(flat(pt, text)) == pt.normalize(text)
+
+
+# ------------------------------------------------------------------------ caps codes
+
+CAPS_TEXTS = [
+    "The cat", "NASA rocket", "GaN WiFi", "the cat", "A", "I am", "McDonald",
+    "Hello, World!", "ALL CAPS HERE", "Title Case Words", "iPhone", "eBay", "MiXeD",
+    "Привет Мир", "ПРИВЕТ", "Ελλάδα", "ΕΛΛΑΔΑ", "ΟΔΟΣ", "Οδος", "ές ΟΔΟΣ",
+    "Ünicode Ötzi", "ﬁle", "İstanbul", "STRASSE", "Straße", "ẞ", "ǅungla", "Ǆ",
+    "ARMÉE", "Ångström", "x = 1", "A1", "",
+]
+
+
+def caps_pt(caps_codes=True, digit_handling=None):
+    return BoundaryScriptPretokenizer(
+        BoundaryScriptPretokenizerConfig(
+            script_config=ScriptEncodingV3, boundary_targets=("word", "punct", "digit"),
+            caps_codes=caps_codes, digit_handling=digit_handling,
+        )
+    )
+
+
+@pytest.mark.parametrize("text", CAPS_TEXTS + TEXTS)
+def test_caps_roundtrip(text):
+    pt = caps_pt()
+    assert pt.decode(flat(pt, text)) == pt.normalize(text)
+
+
+@pytest.mark.parametrize("digit_handling", ["SPLIT", "RTL3"])
+def test_caps_roundtrip_with_digit_splitting(digit_handling):
+    pt = caps_pt(digit_handling=digit_handling)
+    for text in CAPS_TEXTS + DIGIT_TEXTS:
+        assert pt.decode(flat(pt, text)) == pt.normalize(text)
+
+
+def test_caps_codes_applied_where_invertible():
+    pt = caps_pt()
+    m, sh, cp = pt.marker_token_id, pt.shift_token_id, pt.caps_token_id
+    assert flat(pt, "The")[1] == sh
+    assert flat(pt, "NASA")[1] == cp
+    # mixed case is left literal, as in the tokenizer this mirrors
+    assert sh not in flat(pt, "GaN") and cp not in flat(pt, "GaN")
+    assert sh not in flat(pt, "WiFi") and cp not in flat(pt, "WiFi")
+    assert sh not in flat(pt, "the") and cp not in flat(pt, "the")
+
+
+def test_caps_codes_skipped_when_not_invertible():
+    """Unicode case mapping is not a bijection. U+0130 lowercases to two characters and
+    U+1E9E uppercases to 'SS', so neither may take a caps code."""
+    pt = caps_pt()
+    for text in ["İstanbul", "İ", "ẞ", "ǅungla"]:
+        ids = flat(pt, text)
+        assert pt.shift_token_id not in ids and pt.caps_token_id not in ids, text
+        assert pt.decode(ids) == pt.normalize(text)
+
+
+def test_caps_shares_the_lowercase_piece():
+    """The point of the scheme: 'The' and 'the' differ by one code, not by a whole entry."""
+    pt = caps_pt()
+    the, cap_the = flat(pt, "the"), flat(pt, "The")
+    assert cap_the == [cap_the[0], pt.shift_token_id] + the[1:]
+
+
+def test_caps_codes_off_by_default():
+    pt = get_boundary_pretokenizer("bnd_wpd")
+    assert pt.shift_token_id is None and pt.caps_token_id is None
+    assert len(pt.atomic_tokens) == len(caps_pt().atomic_tokens) - 2
+
+
+def test_caps_changes_hash():
+    assert caps_pt(caps_codes=True).hash() != caps_pt(caps_codes=False).hash()
+
+
+@pytest.mark.parametrize("text", CAPS_TEXTS)
+def test_caps_preserves_no_triple_marker(text):
+    pt = caps_pt()
+    ids = flat(pt, text)
+    m = pt.marker_token_id
+    for i in range(len(ids) - 2):
+        assert not (ids[i] == m and ids[i + 1] == m and ids[i + 2] == m), text
