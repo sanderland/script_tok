@@ -48,11 +48,12 @@ reclaimed, and better compression than the convention it replaces.
 \section{Introduction}
 \label{sec:intro}
 
-Byte-pair encoding \citep{gage1994bpe,sennrich2016bpe} and unigram tokenizers
-\citep{kudo2018subword,land2025unigram} are conventionally applied to text in which a
-word's leading space is absorbed into the word's token. SentencePiece \citep{kudo2018sentencepiece} makes this
-explicit with a substituted space character, and byte-level BPE \citep{radford2019gpt2}
-inherits it. The consequence is that most content words occupy two vocabulary entries: one
+Byte-pair encoding \citep{sennrich-etal-2016-neural} and unigram tokenizers
+\citep{kudo-2018-subword,land2025piecesdoesunigramtokenization} are conventionally applied to text in which a
+word's leading space is absorbed into the word's token. SentencePiece \citep{kudo-richardson-2018-sentencepiece} makes this
+explicit with a substituted space character, and byte-level tokenizers inherit it; the
+interaction of pre-tokenization with punctuation in production tokenizers is surveyed by
+\citet{tokencontributions-gpt4}. The consequence is that most content words occupy two vocabulary entries: one
 with the leading space, one without.
 
 We ask what happens if the convention is replaced by an explicit boundary token. Our
@@ -66,14 +67,42 @@ an early version of our scheme by 7.5\% while spending 30\% of its vocabulary on
 pairs. Second, reclaiming vocabulary does not straightforwardly convert into compression:
 removing a 3.17\% digit-variant tax buys only $+0.33$pp (\S\ref{sec:digits}).
 
+\section{Related work}
+\label{sec:related}
+
+Two recent lines of work also target the pre-tokenization boundary. SuperBPE
+\citep{liu2025superbpe} lets merges run \emph{across} whitespace, so single tokens may span
+several words; Boundless BPE \citep{schmidt2025boundless} likewise removes the
+pre-tokenization barrier and merges across pre-token boundaries. Both increase the span a
+token may cover. Our direction is the opposite: we keep pre-tokens word-sized and instead
+make the boundary itself explicit, so a word has one form rather than two. The two are not
+in conflict --- an explicit boundary token is what a superword vocabulary would need in order
+to remain invertible --- but they trade different things, and we do not evaluate the
+combination.
+
+A second thread removes vocabulary entries that exist only as merge scaffolding. PickyBPE
+\citep{chizhov2024bpegetspickyefficient} and Scaffold-BPE \citep{scaffold_bpe} both prune
+intermediate ``junk'' tokens during training, and \citet{land-bartolo-2024-fishing} show
+such entries survive into deployed models as under-trained tokens. The duplication we
+measure is a different phenomenon --- both members of a \texttt{' the'}/\texttt{'the'} pair
+are heavily used (\S\ref{sec:duplication}) --- but the two share a motivation, and
+\S\ref{sec:digits} shows that reclaiming unused capacity does not by itself buy compression.
+
+On evaluation, \citet{galle-2019-investigating} argues that fewer tokens on a fixed budget
+predicts downstream quality, while \citet{schmidt-etal-2024-tokenization},
+\citet{zouhar-etal-2023-tokenization} and its counterexamples
+\citep{cognetta-etal-2024-two}, and \citet{lotz-etal-2025-beyond} all find compression an
+incomplete proxy. We report compression only, and \S\ref{sec:limitations} treats this as the
+principal limitation.
+
 \section{The duplication}
 \label{sec:duplication}
 
-We build on SCRIPT encoding \citep{land2025script}, which segments text into runs of shared
+We build on SCRIPT encoding \citep{scriptbpe}, which segments text into runs of shared
 Unicode script and category and encodes each character as a block/index token pair. Its
 pretokenizer lets a lone space attach to the following run, producing the
 \texttt{' word'}/\texttt{'word'} pair. Table~\ref{tab:dup} measures the resulting
-duplication on FineWiki \citep{finewiki2025}, 1\,GB per language, 32{,}768 additional
+duplication on FineWiki \citep{penedo2025finewiki}, 1\,GB per language, 32{,}768 additional
 vocabulary, BPE.
 
 \begin{table}[t]
@@ -211,9 +240,9 @@ of every cell.
 \label{sec:multiling}
 
 Languages follow the six-language set used throughout this line of work
-\citep{land2025unigram,land2026mingram} --- English, German, Finnish, Russian, Arabic and
+\citep{land2025piecesdoesunigramtokenization,land2026mingram} --- English, German, Finnish, Russian, Arabic and
 Korean --- spanning Latin, Cyrillic, Arabic and Hangul, and drawn from the monolingual
-corpora of \citet{chang2026goldfish}.
+corpora of \citet{chang2026goldfishmonolinguallanguagemodels}.
 Whitespace normalization is applied as the corpus loader does, so multi-space runs are absent
 by construction. Table~\ref{tab:main} reports the main result.
 
@@ -256,7 +285,7 @@ the marker vocabulary holds one canonical form.
 To check that the effect is not specific to greedy merge training, we repeat the comparison
 with MinGram \citep{land2026mingram}, a minimum-token-count unigram trainer initialised from
 BPE, whose optional pruning criterion follows the minimum-increase rule of PathPiece
-\citep{schmidt2024tokenization}. We use 250M characters, where cells complete reliably, with
+\citep{schmidt-etal-2024-tokenization}. We use 250M characters, where cells complete reliably, with
 evaluation documents withheld from training (Table~\ref{tab:mingram}).
 
 \begin{table}[t]
@@ -280,7 +309,10 @@ Korean  & MinGram & 2.2055 & \relchange{$-17.79$} & \relchange{$-5.05$} & $-1.51
 \label{tab:mingram}
 \end{table}
 
-MinGram gains $+1.17\%$ (en), $+1.42\%$ (ru) and $+1.20\%$ (ko) over BPE on the baseline and
+The two trainers also differ in inference-time segmentation --- greedy merge replay versus a
+minimum-token dynamic program --- a distinction shown to matter independently of the
+vocabulary \citep{uzan-etal-2024-greed}. MinGram gains $+1.17\%$ (en), $+1.42\%$ (ru) and
+$+1.20\%$ (ko) over BPE on the baseline and
 preserves the \bnd{w} $<$ \bnd{wp} $<$ \bnd{wpd} ordering everywhere, so the effect is not a
 BPE artifact. It helps the baseline slightly more than \bnd{wpd}, costing 0.1--0.8pp of
 margin.
@@ -289,7 +321,11 @@ margin.
 250M. Hangul gives Korean the shortest spans of the six languages (2.18 chars/token here), so
 two marker tokens per span are proportionally heavy and need more data to amortise. The claim
 that \bnd{wpd} beats the baseline in all six languages is a statement about 1\,GB, not a
-general one.
+general one. Korean's segmentation is known to reward sub-syllabic treatment
+\citep{lee-etal-2025-jamo}, and per-language differences in tokenized length are the subject
+of a substantial fairness literature
+\citep{petrov2023language,ahia-etal-2023-languages,arnett-etal-2024-bit,velayuthan-sarveswaran-2025-egalitarian};
+we do not attempt to correct for byte premium here.
 
 \subsection{Digit handling}
 \label{sec:digits}
@@ -301,8 +337,7 @@ pure-digit entries against the baseline's 1{,}426 while covering 589 distinct nu
 
 Splitting digit runs bounds the markable set, since only a run's first and last group can
 carry a marker: 10 markable strings when split to single digits, 1110 under right-to-left
-grouping in threes. Digit splitting is normally adopted for arithmetic rather than
-compression reasons \citep{touvron2023llama}. Because splitting changes absolute compression
+grouping in threes. Digit splitting is normally adopted for arithmetic rather than compression reasons. Because splitting changes absolute compression
 for everyone, each row of Table~\ref{tab:digits} is a matched comparison and rows are not
 comparable to each other.
 
@@ -364,13 +399,19 @@ the measured $+1{,}708$.
 span, so its benefit is governed by span length relative to that fixed cost.
 
 \section{Limitations}
+\label{sec:limitations}
 
 No language-modelling evaluation is reported. Everything here is compression and vocabulary
 structure; whether a canonical word form helps or hurts downstream quality is untested, and
-prior work cautions that the two need not agree \citep{rust2021tokenizer,zouhar2023noiseless}.
+prior work repeatedly cautions that the two need not agree
+\citep{rust-etal-2021-good,zouhar-etal-2023-tokenization,cognetta-etal-2024-two,ali-etal-2024-tokenizer,lotz-etal-2025-beyond}.
+Morphological alignment, another axis on which such a change could help or hurt
+\citep{bostrom-durrett-2020-byte,arnett2025evaluatingmorphologicalalignmenttokenizers}, is
+likewise not measured.
 
 All six languages use spaces; the scheme does nothing for Han, Thai or other spaceless
-scripts, which retain baseline behaviour. Open-set scripts are undelimited, so roughly 2\% of
+scripts, which retain baseline behaviour, and morphologically complex languages may respond
+differently \citep{arnett-bergen-2025-language,vemula-etal-2025-rethinking}. Open-set scripts are undelimited, so roughly 2\% of
 single spaces remain non-elided in mixed text, and CJK-heavy corpora were not studied.
 
 Gains shrink where spans are short relative to the marker pair, and can go negative: Korean is

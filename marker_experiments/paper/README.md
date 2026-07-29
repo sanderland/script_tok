@@ -56,27 +56,42 @@ Two corrections were made against the first draft of this bibliography:
 - **SCRIPT was not cited at all**, despite the baseline throughout being its
   `scriptenc3_cb` pretokenizer. It is now cited in the introduction and §2.
 
-## Bibliography status
+## Bibliography
 
-**Verify every entry before submission.** This environment had no access to the ACL
-Anthology or any bibliographic database, so nothing in `custom.bib` was resolved against an
-authoritative source. Entries carry one of three markers:
+`custom.bib` is the supplied curated bibliography, used verbatim with its ACL Anthology
+keys. Four entries were appended at the end because the paper cites them and they were not
+in the supplied file:
 
-- `[repo]` — cited in this repository's own source, so venue and identifiers come from there
-  (PathPiece/MI-pruning, Goldfish)
-- `[standard]` — widely cited work whose details are believed correct but were not checked
-- `[check]` — reconstructed from memory; author lists, venues, years and page numbers are
-  the most likely to be wrong
+| Key | Status |
+|---|---|
+| `land2026mingram` | title/author/date verified against arXiv (2606.27019) |
+| `penedo2024fineweb` | **unverified** — FineWiki is supplied, FineWeb is not |
+| `codeparrot` | **unverified** |
+| `rosettacode` | **unverified** |
 
-The `[check]` entries are GPT-2, Tokenization and the Noiseless Channel, FineWeb, FineWiki,
-CodeParrot, Rosetta Code, and Llama 2. A bibliography with plausible-looking wrong entries is
-worse than an incomplete one, so these are flagged rather than presented as settled.
+Three claims lost their citation because the supplied bibliography has no entry for them,
+and were rewritten rather than left hanging on an invented reference:
+
+- Gage's original BPE — the claim now rests on `sennrich-etal-2016-neural` alone.
+- GPT-2 byte-level BPE — replaced by `tokencontributions-gpt4`, which covers
+  pre-tokenization and punctuation in production tokenizers and is a better fit anyway.
+- Llama digit splitting — the sentence now states the arithmetic rationale without
+  attributing it to a specific model.
+
+59 bib entries, 34 cited, no undefined keys.
 
 ## Content differences from `paper.md`
 
 - Adds §1 Introduction, which the Markdown draft lacks, framing the contribution as the
   choice of *which* units to delimit rather than the marker mechanism itself.
 - Adds citations throughout; the Markdown draft has none.
+- Adds a Related Work section absent from the Markdown draft. SuperBPE
+  (`liu2025superbpe`) and Boundless BPE (`schmidt2025boundless`) are the nearest prior art
+  and were missing entirely: both extend tokens *across* the pre-tokenization boundary,
+  where this work keeps pre-tokens word-sized and makes the boundary explicit instead. The
+  section also positions the duplication measurement against scaffold-token pruning
+  (PickyBPE, Scaffold-BPE, Magikarp) and states plainly that compression is an incomplete
+  proxy, citing both sides of that debate.
 - Tables are `booktabs`; the six-language and MinGram tables are unchanged numerically.
 - The mixed prose+code results are compressed to a paragraph (§5.4) since they come from the
   earlier per-script variant.

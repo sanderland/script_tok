@@ -1,172 +1,885 @@
-% Bibliography for the boundary-marker paper.
-%
-% VERIFY BEFORE SUBMISSION. Entries are marked with a confidence note:
-%   [repo]      cited in this repository's source, so venue/id come from there
-%   [standard]  widely-cited work, details believed correct but not machine-checked here
-%   [check]     details reconstructed from memory -- verify author list, venue, year, pages
-%
-% This environment has no network access to the ACL Anthology, so nothing below was
-% resolved against an authoritative source.
-
-% ------------------------------------------------- this line of work (verified via arXiv)
-% Titles, author lists and submission dates for these three were fetched from arxiv.org in
-% this session and are confirmed. Any venue beyond arXiv is not.
-
-% The pretokenizer this work modifies: the baseline throughout is its scriptenc3_cb.
-@article{land2025script,
-  title   = {BPE Stays on SCRIPT: Structured Encoding for Robust Multilingual Pretokenization},
-  author  = {Land, Sander and Arnett, Catherine},
-  journal = {arXiv preprint arXiv:2505.24689},
-  year    = {2025}
+@inproceedings{schmidt-etal-2024-tokenization,
+    title = "Tokenization Is More Than Compression",
+    author = "Schmidt, Craig W. and
+      Reddy, Varshini  and
+      Zhang, Haoran  and
+      Alameddine, Alec  and
+      Uzan, Omri  and
+      Pinter, Yuval  and
+      Tanner, Chris",
+    editor = "Al-Onaizan, Yaser  and
+      Bansal, Mohit  and
+      Chen, Yun-Nung",
+    booktitle = "Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing",
+    month = nov,
+    year = "2024",
+    address = "Miami, Florida, USA",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2024.emnlp-main.40/",
+    doi = "10.18653/v1/2024.emnlp-main.40",
+    pages = "678--702"
 }
 
-% Ablations of unigram tokenization; source of the pruning and overshoot machinery the
-% MinGram trainer reuses.
-@article{land2025unigram,
-  title   = {Which Pieces Does Unigram Tokenization Really Need?},
-  author  = {Land, Sander and Pinter, Yuval},
-  journal = {arXiv preprint arXiv:2512.12641},
-  year    = {2025}
+@inproceedings{uzan-etal-2024-greed,
+    title = "Greed is All You Need: An Evaluation of Tokenizer Inference Methods",
+    author = "Uzan, Omri and Schmidt, Craig W. and Tanner, Chris and Pinter, Yuval",
+    booktitle = "Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 2: Short Papers)",
+    month = aug,
+    year = "2024",
+    address = "Bangkok, Thailand",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2024.acl-short.73/",
+    doi = "10.18653/v1/2024.acl-short.73",
+    pages = "813--822"
 }
 
-% The second trainer used here.
-@article{land2026mingram,
-  title   = {MinGram: A Minimalist Unigram Tokenizer with High Compression and Competitive Morphological Alignment},
-  author  = {Land, Sander},
-  journal = {arXiv preprint arXiv:2606.27019},
-  year    = {2026}
+@inproceedings{zouhar-etal-2023-tokenization,
+    title = "Tokenization and the Noiseless Channel",
+    author = "Zouhar, Vil{\'e}m and
+      Meister, Clara and
+      Gastaldi, Juan and
+      Du, Li and
+      Sachan, Mrinmaya and
+      Cotterell, Ryan",
+    editor = "Rogers, Anna and
+      Boyd-Graber, Jordan and
+      Okazaki, Naoaki",
+    booktitle = "Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+    month = jul,
+    year = "2023",
+    address = "Toronto, Canada",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2023.acl-long.284/",
+    doi = "10.18653/v1/2023.acl-long.284",
+    pages = "5184--5207"
 }
 
-% ---------------------------------------------------------------- subword tokenization
-
-% [standard] The original BPE compression algorithm, later adapted to NLP.
-@article{gage1994bpe,
-  title   = {A New Algorithm for Data Compression},
-  author  = {Gage, Philip},
-  journal = {The C Users Journal},
-  volume  = {12},
-  number  = {2},
-  pages   = {23--38},
-  year    = {1994}
+@inproceedings{cognetta-etal-2024-two,
+    title = "Two Counterexamples to Tokenization and the Noiseless Channel",
+    author = "Cognetta, Marco and
+      Zouhar, Vil{\'e}m and
+      Moon, Sangwhan and
+      Okazaki, Naoaki",
+    editor = "Calzolari, Nicoletta and
+      Kan, Min-Yen and
+      Hoste, Veronique and
+      Lenci, Alessandro and
+      Sakti, Sakriani and
+      Xue, Nianwen",
+    booktitle = "Proceedings of the 2024 Joint International Conference on Computational Linguistics, Language Resources and Evaluation (LREC-COLING 2024)",
+    month = may,
+    year = "2024",
+    address = "Torino, Italia",
+    publisher = "ELRA and ICCL",
+    url = "https://aclanthology.org/2024.lrec-main.1469/",
+    pages = "16897--16906"
 }
 
-% [standard] BPE for NLP. Introduces the subword vocabulary this work modifies.
-@inproceedings{sennrich2016bpe,
-  title     = {Neural Machine Translation of Rare Words with Subword Units},
-  author    = {Sennrich, Rico and Haddow, Barry and Birch, Alexandra},
-  booktitle = {Proceedings of the 54th Annual Meeting of the Association for Computational Linguistics},
-  pages     = {1715--1725},
-  year      = {2016}
+@article{nllb-24,
+    author = "{NLLB Team} and Costa-juss{\`a}, Marta R. and Cross, James and {\c{C}}elebi, Onur and Elbayad, Maha and Heafield, Kenneth and Heffernan, Kevin and Kalbassi, Elahe and Lam, Janice and Licht, Daniel and Maillard, Jean and Sun, Anna and Wang, Skyler and Wenzek, Guillaume and Youngblood, Al and Akula, Bapi and Barrault, Loic and Gonzalez, Gabriel Mejia and Hansanti, Prangthip and Hoffman, John and Jarrett, Semarley and Sadagopan, Kaushik and Rowe, Dirk and Spruit, Shannon and Tran, Chau and Andrews, Pierre and Ayan, Necip Fazil and Bhosale, Shruti and Edunov, Sergey and Fan, Angela and Gao, Cynthia and Goswami, Vedanuj and Guzm{\'a}n, Francisco and Koehn, Philipp and Mourachko, Alexandre and Ropers, Christophe and Saleem, Safiyyah and Schwenk, Holger and Wang, Jeff",
+    title = "Scaling neural machine translation to 200 languages",
+    journal = "Nature",
+    year = "2024",
+    volume = "630",
+    number = "8018",
+    pages = "841--846",
+    doi = "10.1038/s41586-024-07335-x",
+    url = "https://doi.org/10.1038/s41586-024-07335-x",
 }
 
-% [standard] Unigram LM tokenization.
-@inproceedings{kudo2018subword,
-  title     = {Subword Regularization: Improving Neural Network Translation Models with Multiple Subword Candidates},
-  author    = {Kudo, Taku},
-  booktitle = {Proceedings of the 56th Annual Meeting of the Association for Computational Linguistics},
-  pages     = {66--75},
-  year      = {2018}
+% Summary: Foundational empirical comparison of BPE vs Unigram LM
+% tokenization, on English and Japanese. Finds Unigram aligns better
+% with morphology than BPE, with no major training-time speed difference,
+% and that Unigram pretraining matches or beats BPE on downstream tasks.
+% Verbatim from the paper:
+% "the unigram LM method recovers subword units that align more closely
+%  with morphology and avoids problems stemming from BPE's greedy
+%  construction procedure"
+% "the unigram LM method produces subword units that qualitatively align
+%  with morphology much better than those produced by BPE"
+% "the unigram LM method recovers common affixes such as -ly, -s, pre-,
+%  and tri- while BPE does not, instead absorbing them into adjacent
+%  units (-cles) while also producing meaningless single-character units"
+@inproceedings{bostrom-durrett-2020-byte,
+    title = "Byte Pair Encoding is Suboptimal for Language Model Pretraining",
+    author = "Bostrom, Kaj and Durrett, Greg",
+    booktitle = "Findings of the Association for Computational Linguistics: EMNLP 2020",
+    month = nov,
+    year = "2020",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2020.findings-emnlp.414/",
+    doi = "10.18653/v1/2020.findings-emnlp.414",
+    pages = "4617--4624",
 }
 
-% [standard] SentencePiece, source of the U+2581 leading-space convention that this work
-% replaces with an explicit boundary marker.
-@inproceedings{kudo2018sentencepiece,
-  title     = {SentencePiece: A Simple and Language Independent Subword Tokenizer and Detokenizer for Neural Text Processing},
-  author    = {Kudo, Taku and Richardson, John},
-  booktitle = {Proceedings of the 2018 Conference on Empirical Methods in Natural Language Processing: System Demonstrations},
-  pages     = {66--71},
-  year      = {2018}
+@inproceedings{yehezkel-pinter-2023-incorporating,
+    title = "Incorporating Context into Subword Vocabularies",
+    author = "Yehezkel, Shaked  and
+      Pinter, Yuval",
+    editor = "Vlachos, Andreas  and
+      Augenstein, Isabelle",
+    booktitle = "Proceedings of the 17th Conference of the European Chapter of the Association for Computational Linguistics",
+    month = may,
+    year = "2023",
+    address = "Dubrovnik, Croatia",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2023.eacl-main.45/",
+    doi = "10.18653/v1/2023.eacl-main.45",
+    pages = "623--635",
 }
 
-% [check] Byte-level BPE with leading-space merges; the convention is described in the
-% tokenizer rather than the paper body. Verify how you wish to cite GPT-2.
-@techreport{radford2019gpt2,
-  title       = {Language Models are Unsupervised Multitask Learners},
-  author      = {Radford, Alec and Wu, Jeffrey and Child, Rewon and Luan, David and Amodei, Dario and Sutskever, Ilya},
-  institution = {OpenAI},
-  year        = {2019}
+% Summary: Tokenizer comparison for Telugu (agglutinative), Hindi, and
+% English using small BERT models. Releases a Telugu gold morpheme
+% segmentation dataset (600 derivational + 7000 inflectional forms).
+% Headline finding is about downstream task performance, not directly
+% alignment of segmentations: Unigram beats BPE on most downstream
+% tasks for Telugu, and morphological alignment correlates moderately
+% but is a weaker driver than algorithm choice. Useful as recent
+% multilingual corroboration that the BPE/Unigram split persists for
+% morphologically rich languages.
+% Verbatim from the paper:
+% "the choice of tokenizer algorithm is the most significant factor
+%  influencing performance, with Unigram-based tokenizers consistently
+%  outperforming BPE across most settings"
+% "while better morphological alignment shows a moderate, positive
+%  correlation with performance on text classification and structure
+%  prediction tasks, its impact is secondary to the tokenizer algorithm"
+@inproceedings{vemula-etal-2025-rethinking,
+    title = "Rethinking Tokenization for Rich Morphology: The Dominance of {U}nigram over {BPE} and Morphological Alignment",
+    author = "Vemula, Saketh Reddy and Dandapat, Sandipan and Sharma, Dipti and Krishnamurthy, Parameswari",
+    booktitle = "The 14th International Joint Conference on Natural Language Processing and The 4th Conference of the Asia-Pacific Chapter of the Association for Computational Linguistics",
+    month = dec,
+    year = "2025",
+    address = "Mumbai, India",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2025.ijcnlp-srw.20/",
+    doi = "10.18653/v1/2025.ijcnlp-srw.20",
+    pages = "232--252"
 }
 
-% ------------------------------------------------------- tokenizer evaluation and theory
-
-% [repo] PathPiece and the minimum-increase pruning criterion, which MinGram's optional
-% prune criterion follows. Cited in script_bpe/tokenizers/pathpiece/ and _mi_prune.py.
-% NOTE: MinGram itself is land2026mingram, NOT this entry.
-@inproceedings{schmidt2024tokenization,
-  title     = {Tokenization Is More Than Compression},
-  author    = {Schmidt, Craig W. and Reddy, Varshini and Zhang, Haoran and Alameddine, Alec and Uzan, Omri and Pinter, Yuval and Tanner, Chris},
-  booktitle = {Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing},
-  year      = {2024}
+@misc{asgari2025morphbpemorphoawaretokenizerbridging,
+      title={{MorphBPE}: A Morpho-Aware Tokenizer Bridging Linguistic Complexity for Efficient {LLM} Training Across Morphologies},
+      author={Ehsaneddin Asgari and Yassine El Kheir and Mohammad Ali Sadraei Javaheri},
+      year={2025},
+      eprint={2502.00894},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2502.00894},
 }
 
-% [standard] Tokenizer quality is not the same as compression; motivates our limitation
-% that no downstream evaluation is reported.
-@inproceedings{rust2021tokenizer,
-  title     = {How Good is Your Tokenizer? On the Monolingual Performance of Multilingual Language Models},
-  author    = {Rust, Phillip and Pfeiffer, Jonas and Vuli\'{c}, Ivan and Ruder, Sebastian and Gurevych, Iryna},
-  booktitle = {Proceedings of the 59th Annual Meeting of the Association for Computational Linguistics},
-  year      = {2021}
+@inproceedings{land2025piecesdoesunigramtokenization,
+    title = "Which Pieces Does {U}nigram Tokenization Really Need?",
+    author = "Land, Sander  and
+      Pinter, Yuval",
+    editor = "Liakata, Maria  and
+      Moreira, Viviane P.  and
+      Zhang, Jiajun  and
+      Jurgens, David",
+    booktitle = "Findings of the {A}ssociation for {C}omputational {L}inguistics: {ACL} 2026",
+    month = jul,
+    year = "2026",
+    address = "San Diego, California, United States",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2026.findings-acl.316/",
+    doi = "10.18653/v1/2026.findings-acl.316",
+    pages = "6351--6360",
+    ISBN = "979-8-89176-395-1"
 }
 
-% [check] Information-theoretic view of tokenizer quality. Verify venue and year.
-@inproceedings{zouhar2023noiseless,
-  title     = {Tokenization and the Noiseless Channel},
-  author    = {Zouhar, Vil\'{e}m and Meister, Clara and Gastaldi, Juan Luis and Du, Li and Sachan, Mrinmaya and Cotterell, Ryan},
-  booktitle = {Proceedings of the 61st Annual Meeting of the Association for Computational Linguistics},
-  year      = {2023}
+@misc{penedo2025finewiki,
+  author    = {Guilherme Penedo},
+  title     = {FineWiki},
+  year      = {2025},
+  publisher = {Hugging Face Datasets},
+  url       = {https://huggingface.co/datasets/HuggingFaceFW/finewiki},
+  urldate   = {2025-10-20},
+  note      = {Source: Wikimedia Enterprise Snapshot API (https://api.enterprise.wikimedia.com/v2/snapshots). Text licensed under CC BY-SA 4.0 with attribution to Wikipedia contributors.}
 }
 
-% ---------------------------------------------------------------------------- corpora
-
-% [check] FineWeb. Verify the exact venue string for the Datasets and Benchmarks track.
-@inproceedings{penedo2024fineweb,
-  title     = {The FineWeb Datasets: Decanting the Web for the Finest Text Data at Scale},
-  author    = {Penedo, Guilherme and Kydl\'{i}\v{c}ek, Hynek and Ben Allal, Loubna and Lozhkov, Anton and Mitchell, Margaret and Raffel, Colin and Von Werra, Leandro and Wolf, Thomas},
-  booktitle = {Advances in Neural Information Processing Systems, Datasets and Benchmarks Track},
-  year      = {2024}
+@misc{provilkov2020bpedropoutsimpleeffectivesubword,
+      title={BPE-Dropout: Simple and Effective Subword Regularization},
+      author={Ivan Provilkov and Dmitrii Emelianenko and Elena Voita},
+      year={2020},
+      eprint={1910.13267},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/1910.13267},
 }
 
-% [check] FineWiki is distributed as a HuggingFace dataset; we are not aware of a separate
-% paper. Cite as a resource unless one exists.
-@misc{finewiki2025,
-  title        = {FineWiki},
-  author       = {{HuggingFaceFW}},
-  howpublished = {\url{https://huggingface.co/datasets/HuggingFaceFW/finewiki}},
-  year         = {2025}
+@inproceedings{stephen2025morphtokeval,
+    title = "Evaluating Morphological Plausibility of Subword Tokenization via Statistical Alignment with Morpho-Syntactic Features",
+    author = "Stephen, Abishek  and
+      Libovick{\'y}, Jind{\v{r}}ich",
+    editor = "Demberg, Vera  and
+      Inui, Kentaro  and
+      Marquez, Llu{\'i}s",
+    booktitle = "Findings of the {A}ssociation for {C}omputational {L}inguistics: {EACL} 2026",
+    month = mar,
+    year = "2026",
+    address = "Rabat, Morocco",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2026.findings-eacl.196/",
+    doi = "10.18653/v1/2026.findings-eacl.196",
+    pages = "3783--3791",
+    ISBN = "979-8-89176-386-9"
 }
 
-% [repo] Goldfish. Cited in script_bpe/corpus/registry.py as Chang et al., LREC 2026,
-% arXiv 2408.10441.
-@inproceedings{chang2026goldfish,
-  title     = {Goldfish: Monolingual Language Models for 350 Languages},
-  author    = {Chang, Tyler A. and Arnett, Catherine and Tu, Zhuowen and Bergen, Benjamin K.},
-  booktitle = {Proceedings of the Joint International Conference on Computational Linguistics, Language Resources and Evaluation (LREC)},
-  year      = {2026},
-  note      = {arXiv:2408.10441}
+@misc{arnett2025evaluatingmorphologicalalignmenttokenizers,
+      title={Evaluating Morphological Alignment of Tokenizers in 70 Languages},
+      author={Catherine Arnett and Marisa Hudspeth and Brendan O'Connor},
+      year={2025},
+      eprint={2507.06378},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2507.06378},
 }
 
-% [check] Python corpus used for the code half of the mixed-domain experiment.
+@article{dempster1977maximum,
+ author = {A. P. Dempster and N. M. Laird and D. B. Rubin},
+ journal = {Journal of the Royal Statistical Society. Series B (Methodological)},
+ number = {1},
+ pages = {1--38},
+ publisher = {[Royal Statistical Society, Oxford University Press]},
+ title = {Maximum Likelihood from Incomplete Data via the {EM} Algorithm},
+ urldate = {2026-04-21},
+ volume = {39},
+ year = {1977}
+}
+
+@inproceedings{kudo-richardson-2018-sentencepiece,
+    title = "{SentencePiece}: A simple and language independent subword tokenizer and detokenizer for Neural Text Processing",
+    author = "Kudo, Taku  and
+      Richardson, John",
+    editor = "Blanco, Eduardo  and
+      Lu, Wei",
+    booktitle = "Proceedings of the 2018 Conference on Empirical Methods in Natural Language Processing: System Demonstrations",
+    month = nov,
+    year = "2018",
+    address = "Brussels, Belgium",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/D18-2012/",
+    doi = "10.18653/v1/D18-2012",
+    pages = "66--71",
+}
+
+@inproceedings{Kasai2001LinearTimeLC,
+  title={Linear-Time Longest-Common-Prefix Computation in Suffix Arrays and Its Applications},
+  author={Toru Kasai and Gunho Lee and Hiroki Arimura and Setsuo Arikawa and Kunsoo Park},
+  booktitle={Combinatorial Pattern Matching},
+  pages={181--192},
+  year={2001},
+  organization={Springer}
+}
+
+@misc{scriptbpe,
+      title={{BPE} Stays on {SCRIPT}: Structured Encoding for Robust Multilingual Pretokenization},
+      author={Sander Land and Catherine Arnett},
+      year={2025},
+      eprint={2505.24689},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2505.24689},
+}
+
+@inproceedings{chizhov2024bpegetspickyefficient,
+    title = "{BPE} Gets Picky: Efficient Vocabulary Refinement During Tokenizer Training",
+    author = "Chizhov, Pavel  and
+      Arnett, Catherine  and
+      Korotkova, Elizaveta  and
+      Yamshchikov, Ivan P.",
+    editor = "Al-Onaizan, Yaser  and
+      Bansal, Mohit  and
+      Chen, Yun-Nung",
+    booktitle = "Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing",
+    month = nov,
+    year = "2024",
+    address = "Miami, Florida, USA",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2024.emnlp-main.925/",
+    doi = "10.18653/v1/2024.emnlp-main.925",
+    pages = "16587--16604"
+}
+
+@inproceedings{arnett-etal-2024-bit,
+    title = {{A Bit of a Problem: Measurement Disparities in Dataset Sizes across Languages}},
+    author = "Arnett, Catherine  and
+      Chang, Tyler A.  and
+      Bergen, Benjamin",
+    editor = "Melero, Maite  and
+      Sakti, Sakriani  and
+      Soria, Claudia",
+    booktitle = "Proceedings of the 3rd Annual Meeting of the Special Interest Group on Under-resourced Languages @ LREC-COLING 2024",
+    month = may,
+    year = "2024",
+    address = "Torino, Italia",
+    publisher = "ELRA and ICCL",
+    url = "https://aclanthology.org/2024.sigul-1.1/",
+    pages = "1--9",
+}
+
+@inproceedings{sennrich-etal-2016-neural,
+    title = "Neural Machine Translation of Rare Words with Subword Units",
+    author = "Sennrich, Rico  and
+      Haddow, Barry  and
+      Birch, Alexandra",
+    editor = "Erk, Katrin  and
+      Smith, Noah A.",
+    booktitle = "Proceedings of the 54th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+    month = aug,
+    year = "2016",
+    address = "Berlin, Germany",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/P16-1162/",
+    doi = "10.18653/v1/P16-1162",
+    pages = "1715--1725"
+}
+
+@inproceedings{velayuthan-sarveswaran-2025-egalitarian,
+    title = {{Egalitarian Language Representation in Language Models: It All Begins with Tokenizers}},
+    author = "Velayuthan, Menan  and
+      Sarveswaran, Kengatharaiyer",
+    editor = "Rambow, Owen  and
+      Wanner, Leo  and
+      Apidianaki, Marianna  and
+      Al-Khalifa, Hend  and
+      Eugenio, Barbara Di  and
+      Schockaert, Steven",
+    booktitle = "Proceedings of the 31st International Conference on Computational Linguistics",
+    month = jan,
+    year = "2025",
+    address = "Abu Dhabi, UAE",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2025.coling-main.400/",
+    pages = "5987--5996",
+}
+
+@misc{tokencontributions-gpt4,
+      title={Pre-tokenization on punctuation in {GPT-4}},
+      author={Sander Land},
+      year={2024},
+      url = {https://tokencontributions.substack.com/p/pre-tokenization-on-punctuation-in},
+      howpublished = "Blog Post"
+}
+
+@misc{arnett-tokenizer-recycling,
+    title={{wHy DoNt YoU jUsT uSe ThE lLaMa ToKeNiZeR??}},
+    author={Catherine Arnett},
+    year={2024},
+    url={https://huggingface.co/blog/catherinearnett/dangers-of-tokenizer-recycling},
+    howpublished = "Blog Post"
+}
+
+@inproceedings{oscar2020,
+    title = "A Monolingual Approach to Contextualized Word Embeddings for Mid-Resource Languages",
+    author = "Ortiz Suarez, Pedro Javier  and
+      Romary, Laurent  and
+      Sagot, Benoit",
+    booktitle = "Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics",
+    month = jul,
+    year = "2020",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://www.aclweb.org/anthology/2020.acl-main.156",
+    pages = "1703--1714",
+}
+
+@inproceedings{oscar2019,
+  author    = {Pedro Javier {Ortiz Suarez} and Benoit Sagot and Laurent Romary},
+  title     = {Asynchronous pipelines for processing huge corpora on medium to low resource infrastructures},
+  series = {Proceedings of the Workshop on Challenges in the Management of Large Corpora (CMLC-7) 2019. Cardiff, 22nd July 2019},
+  editor    = {Piotr Bański and Adrien Barbaresi and Hanno Biber and Evelyn Breiteneder and Simon Clematide and Marc Kupietz and Harald L{"u}ngen and Caroline Iliadi},
+  publisher = {Leibniz-Institut f{"u}r Deutsche Sprache},
+  address   = {Mannheim},
+  doi       = {10.14618/ids-pub-9021},
+  url       = {http://nbn-resolving.de/urn:nbn:de:bsz:mh39-90215},
+  pages     = {9 -- 16},
+  year      = {2019},
+  language  = {en}
+}
+
+@misc{nguyen2023culturaxcleanedenormousmultilingual,
+      title={{CulturaX}: A Cleaned, Enormous, and Multilingual Dataset for Large Language Models in 167 Languages},
+      author={Thuat Nguyen and Chien Van Nguyen and Viet Dac Lai and Hieu Man and Nghia Trung Ngo and Franck Dernoncourt and Ryan A. Rossi and Thien Huu Nguyen},
+      year={2023},
+      eprint={2309.09400},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2309.09400},
+}
+
+@inproceedings{lee-etal-2025-jamo,
+    title = "Jamo-Level Subword Tokenization in Low-Resource {K}orean Machine Translation",
+    author = "Lee, Junyoung  and
+      Cognetta, Marco  and
+      Moon, Sangwhan  and
+      Okazaki, Naoaki",
+    editor = "Ojha, Atul Kr.  and
+      Liu, Chao-hong  and
+      Vylomova, Ekaterina  and
+      Pirinen, Flammie  and
+      Washington, Jonathan  and
+      Oco, Nathaniel  and
+      Zhao, Xiaobing",
+    booktitle = "Proceedings of the Eighth Workshop on Technologies for Machine Translation of Low-Resource Languages (LoResMT 2025)",
+    month = may,
+    year = "2025",
+    address = "Albuquerque, New Mexico, U.S.A.",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2025.loresmt-1.8/",
+    pages = "66--80",
+    ISBN = "979-8-89176-230-5",
+}
+
+@inproceedings{land-bartolo-2024-fishing,
+    title = "Fishing for {M}agikarp: Automatically Detecting Under-trained Tokens in Large Language Models",
+    author = "Land, Sander  and
+      Bartolo, Max",
+    editor = "Al-Onaizan, Yaser  and
+      Bansal, Mohit  and
+      Chen, Yun-Nung",
+    booktitle = "Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing",
+    month = nov,
+    year = "2024",
+    address = "Miami, Florida, USA",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2024.emnlp-main.649/",
+    doi = "10.18653/v1/2024.emnlp-main.649",
+    pages = "11631--11646",
+}
+
+@misc{wolf2020huggingfacestransformersstateoftheartnatural,
+      title={{HuggingFace's} Transformers: State-of-the-art Natural Language Processing},
+      author={Thomas Wolf and Lysandre Debut and Victor Sanh and Julien Chaumond and Clement Delangue and Anthony Moi and Pierric Cistac and Tim Rault and Rémi Louf and Morgan Funtowicz and Joe Davison and Sam Shleifer and Patrick von Platen and Clara Ma and Yacine Jernite and Julien Plu and Canwen Xu and Teven Le Scao and Sylvain Gugger and Mariama Drame and Quentin Lhoest and Alexander M. Rush},
+      year={2020},
+      eprint={1910.03771},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/1910.03771},
+}
+
+@misc{inan2017tying,
+      title={Tying Word Vectors and Word Classifiers: A Loss Framework for Language Modeling},
+      author={Hakan Inan and Khashayar Khosravi and Richard Socher},
+      year={2017},
+      eprint={1611.01462},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG}
+}
+
+@inproceedings{kudo-2018-subword,
+    title = "Subword Regularization: Improving Neural Network Translation Models with Multiple Subword Candidates",
+    author = "Kudo, Taku",
+    editor = "Gurevych, Iryna  and
+      Miyao, Yusuke",
+    booktitle = "Proceedings of the 56th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+    month = jul,
+    year = "2018",
+    address = "Melbourne, Australia",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/P18-1007",
+    doi = "10.18653/v1/P18-1007",
+    pages = "66--75",
+}
+
+@inproceedings{provilkov-etal-2020-bpe,
+    title = "{BPE}-Dropout: Simple and Effective Subword Regularization",
+    author = "Provilkov, Ivan  and
+      Emelianenko, Dmitrii  and
+      Voita, Elena",
+    editor = "Jurafsky, Dan  and
+      Chai, Joyce  and
+      Schluter, Natalie  and
+      Tetreault, Joel",
+    booktitle = "Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics",
+    month = jul,
+    year = "2020",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2020.acl-main.170",
+    doi = "10.18653/v1/2020.acl-main.170",
+    pages = "1882--1892",
+}
+
+@misc{mielke2021words,
+      title={Between words and characters: A Brief History of Open-Vocabulary Modeling and Tokenization in {NLP}},
+      author={Sabrina J. Mielke and Zaid Alyafeai and Elizabeth Salesky and Colin Raffel and Manan Dey and Matthias Gallé and Arun Raja and Chenglei Si and Wilson Y. Lee and Benoît Sagot and Samson Tan},
+      year={2021},
+      eprint={2112.10508},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL}
+}
+
+@inproceedings{bis-etal-2021-much,
+    title = "Too Much in Common: Shifting of Embeddings in Transformer Language Models and its Implications",
+    author = "Bi{\'s}, Daniel  and
+      Podkorytov, Maksim  and
+      Liu, Xiuwen",
+    editor = "Toutanova, Kristina  and
+      Rumshisky, Anna  and
+      Zettlemoyer, Luke  and
+      Hakkani-Tur, Dilek  and
+      Beltagy, Iz  and
+      Bethard, Steven  and
+      Cotterell, Ryan  and
+      Chakraborty, Tanmoy  and
+      Zhou, Yichao",
+    booktitle = "Proceedings of the 2021 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies",
+    month = jun,
+    year = "2021",
+    url = "https://aclanthology.org/2021.naacl-main.403",
+    doi = "10.18653/v1/2021.naacl-main.403",
+    pages = "5117--5130",
+}
+
+@inproceedings{liu2025superbpe,
+  title={{SuperBPE}: Space travel for language models},
+  author={Alisa Liu and Jonathan Hayase and Valentin Hofmann and Sewoong Oh and Noah A Smith and Yejin Choi},
+  booktitle={Second Conference on Language Modeling},
+  year={2025},
+  url={https://arxiv.org/abs/2503.13423}
+}
+
+@misc{foroutan2025parityaware,
+      title={Parity-Aware Byte-Pair Encoding: Improving Cross-lingual Fairness in Tokenization},
+      author={Negar Foroutan and Clara Meister and Debjit Paul and Joel Niklaus and Sina Ahmadi and Antoine Bosselut and Rico Sennrich},
+      year={2025},
+      eprint={2508.04796},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2508.04796},
+}
+
+@inproceedings{meister2026unigramlm,
+  title   = {{UnigramLM}: An Attempt at Writing The Missing Manual},
+  booktitle   = {Proceedings of the Fourteenth International Conference on Learning Representations},
+  author  = {Meister, Clara},
+  year    = {2026},
+  url     = {https://cimeister.github.io/blog/unigramlm/},
+  note    = {ICLR 2026 Blogpost Track}
+}
+
+@inproceedings{petrov2023language,
+ author = {Petrov, Aleksandar and La Malfa, Emanuele and Torr, Philip and Bibi, Adel},
+ booktitle = {Advances in Neural Information Processing Systems},
+ editor = {A. Oh and T. Naumann and A. Globerson and K. Saenko and M. Hardt and S. Levine},
+ pages = {36963--36990},
+ publisher = {Curran Associates, Inc.},
+ title = {Language Model Tokenizers Introduce Unfairness Between Languages},
+ url = {https://proceedings.neurips.cc/paper_files/paper/2023/file/74bb24dca8334adce292883b4b651eda-Paper-Conference.pdf},
+ volume = {36},
+ year = {2023}
+}
+
+@inproceedings{ahia-etal-2023-languages,
+    title = "Do All Languages Cost the Same? Tokenization in the Era of Commercial Language Models",
+    author = "Ahia, Orevaoghene  and
+      Kumar, Sachin  and
+      Gonen, Hila  and
+      Kasai, Jungo  and
+      Mortensen, David  and
+      Smith, Noah  and
+      Tsvetkov, Yulia",
+    editor = "Bouamor, Houda  and
+      Pino, Juan  and
+      Bali, Kalika",
+    booktitle = "Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing",
+    month = dec,
+    year = "2023",
+    address = "Singapore",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2023.emnlp-main.614/",
+    doi = "10.18653/v1/2023.emnlp-main.614",
+    pages = "9904--9923"
+}
+
+@inproceedings{ali-etal-2024-tokenizer,
+    title = "Tokenizer Choice For {LLM} Training: Negligible or Crucial?",
+    author = "Ali, Mehdi  and
+      Fromm, Michael  and
+      Thellmann, Klaudia  and
+      Rutmann, Richard  and
+      L{\"u}bbering, Max  and
+      Leveling, Johannes  and
+      Klug, Katrin  and
+      Ebert, Jan  and
+      Doll, Niclas  and
+      Buschhoff, Jasper  and
+      Jain, Charvi  and
+      Weber, Alexander  and
+      Jurkschat, Lena  and
+      Abdelwahab, Hammam  and
+      John, Chelsea  and
+      Ortiz Suarez, Pedro  and
+      Ostendorff, Malte  and
+      Weinbach, Samuel  and
+      Sifa, Rafet  and
+      Kesselheim, Stefan  and
+      Flores-Herr, Nicolas",
+    editor = "Duh, Kevin  and
+      Gomez, Helena  and
+      Bethard, Steven",
+    booktitle = "Findings of the Association for Computational Linguistics: NAACL 2024",
+    month = jun,
+    year = "2024",
+    address = "Mexico City, Mexico",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2024.findings-naacl.247/",
+    doi = "10.18653/v1/2024.findings-naacl.247",
+    pages = "3907--3924",
+}
+
+@inproceedings{lotz-etal-2025-beyond,
+    title = "Beyond Text Compression: Evaluating Tokenizers Across Scales",
+    author = "Lotz, Jonas F.  and
+      Lopes, Ant{\'o}nio V.  and
+      Peitz, Stephan  and
+      Setiawan, Hendra  and
+      Emili, Leonardo",
+    editor = "Che, Wanxiang  and
+      Nabende, Joyce  and
+      Shutova, Ekaterina  and
+      Pilehvar, Mohammad Taher",
+    booktitle = "Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+    month = jul,
+    year = "2025",
+    address = "Vienna, Austria",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2025.acl-long.1546/",
+    doi = "10.18653/v1/2025.acl-long.1546",
+    pages = "32155--32173",
+}
+
+@inproceedings{arnett-bergen-2025-language,
+    title = "Why do language models perform worse for morphologically complex languages?",
+    author = "Arnett, Catherine  and
+      Bergen, Benjamin",
+    editor = "Rambow, Owen  and
+      Wanner, Leo  and
+      Apidianaki, Marianna  and
+      Al-Khalifa, Hend  and
+      Eugenio, Barbara Di  and
+      Schockaert, Steven",
+    booktitle = "Proceedings of the 31st International Conference on Computational Linguistics",
+    month = jan,
+    year = "2025",
+    address = "Abu Dhabi, UAE",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2025.coling-main.441/",
+    pages = "6607--6623"
+}
+
+@inproceedings{rust-etal-2021-good,
+    title = "How Good is Your Tokenizer? On the Monolingual Performance of Multilingual Language Models",
+    author = "Rust, Phillip  and
+      Pfeiffer, Jonas  and
+      Vuli{\'c}, Ivan  and
+      Ruder, Sebastian  and
+      Gurevych, Iryna",
+    editor = "Zong, Chengqing  and
+      Xia, Fei  and
+      Li, Wenjie  and
+      Navigli, Roberto",
+    booktitle = "Proceedings of the 59th Annual Meeting of the Association for Computational Linguistics and the 11th International Joint Conference on Natural Language Processing (Volume 1: Long Papers)",
+    month = aug,
+    year = "2021",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2021.acl-long.243/",
+    doi = "10.18653/v1/2021.acl-long.243",
+    pages = "3118--3135"
+}
+
+@inproceedings{hofmann-etal-2021-superbizarre,
+    title = "Superbizarre Is Not Superb: Derivational Morphology Improves {BERT}{'}s Interpretation of Complex Words",
+    author = {Hofmann, Valentin  and
+      Pierrehumbert, Janet  and
+      Sch{\"u}tze, Hinrich},
+    editor = "Zong, Chengqing  and
+      Xia, Fei  and
+      Li, Wenjie  and
+      Navigli, Roberto",
+    booktitle = "Proceedings of the 59th Annual Meeting of the Association for Computational Linguistics and the 11th International Joint Conference on Natural Language Processing (Volume 1: Long Papers)",
+    month = aug,
+    year = "2021",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2021.acl-long.279/",
+    doi = "10.18653/v1/2021.acl-long.279",
+    pages = "3594--3608"
+}
+
+@misc{tempus2026tokenisationconvexrelaxations,
+      title={Tokenisation via Convex Relaxations},
+      author={Jan Tempus and Philip Whittington and Craig W. Schmidt and Dennis Komm and Tiago Pimentel},
+      year={2026},
+      eprint={2605.22821},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2605.22821},
+}
+
+@misc{chang2026goldfishmonolinguallanguagemodels,
+      title={Goldfish: Monolingual Language Models for 350 Languages},
+      author={Tyler A. Chang and Catherine Arnett and Zhuowen Tu and Benjamin K. Bergen},
+      year={2026},
+      eprint={2408.10441},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2408.10441},
+}
+
+@inproceedings{scaffold_bpe,
+	author = {Lian, Haoran and Xiong, Yizhe and Niu, Jianwei and Mo, Shasha and Su, Zhenpeng and Lin, Zijia and Chen, Hui and Han, Jungong and Ding, Guiguang},
+	title = {{Scaffold-BPE}: enhancing byte pair encoding for large language models with simple and effective scaffold token removal},
+	year = {2025},
+	isbn = {978-1-57735-897-8},
+	publisher = {AAAI Press},
+	url = {https://doi.org/10.1609/aaai.v39i23.34633},
+	doi = {10.1609/aaai.v39i23.34633},
+	booktitle = {Proceedings of the Thirty-Ninth AAAI Conference on Artificial Intelligence and Thirty-Seventh Conference on Innovative Applications of Artificial Intelligence and Fifteenth Symposium on Educational Advances in Artificial Intelligence},
+	articleno = {2735},
+	numpages = {10},
+	series = {AAAI'25/IAAI'25/EAAI'25}
+}
+
+@inproceedings{sennrich-etal-2017-university,
+    title = "The {U}niversity of {E}dinburgh{'}s Neural {MT} Systems for {WMT}17",
+    author = "Sennrich, Rico  and
+      Birch, Alexandra  and
+      Currey, Anna  and
+      Germann, Ulrich  and
+      Haddow, Barry  and
+      Heafield, Kenneth  and
+      Miceli Barone, Antonio Valerio  and
+      Williams, Philip",
+    editor = "Bojar, Ond{\v{r}}ej  and
+      Buck, Christian  and
+      Chatterjee, Rajen  and
+      Federmann, Christian  and
+      Graham, Yvette  and
+      Haddow, Barry  and
+      Huck, Matthias  and
+      Yepes, Antonio Jimeno  and
+      Koehn, Philipp  and
+      Kreutzer, Julia",
+    booktitle = "Proceedings of the Second Conference on Machine Translation",
+    month = sep,
+    year = "2017",
+    address = "Copenhagen, Denmark",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/W17-4739/",
+    doi = "10.18653/v1/W17-4739",
+    pages = "389--399"
+}
+
+@inproceedings{schmidt2025boundless,
+    title={Boundless Byte Pair Encoding: Breaking the Pre-tokenization Barrier},
+    author={Craig W. Schmidt and Varshini Reddy and Chris Tanner and Yuval Pinter},
+    booktitle={Second Conference on Language Modeling},
+    year={2025},
+    url={https://openreview.net/forum?id=oPAjXGV8qQ}
+}
+
+@inproceedings{galle-2019-investigating,
+    title = "Investigating the Effectiveness of {BPE}: The Power of Shorter Sequences",
+    author = "Gall{\'e}, Matthias",
+    editor = "Inui, Kentaro  and
+      Jiang, Jing  and
+      Ng, Vincent  and
+      Wan, Xiaojun",
+    booktitle = "Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing (EMNLP-IJCNLP)",
+    month = nov,
+    year = "2019",
+    address = "Hong Kong, China",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/D19-1141/",
+    doi = "10.18653/v1/D19-1141",
+    pages = "1375--1381"
+}
+
+@misc{schmidt2026tokenizationsplittrees,
+      title={Tokenization with Split Trees},
+      author={Craig W. Schmidt and Michael Krumdick and Adam Wiemerslage and Seth Ebner and Varshini Reddy and Yuval Pinter and Chris Tanner},
+      year={2026},
+      eprint={2605.22705},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2605.22705},
+      note = {(Withdrawn)}
+}
+
+@misc{diao2025nemotronclimbclusteringbasediterativedata,
+      title={Nemotron-{CLIMB}: CLustering-based Iterative Data Mixture Bootstrapping for Language Model Pre-training},
+      author={Shizhe Diao and Yu Yang and Yonggan Fu and Xin Dong and Dan Su and Markus Kliegl and Zijia Chen and Peter Belcak and Yoshi Suhara and Hongxu Yin and Mostofa Patwary and Yingyan Lin and Jan Kautz and Pavlo Molchanov},
+      year={2025},
+      eprint={2504.13161},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2504.13161},
+}
+
+@misc{nanochat,
+  author = {Andrej Karpathy},
+  title = {nanochat: The best {ChatGPT} that \$100 can buy},
+  year = {2025},
+  publisher = {GitHub},
+  url = {https://github.com/karpathy/nanochat}
+}
+
+@inproceedings{li2024datacomplm,
+ author = {Li, Jeffrey and Fang, Alex and Smyrnis, Georgios and Ivgi, Maor and Jordan, Matt and Gadre, Samir and Bansal, Hritik and Guha, Etash and Keh, Sedrick and Arora, Kushal and Garg, Saurabh and Xin, Rui and Muennighoff, Niklas and Heckel, Reinhard and Mercat, Jean and Chen, Mayee and Gururangan, Suchin and Wortsman, Mitchell and Albalak, Alon and Bitton, Yonatan and Nezhurina, Marianna and Abbas, Amro and Hsieh, Cheng-Yu and Ghosh, Dhruba and Gardner, Josh and Kilian, Maciej and Zhang, Hanlin and Shao, Rulin and Pratt, Sarah and Sanyal, Sunny and Ilharco, Gabriel and Daras, Giannis and Marathe, Kalyani and Gokaslan, Aaron and Zhang, Jieyu and Chandu, Khyathi and Nguyen, Thao and Vasiljevic, Igor and Kakade, Sham and Song, Shuran and Sanghavi, Sujay and Faghri, Fartash and Oh, Sewoong and Zettlemoyer, Luke and Lo, Kyle and El-Nouby, Alaaeldin and Pouransari, Hadi and Toshev, Alexander and Wang, Stephanie and Groeneveld, Dirk and Soldaini, Luca and Koh, Pang Wei and Jitsev, Jenia and Kollar, Thomas and Dimakis, Alexandros G. and Carmon, Yair and Dave, Achal and Schmidt, Ludwig and Shankar, Vaishaal},
+ booktitle = {Advances in Neural Information Processing Systems},
+ doi = {10.52202/079017-0455},
+ pages = {14200--14282},
+ publisher = {Curran Associates, Inc.},
+ title = {{DataComp-LM}: In search of the next generation of training sets for language models},
+ url = {https://proceedings.neurips.cc/paper_files/paper/2024/file/19e4ea30dded58259665db375885e412-Paper-Datasets_and_Benchmarks_Track.pdf},
+ volume = {37},
+ year = {2024}
+}
+
+% ---------------------------------------------------------------------------------------
+% NOT IN THE SUPPLIED BIBLIOGRAPHY -- added because this paper cites them.
+% Replace or remove if canonical entries exist.
+
+% The MinGram trainer used for the second half of the experiments. Title, author and date
+% verified against arXiv in this session.
+@misc{land2026mingram,
+      title={{MinGram}: A Minimalist Unigram Tokenizer with High Compression and Competitive Morphological Alignment},
+      author={Sander Land},
+      year={2026},
+      eprint={2606.27019},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2606.27019},
+}
+
+% Web corpus for the English-prose and mixed-domain experiments. The supplied
+% bibliography contains FineWiki but not FineWeb. UNVERIFIED.
+@misc{penedo2024fineweb,
+  author    = {Guilherme Penedo and Hynek Kydl{\'i}{\v{c}}ek and Loubna Ben Allal and Anton Lozhkov and Margaret Mitchell and Colin Raffel and Leandro Von Werra and Thomas Wolf},
+  title     = {The {FineWeb} Datasets: Decanting the Web for the Finest Text Data at Scale},
+  year      = {2024},
+  eprint    = {2406.17557},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CL},
+  url       = {https://arxiv.org/abs/2406.17557},
+  note      = {NOT in the supplied bibliography; details unverified}
+}
+
+% Code corpora for the mixed prose+code experiment. UNVERIFIED.
 @misc{codeparrot,
-  title        = {CodeParrot Clean},
+  title        = {{CodeParrot} Clean},
   author       = {{CodeParrot}},
   howpublished = {\url{https://huggingface.co/datasets/codeparrot/codeparrot-clean}},
-  year         = {2022}
+  year         = {2022},
+  note         = {NOT in the supplied bibliography; details unverified}
 }
 
-% [check] Multi-language snippet corpus used alongside CodeParrot.
 @misc{rosettacode,
   title        = {Rosetta Code},
   howpublished = {\url{https://huggingface.co/datasets/christopher/rosetta-code}},
-  year         = {2023}
-}
-
-% ---------------------------------------------------------------------- digit handling
-
-% [check] Digit splitting adopted for arithmetic reasons rather than compression; verify
-% which model paper you wish to attribute the convention to.
-@article{touvron2023llama,
-  title   = {Llama 2: Open Foundation and Fine-Tuned Chat Models},
-  author  = {Touvron, Hugo and Martin, Louis and Stone, Kevin and others},
-  journal = {arXiv preprint arXiv:2307.09288},
-  year    = {2023}
+  year         = {2023},
+  note         = {NOT in the supplied bibliography; details unverified}
 }
