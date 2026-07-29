@@ -192,6 +192,33 @@ across an elided space: given the constraint, fusing admits exactly the same leg
 while inflating an early prototype's corpus from 335k to 1.76M unique chunks and BPE
 training from 40s to 442s.
 
+\subsection{Scope: when one marker glyph suffices}
+\label{sec:onemarker}
+
+We use a single glyph for both sides of a span. This is sound here only because
+pretokenization fixes which chunk each marker belongs to \emph{before} any search runs:
+\texttt{\mk{}word\mk{}} and \texttt{\mk{}.} are separate chunks, and both BPE merging and
+the MinGram dynamic program operate strictly within a chunk. No segmentation is ever
+offered a choice about which piece covers a given marker.
+
+That condition is doing real work, and it is worth stating because it does not hold for
+every tokenizer. Where the segmenter tiles a flat glyph stream --- a minimum-piece method
+with no pre-tokenization barrier, as has been reported for at least one production
+tokenizer \citep{tokencontributions-claude} --- a single glyph is ambiguous: a
+word-\emph{initial} piece form \texttt{\mk{}x} can absorb a marker that \emph{closed} the
+preceding word, because nothing in the glyph distinguishes the two roles. The segmenter
+takes whichever tiling is cheaper, which need not be the intended one. Direction must then
+be recovered either from a distinct pair of glyphs, opening and closing, or from a
+directional constraint on matching.
+
+Two glyphs cost one extra atomic token and, since order already distinguishes
+\texttt{\mk{},} from \texttt{,\mk{}}, no additional piece-form variants. They do not,
+however, remove either of the other two constraints in this section: a learned token can
+still end in a dangling opening marker, so the seam restriction is still required, and an
+opening marker meeting a closing one is still indistinguishable from an elided space, so
+span merging (\S\ref{sec:spans}) is still required. Choosing one glyph over two is
+therefore a consequence of pretokenizing into chunks, not an independent simplification.
+
 \section{Design iterations}
 \label{sec:iterations}
 
@@ -416,6 +443,11 @@ single spaces remain non-elided in mixed text, and CJK-heavy corpora were not st
 
 Gains shrink where spans are short relative to the marker pair, and can go negative: Korean is
 $+0.88\%$ at 1\,GB but $-0.67\%$ at 250M (\S\ref{sec:mingram}).
+
+The single-glyph design assumes a pretokenizer that pins markers to chunks
+(\S\ref{sec:onemarker}). We have not measured the scheme under a segmenter that tiles a
+flat stream, where a second glyph or a directional matching constraint would be required;
+whether the compression results carry over to that setting is untested.
 
 Table~\ref{tab:main} uses a single vocabulary size, and its corpus was built over the same
 documents used for evaluation (roughly 1.3\% of training data). The leak is identical for
