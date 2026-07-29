@@ -42,7 +42,9 @@ to $-2.99\%$; adding digits reaches $+2.14\%$, beating the baseline in all six l
 1\,GB (range $+0.88\%$ to $+3.77\%$), while reducing duplicate vocabulary pairs from
 thousands to fewer than ten, with zero roundtrip failures and no increase in training cost.
 The result is a tokenizer with one canonical form per word, roughly 20\% of vocabulary
-reclaimed, and better compression than the convention it replaces.
+reclaimed, and better compression than the convention it replaces. Extending the same
+argument to case with two caps codes removes a further 29.1\% of the vocabulary at no
+measurable compression cost.
 \end{abstract}
 
 \section{Introduction}
@@ -394,6 +396,48 @@ mass. Vocabulary waste and compression loss are not interchangeable.
 The practically useful result is invariance: the boundary advantage sits between $+3.37\%$
 and $+3.71\%$ regardless of digit policy, so the scheme composes with whatever digit handling
 was already chosen.
+
+\subsection{Caps codes}
+\label{sec:caps}
+
+The same argument applies to case: without intervention a vocabulary holds \texttt{The} and
+\texttt{the}, \texttt{NASA} and \texttt{nasa} as separate entries. Following the older
+Claude tokenizer \citep{tokencontributions-claude}, we add two codes --- shift for
+title case, caps-lock for all caps --- and emit the lowercased span after them, so
+\texttt{The} is exactly \texttt{the} plus one code. Whole spans only; mixed case such as
+\texttt{GaN} or \texttt{WiFi} stays literal.
+
+Unicode case mapping is not a bijection, so invertibility is verified per span rather than
+assumed: U+0130 lowercases to two characters, U+1E9E uppercases to \texttt{SS}, and
+titlecase digraphs such as U+01C5 do not survive a lower/upper round trip. Each candidate is
+re-transformed and compared, and anything that does not reproduce the source exactly stays
+literal. Checked over all 2{,}842 cased letters in Unicode, and over 2{,}000 FineWiki
+documents in English, German, Russian, Greek and Turkish (4.7M characters), with no
+round-trip failures.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lrrr}
+\toprule
+& chars/tok & case pairs & alpha entries \\
+\midrule
+\bnd{wpd}           & 3.8849 & 5{,}017 & 26{,}661 \\
+\ \ + caps codes    & 3.8832 & \textbf{91} & 21{,}819 \\
+\bottomrule
+\end{tabular}
+\caption{English, 250M characters, 32{,}768 vocabulary, BPE, evaluation withheld. Case
+pairs counts entries with a distinct-cased counterpart also present.}
+\label{tab:caps}
+\end{table}
+
+Caps codes remove case duplication almost entirely --- 5{,}017 pairs to 91, or 29.1\% of the
+vocabulary to 0.5\% --- at a compression cost of $-0.04\%$, which is noise. This is the
+third instance of the same pattern: reclaiming vocabulary does not convert into compression,
+but here it does not cost anything either, so the canonical-case form is effectively free.
+Note that this is the reverse of the digit case, where bounding the markable set was
+\emph{necessary} to avoid a penalty; case has only two productive forms per word, so the
+duplication is bounded to begin with.
 
 \subsection{Mixed prose and code}
 \label{sec:code}
