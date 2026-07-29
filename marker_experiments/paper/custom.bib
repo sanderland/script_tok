@@ -8,6 +8,35 @@
 % This environment has no network access to the ACL Anthology, so nothing below was
 % resolved against an authoritative source.
 
+% ------------------------------------------------- this line of work (verified via arXiv)
+% Titles, author lists and submission dates for these three were fetched from arxiv.org in
+% this session and are confirmed. Any venue beyond arXiv is not.
+
+% The pretokenizer this work modifies: the baseline throughout is its scriptenc3_cb.
+@article{land2025script,
+  title   = {BPE Stays on SCRIPT: Structured Encoding for Robust Multilingual Pretokenization},
+  author  = {Land, Sander and Arnett, Catherine},
+  journal = {arXiv preprint arXiv:2505.24689},
+  year    = {2025}
+}
+
+% Ablations of unigram tokenization; source of the pruning and overshoot machinery the
+% MinGram trainer reuses.
+@article{land2025unigram,
+  title   = {Which Pieces Does Unigram Tokenization Really Need?},
+  author  = {Land, Sander and Pinter, Yuval},
+  journal = {arXiv preprint arXiv:2512.12641},
+  year    = {2025}
+}
+
+% The second trainer used here.
+@article{land2026mingram,
+  title   = {MinGram: A Minimalist Unigram Tokenizer with High Compression and Competitive Morphological Alignment},
+  author  = {Land, Sander},
+  journal = {arXiv preprint arXiv:2606.27019},
+  year    = {2026}
+}
+
 % ---------------------------------------------------------------- subword tokenization
 
 % [standard] The original BPE compression algorithm, later adapted to NLP.
@@ -60,8 +89,9 @@
 
 % ------------------------------------------------------- tokenizer evaluation and theory
 
-% [repo] PathPiece and the minimum-increase pruning criterion. Cited in
-% script_bpe/tokenizers/pathpiece/ and script_bpe/tokenizers/_mi_prune.py.
+% [repo] PathPiece and the minimum-increase pruning criterion, which MinGram's optional
+% prune criterion follows. Cited in script_bpe/tokenizers/pathpiece/ and _mi_prune.py.
+% NOTE: MinGram itself is land2026mingram, NOT this entry.
 @inproceedings{schmidt2024tokenization,
   title     = {Tokenization Is More Than Compression},
   author    = {Schmidt, Craig W. and Reddy, Varshini and Zhang, Haoran and Alameddine, Alec and Uzan, Omri and Pinter, Yuval and Tanner, Chris},

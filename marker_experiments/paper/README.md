@@ -31,6 +31,31 @@ packages; switch to `xelatex` with a Unicode font if you want the real character
 
 Remove `[review]` from `\usepackage[review]{acl}` for a camera-ready build.
 
+## Style and citation alignment
+
+Conventions are taken from this repository's own paper-table generators
+(`paper_utils/hybrid/`, `paper_utils/unigram/`): `booktabs` rules with `\cmidrule` group
+separators, a `\relchange` macro for relative-change columns, languages spelled out
+(English, German, Finnish, Russian, Arabic, Korean) rather than ISO codes, and method names
+matching the MinGram tables (BPE, MinGram).
+
+The three papers from this line of work are cited, with metadata fetched and verified from
+arXiv during preparation:
+
+| Paper | Authors | arXiv |
+|---|---|---|
+| BPE Stays on SCRIPT | Land & Arnett | 2505.24689 |
+| Which Pieces Does Unigram Tokenization Really Need? | Land & Pinter | 2512.12641 |
+| MinGram | Land | 2606.27019 |
+
+Two corrections were made against the first draft of this bibliography:
+
+- **MinGram was misattributed to Schmidt et al.** MinGram is Land (2026); Schmidt et al.
+  (2024) is PathPiece, whose minimum-increase pruning rule MinGram's optional prune
+  criterion follows. Both are now cited, for the right things.
+- **SCRIPT was not cited at all**, despite the baseline throughout being its
+  `scriptenc3_cb` pretokenizer. It is now cited in the introduction and §2.
+
 ## Bibliography status
 
 **Verify every entry before submission.** This environment had no access to the ACL

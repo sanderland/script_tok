@@ -17,6 +17,8 @@
 
 \newcommand{\bnd}[1]{\texttt{bnd\_#1}}
 \newcommand{\mk}{\texttt{<|>}}
+% Relative change against the baseline, following the convention of the MinGram tables.
+\newcommand{\relchange}[1]{{\footnotesize #1}}
 
 \title{Boundary Markers: One Canonical Word Form, and Better Compression,\\
        for Script-Aware Subword Tokenization}
@@ -47,8 +49,8 @@ reclaimed, and better compression than the convention it replaces.
 \label{sec:intro}
 
 Byte-pair encoding \citep{gage1994bpe,sennrich2016bpe} and unigram tokenizers
-\citep{kudo2018subword} are conventionally applied to text in which a word's leading space
-is absorbed into the word's token. SentencePiece \citep{kudo2018sentencepiece} makes this
+\citep{kudo2018subword,land2025unigram} are conventionally applied to text in which a
+word's leading space is absorbed into the word's token. SentencePiece \citep{kudo2018sentencepiece} makes this
 explicit with a substituted space character, and byte-level BPE \citep{radford2019gpt2}
 inherits it. The consequence is that most content words occupy two vocabulary entries: one
 with the leading space, one without.
@@ -67,8 +69,9 @@ removing a 3.17\% digit-variant tax buys only $+0.33$pp (\S\ref{sec:digits}).
 \section{The duplication}
 \label{sec:duplication}
 
-We build on a script-aware pretokenizer that segments text into runs of shared Unicode
-script and category, and lets a lone space attach to the following run, producing the
+We build on SCRIPT encoding \citep{land2025script}, which segments text into runs of shared
+Unicode script and category and encodes each character as a block/index token pair. Its
+pretokenizer lets a lone space attach to the following run, producing the
 \texttt{' word'}/\texttt{'word'} pair. Table~\ref{tab:dup} measures the resulting
 duplication on FineWiki \citep{finewiki2025}, 1\,GB per language, 32{,}768 additional
 vocabulary, BPE.
@@ -78,14 +81,14 @@ vocabulary, BPE.
 \small
 \begin{tabular}{lrr}
 \toprule
-Lang & Duplicate pairs & \% of vocabulary \\
+Language & Duplicate pairs & \% of vocabulary \\
 \midrule
-en & 3{,}196 & 18.5 \\
-de & 3{,}226 & 18.7 \\
-fi & 3{,}835 & 22.2 \\
-ru & 3{,}297 & 19.1 \\
-ar & 3{,}159 & 18.3 \\
-ko & 5{,}244 & \textbf{30.4} \\
+English & 3{,}196 & 18.5 \\
+German  & 3{,}226 & 18.7 \\
+Finnish & 3{,}835 & 22.2 \\
+Russian & 3{,}297 & 19.1 \\
+Arabic  & 3{,}159 & 18.3 \\
+Korean  & 5{,}244 & \textbf{30.4} \\
 \bottomrule
 \end{tabular}
 \caption{Vocabulary spent on \texttt{' X'}/\texttt{'X'} duplicate pairs.}
@@ -207,8 +210,10 @@ of every cell.
 \subsection{Six languages at 1\,GB}
 \label{sec:multiling}
 
-Languages follow a six-language set spanning Latin, Cyrillic, Arabic and Hangul, matching
-the set used for monolingual evaluation by \citet{chang2026goldfish}.
+Languages follow the six-language set used throughout this line of work
+\citep{land2025unigram,land2026mingram} --- English, German, Finnish, Russian, Arabic and
+Korean --- spanning Latin, Cyrillic, Arabic and Hangul, and drawn from the monolingual
+corpora of \citet{chang2026goldfish}.
 Whitespace normalization is applied as the corpus loader does, so multi-space runs are absent
 by construction. Table~\ref{tab:main} reports the main result.
 
@@ -217,16 +222,18 @@ by construction. Table~\ref{tab:main} reports the main result.
 \small
 \begin{tabular}{llrrr}
 \toprule
-Lang & plain & \bnd{w} & \bnd{wp} & \bnd{wpd} \\
+& \multicolumn{1}{c}{Baseline} & \multicolumn{3}{c}{Relative change (\%)} \\
+\cmidrule(lr){2-2} \cmidrule(lr){3-5}
+Language & plain & \bnd{w} & \bnd{wp} & \bnd{wpd} \\
 \midrule
-en & 3.8310 & $-15.97$ & $-2.90$ & $\mathbf{+3.77}$ \\
-de & 4.1110 & $-12.56$ & $-3.59$ & $\mathbf{+1.60}$ \\
-fi & 3.9836 & $-12.64$ & $-2.94$ & $\mathbf{+2.02}$ \\
-ru & 3.7955 & $-13.72$ & $-2.35$ & $\mathbf{+2.67}$ \\
-ar & 3.9838 & $-12.41$ & $-2.67$ & $\mathbf{+1.91}$ \\
-ko & 2.2310 & $-15.21$ & $-3.48$ & $\mathbf{+0.88}$ \\
+English & 3.8310 & \relchange{$-15.97$} & \relchange{$-2.90$} & $\mathbf{+3.77}$ \\
+German  & 4.1110 & \relchange{$-12.56$} & \relchange{$-3.59$} & $\mathbf{+1.60}$ \\
+Finnish & 3.9836 & \relchange{$-12.64$} & \relchange{$-2.94$} & $\mathbf{+2.02}$ \\
+Russian & 3.7955 & \relchange{$-13.72$} & \relchange{$-2.35$} & $\mathbf{+2.67}$ \\
+Arabic  & 3.9838 & \relchange{$-12.41$} & \relchange{$-2.67$} & $\mathbf{+1.91}$ \\
+Korean  & 2.2310 & \relchange{$-15.21$} & \relchange{$-3.48$} & $\mathbf{+0.88}$ \\
 \midrule
-mean & & $-13.75$ & $-2.99$ & $\mathbf{+2.14}$ \\
+Mean    &        & \relchange{$-13.75$} & \relchange{$-2.99$} & $\mathbf{+2.14}$ \\
 \bottomrule
 \end{tabular}
 \caption{FineWiki, 1\,GB per language, 32{,}768 vocabulary, BPE. Baseline in chars/token;
@@ -247,8 +254,9 @@ the marker vocabulary holds one canonical form.
 \label{sec:mingram}
 
 To check that the effect is not specific to greedy merge training, we repeat the comparison
-with a minimum-token-count trainer in the style of PathPiece
-\citep{schmidt2024tokenization}, at 250M characters where cells complete reliably, with
+with MinGram \citep{land2026mingram}, a minimum-token-count unigram trainer initialised from
+BPE, whose optional pruning criterion follows the minimum-increase rule of PathPiece
+\citep{schmidt2024tokenization}. We use 250M characters, where cells complete reliably, with
 evaluation documents withheld from training (Table~\ref{tab:mingram}).
 
 \begin{table}[t]
@@ -256,14 +264,16 @@ evaluation documents withheld from training (Table~\ref{tab:mingram}).
 \small
 \begin{tabular}{llrrrr}
 \toprule
-Lang & Trainer & plain & \bnd{w} & \bnd{wp} & \bnd{wpd} \\
+& & \multicolumn{1}{c}{Baseline} & \multicolumn{3}{c}{Relative change (\%)} \\
+\cmidrule(lr){3-3} \cmidrule(lr){4-6}
+Language & Trainer & plain & \bnd{w} & \bnd{wp} & \bnd{wpd} \\
 \midrule
-en & BPE     & 3.7580 & $-15.24$ & $-3.42$ & $+3.38$ \\
-en & MinGram & 3.8019 & $-15.64$ & $-3.78$ & $+3.02$ \\
-ru & BPE     & 3.8094 & $-11.66$ & $-1.35$ & $+2.39$ \\
-ru & MinGram & 3.8636 & $-12.02$ & $-1.63$ & $+2.27$ \\
-ko & BPE     & 2.1793 & $-17.04$ & $-4.23$ & $-0.67$ \\
-ko & MinGram & 2.2055 & $-17.79$ & $-5.05$ & $-1.51$ \\
+English & BPE     & 3.7580 & \relchange{$-15.24$} & \relchange{$-3.42$} & $+3.38$ \\
+English & MinGram & 3.8019 & \relchange{$-15.64$} & \relchange{$-3.78$} & $+3.02$ \\
+Russian & BPE     & 3.8094 & \relchange{$-11.66$} & \relchange{$-1.35$} & $+2.39$ \\
+Russian & MinGram & 3.8636 & \relchange{$-12.02$} & \relchange{$-1.63$} & $+2.27$ \\
+Korean  & BPE     & 2.1793 & \relchange{$-17.04$} & \relchange{$-4.23$} & $-0.67$ \\
+Korean  & MinGram & 2.2055 & \relchange{$-17.79$} & \relchange{$-5.05$} & $-1.51$ \\
 \bottomrule
 \end{tabular}
 \caption{250M characters, 32{,}768 vocabulary. Not comparable to Table~\ref{tab:main}.}
@@ -337,7 +347,7 @@ under both schemes.
 \label{sec:analysis}
 
 \paragraph{Larger candidate pools do not substitute for the right boundary set.} Sweeping the
-BPE-initialisation overshoot of the MinGram trainer over $1.10$, $1.15$ and $1.25$ on the
+BPE-initialisation overshoot \citep{land2026mingram} over $1.10$, $1.15$ and $1.25$ on the
 words-only variant moves the gap from $-7.83\%$ to $-7.95\%$ --- a 2.5$\times$ larger
 candidate pool buys 290 words and makes compression marginally worse.
 
