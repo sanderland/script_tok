@@ -19,5 +19,26 @@
     "alpha_entries": 26661,
     "case_dup_pairs": 5017,
     "case_dup_vocab_frac": 0.29101772093158157
+  },
+  "en_bnd_wpd_caps": {
+    "lang": "en",
+    "variant": "bnd_wpd_caps",
+    "caps_codes": true,
+    "atomic_vocab": 1713,
+    "vocab_size": 34481,
+    "train_seconds": 92,
+    "unique_chunks": 906765,
+    "eval_chars": 2219281,
+    "eval_tokens": 571502,
+    "eval_chars_per_token": 3.8832427533062,
+    "roundtrip_failures": 0,
+    "distinct_alpha_words_with_own_token": 15051,
+    "space_dup_pairs": 5,
+    "space_dup_vocab_frac": 0.00029001479075432845,
+    "marker_variant_extra_slots": 214,
+    "whitespace_only_vocab_entries": 28,
+    "alpha_entries": 21819,
+    "case_dup_pairs": 91,
+    "case_dup_vocab_frac": 0.005278269191728778
   }
 }
