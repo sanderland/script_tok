@@ -29,21 +29,18 @@
 \maketitle
 
 \begin{abstract}
-Subword vocabularies built over space-separated writing systems spend a large fraction of
-their capacity representing the same word twice --- once with a leading space and once
-without (\texttt{' the'} and \texttt{'the'}). Across six languages at 1\,GB each we measure
-this at 18--30\% of a 32{,}768-entry vocabulary, and at 16k vocabulary on web text it
-accounts for 64\% of all emitted tokens. We replace the leading-space convention with an
-explicit boundary marker \mk{}: spans are delimited, and the single space between two
-adjacent delimited spans is elided at encode time and reconstructed at decode time from the
-resulting pair of touching markers. \emph{Which} units get delimited decides the outcome.
-Delimiting words alone costs $-13.75\%$ compression on average; adding punctuation brings it
-to $-2.99\%$; adding digits reaches $+2.14\%$, beating the baseline in all six languages at
-1\,GB (range $+0.88\%$ to $+3.77\%$), while reducing duplicate vocabulary pairs from
-thousands to fewer than ten, with zero roundtrip failures and no increase in training cost.
-The result is a tokenizer with one canonical form per word, roughly 20\% of vocabulary
-reclaimed, and better compression than the convention it replaces. Extending the same
-argument to case with two caps codes removes a further 29.1\% of the vocabulary at no
+Subword vocabularies for space-separated writing systems spend a large fraction of their
+capacity storing each word twice --- once with a leading space and once without
+(\texttt{' the'} and \texttt{'the'}). Across six languages we measure this at 18--30\% of a
+32{,}768-entry vocabulary. We replace the leading-space convention with an explicit
+boundary marker \mk{}: spans are delimited, and the single space between two adjacent
+delimited spans is dropped at encode time and restored at decode time from the resulting
+pair of touching markers. \emph{Which} units get delimited decides the outcome. Delimiting
+words alone costs $-13.75\%$ compression on average; adding punctuation brings it to
+$-2.99\%$; adding digits reaches $+2.14\%$, beating the baseline in all six languages
+(range $+0.88\%$ to $+3.77\%$) while cutting duplicate vocabulary pairs from thousands to
+fewer than ten, with no roundtrip failures and no increase in training cost. Applying the
+same argument to case with two shift codes removes a further 29.1\% of the vocabulary at no
 measurable compression cost.
 \end{abstract}
 
@@ -51,61 +48,63 @@ measurable compression cost.
 \label{sec:intro}
 
 Byte-pair encoding \citep{sennrich-etal-2016-neural} and unigram tokenizers
-\citep{kudo-2018-subword,land2025piecesdoesunigramtokenization} are conventionally applied to text in which a
-word's leading space is absorbed into the word's token. SentencePiece \citep{kudo-richardson-2018-sentencepiece} makes this
-explicit with a substituted space character, and byte-level tokenizers inherit it; the
-interaction of pre-tokenization with punctuation in production tokenizers is surveyed by
-\citet{tokencontributions-gpt4}. The consequence is that most content words occupy two vocabulary entries: one
-with the leading space, one without.
+\citep{kudo-2018-subword,land2025piecesdoesunigramtokenization} are conventionally applied
+to text in which a word's leading space is absorbed into the word's token. SentencePiece
+\citep{kudo-richardson-2018-sentencepiece} makes this explicit with a substituted space
+character, and byte-level tokenizers inherit it; \citet{tokencontributions-gpt4} surveys how
+pre-tokenization interacts with punctuation in production tokenizers. The consequence is
+that most content words occupy two vocabulary entries, one with the leading space and one
+without.
 
-We ask what happens if the convention is replaced by an explicit boundary token. Our
-contribution is not the marker itself but the finding that the choice of \emph{which} units
-to delimit spans a range from $-13.75\%$ to $+2.14\%$ mean compression relative to the
-baseline --- the mechanism is identical throughout, and only the scope changes.
+We ask what happens if that convention is replaced by an explicit boundary token. The marker
+itself is a small idea; the finding is that the choice of \emph{which} units to delimit
+spans a range from $-13.75\%$ to $+2.14\%$ mean compression against the baseline. The
+mechanism is identical throughout, and only the scope changes.
 
-We also report two negative results that constrain how the primary result should be read.
-First, the duplication we remove is not waste in compression terms: the baseline outperforms
-an early version of our scheme by 7.5\% while spending 30\% of its vocabulary on duplicate
-pairs. Second, reclaiming vocabulary does not straightforwardly convert into compression:
-removing a 3.17\% digit-variant tax buys only $+0.33$pp (\S\ref{sec:digits}).
+Two negative results constrain how the primary result should be read. The duplication we
+remove is not waste in compression terms --- both forms are used --- and reclaiming
+vocabulary does not straightforwardly convert into compression: removing a 3.17\%
+digit-variant tax buys only $+0.33$pp (\S\ref{sec:digits}).
 
 \section{Related work}
 \label{sec:related}
 
 Two recent lines of work also target the pre-tokenization boundary. SuperBPE
 \citep{liu2025superbpe} lets merges run \emph{across} whitespace, so single tokens may span
-several words; Boundless BPE \citep{schmidt2025boundless} likewise removes the
-pre-tokenization barrier and merges across pre-token boundaries. Both increase the span a
-token may cover. Our direction is the opposite: we keep pre-tokens word-sized and instead
-make the boundary itself explicit, so a word has one form rather than two. The two are not
-in conflict --- an explicit boundary token is what a superword vocabulary would need in order
-to remain invertible --- but they trade different things, and we do not evaluate the
-combination.
+several words; Boundless BPE \citep{schmidt2025boundless} likewise merges across pre-token
+boundaries. Both increase the span a token may cover. Our direction is the opposite: we keep
+pre-tokens word-sized and make the boundary itself explicit, so a word has one form rather
+than two. The two are not in conflict --- an explicit boundary token is what a superword
+vocabulary would need to remain invertible --- but they trade different things, and we do
+not evaluate the combination.
 
 A second thread removes vocabulary entries that exist only as merge scaffolding. PickyBPE
-\citep{chizhov2024bpegetspickyefficient} and Scaffold-BPE \citep{scaffold_bpe} both prune
+\citep{chizhov2024bpegetspickyefficient} and Scaffold-BPE \citep{scaffold_bpe} prune
 intermediate ``junk'' tokens during training, and \citet{land-bartolo-2024-fishing} show
 such entries survive into deployed models as under-trained tokens. The duplication we
 measure is a different phenomenon --- both members of a \texttt{' the'}/\texttt{'the'} pair
-are heavily used (\S\ref{sec:duplication}) --- but the two share a motivation, and
-\S\ref{sec:digits} shows that reclaiming unused capacity does not by itself buy compression.
+are heavily used --- but the motivation is shared.
 
 On evaluation, \citet{galle-2019-investigating} argues that fewer tokens on a fixed budget
 predicts downstream quality, while \citet{schmidt-etal-2024-tokenization},
 \citet{zouhar-etal-2023-tokenization} and its counterexamples
-\citep{cognetta-etal-2024-two}, and \citet{lotz-etal-2025-beyond} all find compression an
+\citep{cognetta-etal-2024-two}, and \citet{lotz-etal-2025-beyond} find compression an
 incomplete proxy. We report compression only, and \S\ref{sec:limitations} treats this as the
 principal limitation.
 
-\section{The duplication}
+\section{Background and the duplication}
 \label{sec:duplication}
 
-We build on SCRIPT encoding \citep{scriptbpe}, which segments text into runs of shared
-Unicode script and category and encodes each character as a block/index token pair. Its
-pretokenizer lets a lone space attach to the following run, producing the
-\texttt{' word'}/\texttt{'word'} pair. Table~\ref{tab:dup} measures the resulting
-duplication on FineWiki \citep{penedo2025finewiki}, 1\,GB per language, 32{,}768 additional
-vocabulary, BPE.
+We build on SCRIPT encoding \citep{scriptbpe}. It segments text into maximal runs of shared
+Unicode script and category --- so a run of Latin letters, a run of punctuation and a run of
+digits are separate pre-tokens --- and represents each character as a pair of tokens
+identifying its Unicode block and its index within that block. Merges are then learned over
+these pre-tokens as usual. Relevant here is one rule its pre-tokenizer inherits from the
+conventional setting: a lone space attaches to the run that follows it, which is what
+produces the \texttt{' word'}/\texttt{'word'} pair.
+
+Table~\ref{tab:dup} measures the resulting duplication on FineWiki
+\citep{penedo2025finewiki}, 1\,GB per language, 32{,}768 additional vocabulary, BPE.
 
 \begin{table}[t]
 \centering
@@ -128,152 +127,129 @@ Korean  & 5{,}244 & \textbf{30.4} \\
 
 At 16k vocabulary on 80M characters of FineWeb \citep{penedo2024fineweb} the same
 measurement gives 1{,}792 pairs occupying 22.4\% of the vocabulary and accounting for
-\textbf{64.23\%} of all emitted tokens, the largest being \texttt{' .'}/\texttt{'.'}
-(700{,}931), \texttt{' ,'}/\texttt{','} (680{,}504) and \texttt{' the'}/\texttt{'the'}
-(639{,}584).
+\textbf{64.23\%} of all emitted tokens, the largest being \texttt{' .'}/\texttt{'.'},
+\texttt{' ,'}/\texttt{','} and \texttt{' the'}/\texttt{'the'}.
 
-We stress a caveat established early in this work: the duplication is not \emph{waste} in
-compression terms. Both forms are used and both earn their slots. The motivation is
-representational --- one form per word, and capacity freed for distinct content. That the
-final scheme also compresses better is a separate result, reached only after three
-iterations (\S\ref{sec:iterations}).
+An important caveat: this duplication is not \emph{waste} in compression terms. Both forms
+are used and both earn their slots. The motivation for removing it is representational ---
+one form per word, and capacity freed for distinct content. That the final scheme also
+compresses better is a separate result.
 
 \section{Method}
 \label{sec:method}
 
-One atomic token \mk{} is added to the pretokenizer. Text is grouped into maximal
-script/category runs, which are collected into units: \textbf{word} (a maximal run from any
-space-using script, category LM, merged across script changes), \textbf{punct},
-\textbf{digit} (Unicode category N), \textbf{space} (exactly one space character), and
-\textbf{other} (multi-space runs, newlines, Han, emoji).
+We add one atomic token \mk{} to the pre-tokenizer's alphabet. Table~\ref{tab:example} shows
+what changes.
 
-Word spans are delimited on both sides unconditionally --- this is the point of the scheme,
-since it gives a word one form regardless of context. Punctuation and digit units are
-delimited only on a side whose adjacent single space was elided. Other units and non-elided
-spaces are emitted exactly as the baseline emits them. A single space is elided when both
-neighbours are delimited, so decoding is:
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{ll}
+\toprule
+\multicolumn{2}{l}{\texttt{The cat sat on 3 mats.}} \\
+\midrule
+baseline & \texttt{The}\ \ \texttt{' cat'}\ \ \texttt{' sat'}\ \ \texttt{' on'} \\
+         & \texttt{' '}\ \ \texttt{3}\ \ \texttt{' mats'}\ \ \texttt{.} \\[2pt]
+ours     & \texttt{\mk{}The\mk{}}\ \ \texttt{\mk{}cat\mk{}}\ \ \texttt{\mk{}sat\mk{}} \\
+         & \texttt{\mk{}on\mk{}}\ \ \texttt{\mk{}3\mk{}}\ \ \texttt{\mk{}mats\mk{}}\ \ \texttt{.} \\
+\midrule
+\multicolumn{2}{l}{\texttt{a, b}} \\
+\midrule
+baseline & \texttt{a}\ \ \texttt{,}\ \ \texttt{' b'} \\
+ours     & \texttt{\mk{}a\mk{}}\ \ \texttt{,\mk{}}\ \ \texttt{\mk{}b\mk{}} \\
+\bottomrule
+\end{tabular}
+\caption{Pre-tokens before merges are learned. Every space has disappeared into a pair of
+touching markers. In \texttt{a, b} the comma is marked on its right only, because only its
+right-hand space was dropped.}
+\label{tab:example}
+\end{table}
+
+\paragraph{Units.} Runs are collected into five kinds: \textbf{word} (a maximal run of
+letters from any space-using script, merged across script changes --- see below),
+\textbf{punct}, \textbf{digit} (Unicode category N), \textbf{space} (exactly one space
+character), and \textbf{other} (multi-space runs, newlines, Han, emoji).
+
+\paragraph{Two rules.} Word spans are delimited on both sides unconditionally. This is the
+point of the scheme: a word gets one form regardless of context. Punctuation and digits are
+delimited only on a side whose adjacent single space was dropped. Other units, and spaces
+that were not dropped, are emitted exactly as the baseline emits them.
+
+\paragraph{Decoding.} A single space is dropped exactly when both its neighbours are
+delimited, so it is recoverable from the markers alone:
 \begin{quote}\small
-\mk{} immediately followed by \mk{} $\rightarrow$ emit one space \\
-a lone \mk{} $\rightarrow$ emit nothing
+\mk{} immediately followed by \mk{} $\rightarrow$ one space \\
+a lone \mk{} $\rightarrow$ nothing
 \end{quote}
+This is the whole of the decoder. Correctness rests on one invariant: \emph{two touching
+markers must always mean a dropped space and never anything else}. The next two subsections
+are the two places where that invariant would otherwise fail.
 
-\subsection{Spans merge across scripts}
+\subsection{Word spans merge across scripts}
 \label{sec:spans}
 
-Merging word runs across script changes is what makes the invariant hold without exception.
 If each script run were delimited separately, Latin immediately followed by Cyrillic would
-place two unconditional markers face to face --- indistinguishable from an elided space ---
-and decoding would fabricate one. We found this empirically: Greek letters used as
-identifiers (\texttt{s$\pi$}, \texttt{upper$\Delta$}, \texttt{$\Delta$x}) broke 5 of 500
-held-out code documents. Merging first means two delimited word spans can never be adjacent:
+place two unconditional markers face to face --- indistinguishable from a dropped space ---
+and the decoder would insert one that was never there. We found this in practice: Greek
+letters used as identifiers (\texttt{s$\pi$}, \texttt{upper$\Delta$}, \texttt{$\Delta$x})
+broke 5 of 500 held-out code documents.
+
+A word span is therefore the maximal run of letters from \emph{any} space-using script,
+merged across script changes, and is delimited only at its outer edges:
 \begin{quote}\small
 \texttt{latin<Cyr>} $\rightarrow$ \texttt{\mk{}latin | <Cyr>\mk{}}
 \end{quote}
-Inside a span the baseline's script split is preserved, the marker riding the first and last
-chunk, so no merge crosses a script change the baseline would forbid.
+Two delimited word spans can then never be adjacent. Inside a span the baseline's script
+split is preserved, with the marker riding the first and last chunk, so no merge crosses a
+script change the baseline would forbid.
 
-\subsection{Punctuation and digits are asymmetric}
+\subsection{Punctuation and digits are marked asymmetrically}
 \label{sec:asymmetric}
 
 Delimiting punctuation unconditionally would encode \texttt{a,b} as
 \texttt{\mk{}a\mk{} \mk{},\mk{} \mk{}b\mk{}}: touching markers at both junctions, and so
 indistinguishable from \texttt{a , b}. Marking only on a side that had a space preserves the
 invariant, at the cost of up to four variants per mark (\texttt{,}\ \texttt{,\mk{}}\
-\texttt{\mk{},}\ \texttt{\mk{},\mk{}}). For punctuation this is cheap because the set is
-genuinely closed: 146--225 slots at 32{,}768 vocabulary, under 0.7\%.
+\texttt{\mk{},}\ \texttt{\mk{},\mk{}}). For punctuation this is cheap, because the set is
+genuinely closed: 146--225 slots at 32{,}768 vocabulary, under 0.7\%. For digits it is not,
+because a digit unit is a whole run and the marked set therefore has one entry per distinct
+\emph{number}; \S\ref{sec:digits} quantifies this.
 
-For digits it is not, and \S\ref{sec:digits} quantifies it: a digit \emph{unit} is a whole
-run, so the marked set has one entry per distinct \emph{number}, not per digit.
-
-\subsection{Merge constraint and chunking}
-
-Merges across two touching markers are forbidden. Without this, BPE learns tokens such as
-\texttt{'\mk{}the\mk{}\mk{}'} that swallow the dangling half of the next span's opening
-marker, reintroducing per-word duplication keyed on what \emph{follows}. Units are not fused
-across an elided space: given the constraint, fusing admits exactly the same legal merges
-while inflating an early prototype's corpus from 335k to 1.76M unique chunks and BPE
-training from 40s to 442s.
-
-\subsection{Scope: when one marker glyph suffices}
+\subsection{Two requirements on the trainer}
 \label{sec:onemarker}
 
-We use a single glyph for both sides of a span. This is sound here only because
-pretokenization fixes which chunk each marker belongs to \emph{before} any search runs:
-\texttt{\mk{}word\mk{}} and \texttt{\mk{}.} are separate chunks, and both BPE merging and
-the MinGram dynamic program operate strictly within a chunk. No segmentation is ever
-offered a choice about which piece covers a given marker.
+First, merges across two touching markers must be forbidden. Otherwise BPE learns tokens
+such as \texttt{'\mk{}the\mk{}\mk{}'} that swallow the dangling half of the next span's
+opening marker, reintroducing per-word duplication keyed on what \emph{follows}. Units are
+also not fused across a dropped space; given the constraint, fusing admits exactly the same
+legal merges at substantially higher training cost.
 
-That condition is doing real work, and it is worth stating because it does not hold for
-every tokenizer. Where the segmenter tiles a flat glyph stream --- a minimum-piece method
-with no pre-tokenization barrier, as has been reported for at least one production
-tokenizer \citep{tokencontributions-claude} --- a single glyph is ambiguous: a
-word-\emph{initial} piece form \texttt{\mk{}x} can absorb a marker that \emph{closed} the
-preceding word, because nothing in the glyph distinguishes the two roles. The segmenter
-takes whichever tiling is cheaper, which need not be the intended one. Direction must then
-be recovered either from a distinct pair of glyphs, opening and closing, or from a
-directional constraint on matching.
-
-Two glyphs cost one extra atomic token and, since order already distinguishes
-\texttt{\mk{},} from \texttt{,\mk{}}, no additional piece-form variants. They do not,
-however, remove either of the other two constraints in this section: a learned token can
-still end in a dangling opening marker, so the seam restriction is still required, and an
-opening marker meeting a closing one is still indistinguishable from an elided space, so
-span merging (\S\ref{sec:spans}) is still required. Choosing one glyph over two is
-therefore a consequence of pretokenizing into chunks, not an independent simplification.
-
-\section{Design iterations}
-\label{sec:iterations}
-
-Table~\ref{tab:iterations} traces the path to the final scheme; each row was measured before
-the next was designed.
-
-\begin{table}[t]
-\centering
-\small
-\begin{tabular}{lrr}
-\toprule
-Variant & chars/tok & vs.\ base \\
-\midrule
-baseline & 3.9909 & --- \\
-rename merged space token & 3.9909 & $0.00\%$ \\
-hard boundary, space kept & 2.4201 & $-39.4\%$ \\
-words only & 3.6920 & $-7.49\%$ \\
-\ \ + punctuation & 3.9266 & $-1.61\%$ \\
-\ \ + digits & \S\ref{sec:results} & positive \\
-\bottomrule
-\end{tabular}
-\caption{English prose, 16k vocabulary, BPE. Renaming the merged space token is a no-op
-because BPE's \emph{first} learned merge already reattaches the space to the same token id.}
-\label{tab:iterations}
-\end{table}
-
-The words-only $\rightarrow$ punctuation step closed 79\% of the gap \emph{without improving
-word coverage at all} (7{,}717 vs.\ 7{,}752 single-token words). The gain came entirely from
-eliminating bare space tokens: with only words delimited, \texttt{', b'} emits an unmarked
-comma, a standalone space, and \texttt{\mk{}b\mk{}}, where the baseline absorbs the space
-into \texttt{' b'}.
-
-The punctuation $\rightarrow$ digits step was found by measuring which spaces the scheme
-failed to elide: 12.5\% on code and 3.3\% on prose, of which 97.9\% and 98.7\% respectively
-were adjacent to a digit. Delimiting digits drops non-elided spaces to 0.3\% and 0.0\%.
+Second, a single glyph suffices for both sides of a span only because pre-tokenization fixes
+which chunk each marker belongs to \emph{before} any search runs. Both BPE merging and the
+MinGram dynamic program operate strictly within a chunk, so no segmentation is ever offered
+a choice about which piece covers a given marker. Where a segmenter instead tiles a flat
+glyph stream --- as has been reported for at least one production tokenizer
+\citep{tokencontributions-claude} --- a word-\emph{initial} piece \texttt{\mk{}x} could
+absorb a marker that \emph{closed} the preceding word, and direction would have to be
+recovered from a distinct pair of opening and closing glyphs. That would cost one extra
+atomic token and no additional piece-form variants, but it removes neither requirement
+above.
 
 \section{Results}
 \label{sec:results}
 
-All pretokenizers share the same script encoding and character-boundary policy and differ
-\emph{only} in which units carry a boundary, so comparisons isolate the scheme. The metric is
-characters per token on held-out documents; roundtrip is verified on every held-out document
-of every cell.
+All pre-tokenizers share the same script encoding and character-boundary policy and differ
+\emph{only} in which units carry a boundary, so comparisons isolate the scheme. The metric
+is characters per token on held-out documents; roundtrip is verified on every held-out
+document of every cell.
 
 \subsection{Six languages at 1\,GB}
 \label{sec:multiling}
 
-Languages follow the six-language set used throughout this line of work
-\citep{land2025piecesdoesunigramtokenization,land2026mingram} --- English, German, Finnish, Russian, Arabic and
-Korean --- spanning Latin, Cyrillic, Arabic and Hangul, and drawn from the monolingual
+We use English, German, Finnish, Russian, Arabic and Korean --- spanning Latin, Cyrillic,
+Arabic and Hangul --- following
+\citet{land2025piecesdoesunigramtokenization,land2026mingram} and drawing on the monolingual
 corpora of \citet{chang2026goldfishmonolinguallanguagemodels}.
-Whitespace normalization is applied as the corpus loader does, so multi-space runs are absent
-by construction. Table~\ref{tab:main} reports the main result.
 
 \begin{table}[t]
 \centering
@@ -294,8 +270,9 @@ Korean  & 2.2310 & \relchange{$-15.21$} & \relchange{$-3.48$} & $\mathbf{+0.88}$
 Mean    &        & \relchange{$-13.75$} & \relchange{$-2.99$} & $\mathbf{+2.14}$ \\
 \bottomrule
 \end{tabular}
-\caption{FineWiki, 1\,GB per language, 32{,}768 vocabulary, BPE. Baseline in chars/token;
-variants as \% relative to it. Zero roundtrip failures across all 24 cells.}
+\caption{FineWiki, 1\,GB per language, 32{,}768 vocabulary, BPE. \bnd{w} delimits words,
+\bnd{wp} adds punctuation, \bnd{wpd} adds digits. Baseline in chars/token; variants as \%
+relative to it. No roundtrip failures across all 24 cells.}
 \label{tab:main}
 \end{table}
 
@@ -308,14 +285,37 @@ roughly 27k (plain) to 11--16k (\bnd{wpd}). This is not lost coverage: the basel
 double-counts, holding \texttt{' the'} and \texttt{'the'} as two entries for one word, while
 the marker vocabulary holds one canonical form.
 
+\subsection{Which units to delimit}
+\label{sec:iterations}
+
+The scope of delimitation, not the marker, is what decides the result, and the two
+intermediate settings are informative about why.
+
+Keeping the space as a separate token instead of dropping it costs $-39.4\%$ on English
+prose at 16k vocabulary: elision is not an optimization but the mechanism.
+
+Adding punctuation to words closes 79\% of the remaining gap \emph{without improving word
+coverage at all} (7{,}717 vs.\ 7{,}752 single-token words). The gain comes entirely from
+eliminating bare space tokens: with only words delimited, \texttt{', b'} emits an unmarked
+comma, a standalone space, and \texttt{\mk{}b\mk{}}, where the baseline absorbs the space
+into \texttt{' b'}.
+
+The remaining gap is the same effect at digits, and we located it by measuring which spaces
+the scheme failed to drop: 12.5\% on code and 3.3\% on prose, of which 97.9\% and 98.7\%
+respectively were adjacent to a digit --- as in \texttt{1 item}, where the baseline absorbs
+the space into \texttt{' item'} but an undelimited digit blocks elision. Delimiting digits
+drops non-elided spaces to 0.3\% and 0.0\%.
+
 \subsection{MinGram, and the effect of scale}
 \label{sec:mingram}
 
 To check that the effect is not specific to greedy merge training, we repeat the comparison
 with MinGram \citep{land2026mingram}, a minimum-token-count unigram trainer initialised from
 BPE, whose optional pruning criterion follows the minimum-increase rule of PathPiece
-\citep{schmidt-etal-2024-tokenization}. We use 250M characters, where cells complete reliably, with
-evaluation documents withheld from training (Table~\ref{tab:mingram}).
+\citep{schmidt-etal-2024-tokenization}. The two also differ in inference-time segmentation
+--- greedy merge replay versus a minimum-token dynamic program --- a distinction shown to
+matter independently of the vocabulary \citep{uzan-etal-2024-greed}. Table~\ref{tab:mingram}
+reports the comparison.
 
 \begin{table}[t]
 \centering
@@ -334,23 +334,21 @@ Korean  & BPE     & 2.1793 & \relchange{$-17.04$} & \relchange{$-4.23$} & $-0.67
 Korean  & MinGram & 2.2055 & \relchange{$-17.79$} & \relchange{$-5.05$} & $-1.51$ \\
 \bottomrule
 \end{tabular}
-\caption{250M characters, 32{,}768 vocabulary. Not comparable to Table~\ref{tab:main}.}
+\caption{250M characters, 32{,}768 vocabulary, evaluation documents withheld from training.
+Not comparable to Table~\ref{tab:main}.}
 \label{tab:mingram}
 \end{table}
 
-The two trainers also differ in inference-time segmentation --- greedy merge replay versus a
-minimum-token dynamic program --- a distinction shown to matter independently of the
-vocabulary \citep{uzan-etal-2024-greed}. MinGram gains $+1.17\%$ (en), $+1.42\%$ (ru) and
-$+1.20\%$ (ko) over BPE on the baseline and
+MinGram gains $+1.17\%$ (en), $+1.42\%$ (ru) and $+1.20\%$ (ko) over BPE on the baseline and
 preserves the \bnd{w} $<$ \bnd{wp} $<$ \bnd{wpd} ordering everywhere, so the effect is not a
 BPE artifact. It helps the baseline slightly more than \bnd{wpd}, costing 0.1--0.8pp of
 margin.
 
 \paragraph{Korean changes sign with scale.} Korean is $+0.88\%$ at 1\,GB but $-0.67\%$ at
-250M. Hangul gives Korean the shortest spans of the six languages (2.18 chars/token here), so
-two marker tokens per span are proportionally heavy and need more data to amortise. The claim
-that \bnd{wpd} beats the baseline in all six languages is a statement about 1\,GB, not a
-general one. Korean's segmentation is known to reward sub-syllabic treatment
+250M. Hangul gives Korean the shortest spans of the six languages (2.18 chars/token here),
+so two marker tokens per span are proportionally heavy and need more data to amortise. The
+claim that \bnd{wpd} beats the baseline in all six languages is a statement about 1\,GB, not
+a general one. Korean segmentation is known to reward sub-syllabic treatment
 \citep{lee-etal-2025-jamo}, and per-language differences in tokenized length are the subject
 of a substantial fairness literature
 \citep{petrov2023language,ahia-etal-2023-languages,arnett-etal-2024-bit,velayuthan-sarveswaran-2025-egalitarian};
@@ -359,16 +357,17 @@ we do not attempt to correct for byte premium here.
 \subsection{Digit handling}
 \label{sec:digits}
 
-A digit unit is a whole run, so every distinct number acquires up to four marked forms. At
-32{,}768 vocabulary this costs English 1{,}093 slots (3.17\%): \bnd{wpd} spends 1{,}682
-pure-digit entries against the baseline's 1{,}426 while covering 589 distinct numbers against
-1{,}426. That is the duplication the scheme exists to remove, reintroduced for numbers.
+Because a digit unit is a whole run, every distinct number acquires up to four marked forms.
+At 32{,}768 vocabulary this costs English 1{,}093 slots (3.17\%): \bnd{wpd} spends 1{,}682
+pure-digit entries against the baseline's 1{,}426 while covering only 589 distinct numbers
+against 1{,}426. That is exactly the duplication the scheme exists to remove, reintroduced
+for numbers.
 
 Splitting digit runs bounds the markable set, since only a run's first and last group can
 carry a marker: 10 markable strings when split to single digits, 1110 under right-to-left
-grouping in threes. Digit splitting is normally adopted for arithmetic rather than compression reasons. Because splitting changes absolute compression
-for everyone, each row of Table~\ref{tab:digits} is a matched comparison and rows are not
-comparable to each other.
+grouping in threes. Splitting is normally adopted for arithmetic rather than compression
+reasons; because it changes absolute compression for everyone, each row of
+Table~\ref{tab:digits} is a matched comparison and rows are not comparable to each other.
 
 \begin{table}[t]
 \centering
@@ -388,32 +387,27 @@ rtl3    & 3.7096 & 3.8345 & $+3.37\%$ & 1{,}478 \\
 
 The bound behaves as predicted: splitting collapses variant waste from 1{,}083 slots to 34
 --- ten digits times four forms --- and right-to-left grouping lands at 1{,}114 distinct
-numbers against a ceiling of 1110. \textbf{But recovering roughly 1{,}050 vocabulary slots is
-worth only $+0.33$pp.} This is the same lesson as \S\ref{sec:duplication}: the duplicated
+numbers against a ceiling of 1110. \textbf{But recovering roughly 1{,}050 vocabulary slots
+is worth only $+0.33$pp.} This is the same lesson as \S\ref{sec:duplication}: the duplicated
 entries are wasteful \emph{and} still used, and low-frequency number tokens carry little
 mass. Vocabulary waste and compression loss are not interchangeable.
 
 The practically useful result is invariance: the boundary advantage sits between $+3.37\%$
-and $+3.71\%$ regardless of digit policy, so the scheme composes with whatever digit handling
-was already chosen.
+and $+3.71\%$ regardless of digit policy, so the scheme composes with whatever digit
+handling was already chosen.
 
 \subsection{Caps codes}
 \label{sec:caps}
 
 The same argument applies to case: without intervention a vocabulary holds \texttt{The} and
-\texttt{the}, \texttt{NASA} and \texttt{nasa} as separate entries. Following the older
-Claude tokenizer \citep{tokencontributions-claude}, we add two codes --- shift for
-title case, caps-lock for all caps --- and emit the lowercased span after them, so
-\texttt{The} is exactly \texttt{the} plus one code. Whole spans only; mixed case such as
-\texttt{GaN} or \texttt{WiFi} stays literal.
-
-Unicode case mapping is not a bijection, so invertibility is verified per span rather than
-assumed: U+0130 lowercases to two characters, U+1E9E uppercases to \texttt{SS}, and
-titlecase digraphs such as U+01C5 do not survive a lower/upper round trip. Each candidate is
-re-transformed and compared, and anything that does not reproduce the source exactly stays
-literal. Checked over all 2{,}842 cased letters in Unicode, and over 2{,}000 FineWiki
-documents in English, German, Russian, Greek and Turkish (4.7M characters), with no
-round-trip failures.
+\texttt{the}, \texttt{NASA} and \texttt{nasa} as separate entries. Following the older Claude
+tokenizer \citep{tokencontributions-claude}, we add two codes --- shift for title case,
+caps-lock for all caps --- and emit the lowercased span after them, so \texttt{The} is
+exactly \texttt{the} plus one code. Whole spans only; mixed case such as \texttt{GaN} or
+\texttt{WiFi} stays literal. Unicode case mapping is not a bijection, so rather than assume
+invertibility we re-transform each candidate and compare, leaving anything that does not
+reproduce the source exactly as a literal. Verified over all 2{,}842 cased letters in
+Unicode and 4.7M characters of FineWiki in five languages, with no roundtrip failures.
 
 \begin{table}[t]
 \centering
@@ -426,48 +420,37 @@ round-trip failures.
 \ \ + caps codes    & 3.8832 & \textbf{91} & 21{,}819 \\
 \bottomrule
 \end{tabular}
-\caption{English, 250M characters, 32{,}768 vocabulary, BPE, evaluation withheld. Case
-pairs counts entries with a distinct-cased counterpart also present.}
+\caption{English, 250M characters, 32{,}768 vocabulary, BPE, evaluation withheld. Case pairs
+counts entries with a distinct-cased counterpart also present.}
 \label{tab:caps}
 \end{table}
 
-Caps codes remove case duplication almost entirely --- 5{,}017 pairs to 91, or 29.1\% of the
-vocabulary to 0.5\% --- at a compression cost of $-0.04\%$, which is noise. This is the
-third instance of the same pattern: reclaiming vocabulary does not convert into compression,
-but here it does not cost anything either, so the canonical-case form is effectively free.
-Note that this is the reverse of the digit case, where bounding the markable set was
-\emph{necessary} to avoid a penalty; case has only two productive forms per word, so the
-duplication is bounded to begin with.
+Caps codes remove case duplication almost entirely (Table~\ref{tab:caps}) --- 5{,}017 pairs
+to 91, or 29.1\% of the vocabulary to 0.5\% --- at a compression cost of $-0.04\%$, which is
+noise. Reclaiming vocabulary again fails to buy compression, but here it costs nothing
+either, so the canonical-case form is effectively free. This is the reverse of the digit
+case, where bounding the markable set was \emph{necessary} to avoid a penalty: case has only
+two productive forms per word, so the duplication is bounded to begin with.
 
 \subsection{Mixed prose and code}
 \label{sec:code}
 
-An earlier per-script variant of the scheme was evaluated on a mixed corpus of 40M characters
-of web prose and 40M characters of code \citep{codeparrot,rosettacode}, without whitespace
-normalization. At 64k vocabulary the digit-complete variant reached $+1.17\%$ overall,
-$+1.13\%$ on prose and $+1.29\%$ on code. Indentation, which might be expected to dominate
-code, does not: multi-space runs are 1.24\% of emitted code tokens with identical counts
-under both schemes.
+An earlier per-script variant of the scheme was evaluated on a mixed corpus of 40M
+characters of web prose and 40M characters of code \citep{codeparrot,rosettacode}, without
+whitespace normalization. At 64k vocabulary the digit-complete variant reached $+1.17\%$
+overall, $+1.13\%$ on prose and $+1.29\%$ on code. Indentation, which might be expected to
+dominate code, does not: multi-space runs are 1.24\% of emitted code tokens, with identical
+counts under both schemes.
 
-\section{Analysis}
-\label{sec:analysis}
+\subsection{Cost scales with span length}
 
-\paragraph{Larger candidate pools do not substitute for the right boundary set.} Sweeping the
-BPE-initialisation overshoot \citep{land2026mingram} over $1.10$, $1.15$ and $1.25$ on the
-words-only variant moves the gap from $-7.83\%$ to $-7.95\%$ --- a 2.5$\times$ larger
-candidate pool buys 290 words and makes compression marginally worse.
-
-\paragraph{The deficit was bare space tokens.} Bucketing the token stream on held-out code,
-the words-plus-punctuation variant's $+3{,}256$-token deficit decomposes as whitespace
-$+1{,}708$ (52\%), alphabetic $+721$, punctuation $+434$, marker-only $+382$, digit $+11$.
-The whitespace term is not indentation but the digit case: in \texttt{1 item} the baseline
-absorbs the space into \texttt{' item'} while an undelimited digit blocks elision. Counting
-cases where the following unit is delimited but the preceding is not gives 1{,}834, against
-the measured $+1{,}708$.
-
-\paragraph{Cost scales with span length.} Korean has the largest duplicate tax to reclaim
-(30.4\%) and the smallest gain from reclaiming it. The scheme pays two marker tokens per
-span, so its benefit is governed by span length relative to that fixed cost.
+Korean has the largest duplicate tax to reclaim (30.4\%) and the smallest gain from
+reclaiming it. The scheme pays two marker tokens per span, so its benefit is governed by
+span length relative to that fixed cost. Consistent with this, enlarging the candidate pool
+does not substitute for the right boundary set: sweeping the BPE-initialisation overshoot
+\citep{land2026mingram} over $1.10$, $1.15$ and $1.25$ on the words-only variant moves the
+gap from $-7.83\%$ to $-7.95\%$, so a 2.5$\times$ larger pool buys 290 words and makes
+compression marginally worse.
 
 \section{Limitations}
 \label{sec:limitations}
@@ -482,20 +465,20 @@ likewise not measured.
 
 All six languages use spaces; the scheme does nothing for Han, Thai or other spaceless
 scripts, which retain baseline behaviour, and morphologically complex languages may respond
-differently \citep{arnett-bergen-2025-language,vemula-etal-2025-rethinking}. Open-set scripts are undelimited, so roughly 2\% of
-single spaces remain non-elided in mixed text, and CJK-heavy corpora were not studied.
+differently \citep{arnett-bergen-2025-language,vemula-etal-2025-rethinking}. Open-set
+scripts are undelimited, so roughly 2\% of single spaces remain non-elided in mixed text,
+and CJK-heavy corpora were not studied.
 
-Gains shrink where spans are short relative to the marker pair, and can go negative: Korean is
-$+0.88\%$ at 1\,GB but $-0.67\%$ at 250M (\S\ref{sec:mingram}).
+Gains shrink where spans are short relative to the marker pair, and can go negative: Korean
+is $+0.88\%$ at 1\,GB but $-0.67\%$ at 250M (\S\ref{sec:mingram}).
 
-The single-glyph design assumes a pretokenizer that pins markers to chunks
-(\S\ref{sec:onemarker}). We have not measured the scheme under a segmenter that tiles a
-flat stream, where a second glyph or a directional matching constraint would be required;
-whether the compression results carry over to that setting is untested.
+The single-glyph design assumes a pre-tokenizer that pins markers to chunks
+(\S\ref{sec:onemarker}). We have not measured the scheme under a segmenter that tiles a flat
+stream, where a second glyph or a directional matching constraint would be required.
 
 Table~\ref{tab:main} uses a single vocabulary size, and its corpus was built over the same
 documents used for evaluation (roughly 1.3\% of training data). The leak is identical for
-every pretokenizer, so the reported gaps are unaffected while absolute chars/token is
+every pre-tokenizer, so the reported gaps are unaffected while absolute chars/token is
 optimistic for all four alike; later experiments withhold the evaluation slice. The digit
 axis is English-only, one vocabulary size, BPE only.
 
