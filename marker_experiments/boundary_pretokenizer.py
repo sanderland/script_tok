@@ -373,11 +373,24 @@ BOUNDARY_VARIANTS = {
 }
 
 
-def get_boundary_pretokenizer(name: str) -> BoundaryScriptPretokenizer:
+# Caps-code variants: same boundary targets, plus <^>/<^^> case codes on word spans.
+# Kept in a separate table because the grids iterate BOUNDARY_VARIANTS to enumerate cells.
+CAPS_VARIANTS = {f"{name}_caps": targets for name, targets in BOUNDARY_VARIANTS.items()}
+
+ALL_VARIANTS = {**BOUNDARY_VARIANTS, **CAPS_VARIANTS}
+
+
+def get_boundary_pretokenizer(name: str, **overrides) -> BoundaryScriptPretokenizer:
+    """Build a named variant. `overrides` are passed to the config (e.g. digit_handling)."""
     from script_bpe.pretokenize.scriptencoding import ScriptEncodingV3
 
+    if name not in ALL_VARIANTS:
+        raise ValueError(f"unknown boundary variant {name!r}; have {sorted(ALL_VARIANTS)}")
     return BoundaryScriptPretokenizer(
         BoundaryScriptPretokenizerConfig(
-            script_config=ScriptEncodingV3, boundary_targets=BOUNDARY_VARIANTS[name]
+            script_config=ScriptEncodingV3,
+            boundary_targets=ALL_VARIANTS[name],
+            caps_codes=name in CAPS_VARIANTS,
+            **overrides,
         )
     )

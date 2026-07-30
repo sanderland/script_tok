@@ -1,0 +1,4 @@
+# Cluster-generated: matched tokenizers (~15 MB each) and their manifest.
+tokenizers/
+corpora/
+manifest.json

@@ -114,7 +114,10 @@ def main():
             pt, corpus, BPETrainerConfig(additional_vocab_size=VOCAB, num_workers=NUM_WORKERS)
         ).train()
         train_time = time.time() - t
-        out = os.path.join(TOKENIZERS, f"{key}_bpe_32k.json.gz")
+        # Prefix with the corpus tag. Without it this 250M-char cell writes
+        # en_bnd_wpd_bpe_32k.json.gz, the same path the 1 GB grid uses, and silently
+        # replaces that artifact with a smaller-corpus tokenizer of the same name.
+        out = os.path.join(TOKENIZERS, f"{corpus_name}_bpe_32k.json.gz")
         tokenizer.save(out)
 
         toks = fails = 0
