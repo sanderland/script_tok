@@ -23,10 +23,15 @@ but is exported so every arm can use one uniform `--tokenizer-class` spelling.
 from script_bpe.tokenizers.bpe import BPETokenizer
 from script_bpe.tokenizers.mingram.model import MinGramModel
 
-# The import is the point: it runs __init_subclass__ and fills REGISTRY.
+# The imports are the point: they run __init_subclass__ and fill REGISTRY.
+# DigitAwareScriptPretokenizer is the baseline of the digit-handling axis; it is not one
+# of the downstream arms, but registering it here means every checked-in tokenizer loads
+# through this one module rather than only the boundary ones.
 from marker_experiments.boundary_pretokenizer import BoundaryScriptPretokenizer
+from marker_experiments.digit_pretokenizer import DigitAwareScriptPretokenizer  # noqa: F401
 
-assert "BoundaryScriptPretokenizer" in BoundaryScriptPretokenizer.REGISTRY
+for _name in ("BoundaryScriptPretokenizer", "DigitAwareScriptPretokenizer"):
+    assert _name in BoundaryScriptPretokenizer.REGISTRY, _name
 
 BoundaryBPETokenizer = BPETokenizer
 BoundaryMinGramModel = MinGramModel
