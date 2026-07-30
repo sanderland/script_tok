@@ -98,17 +98,45 @@ the repo root from the editable install's `.pth`, not from `cwd`.
 
 ## Setup
 
-```bash
-git clone <repo> && cd script_tok
-uv sync --extra downstream          # pulls torch + nanochat deps
-pip install "nanochat @ git+https://github.com/karpathy/nanochat"
+This work lives on a branch, not on `main`. Clone that branch:
 
-# the runner needs the vendored clone that pynanochat shells into:
+```bash
+git clone -b claude/fineweb-space-neighbors-k10ufw \
+    https://github.com/sanderland/script_tok.git
+cd script_tok
+```
+
+(Branch `claude/fineweb-space-neighbors-k10ufw`, draft PR
+[#7](https://github.com/sanderland/script_tok/pull/7). If you already have the repo:
+`git fetch origin claude/fineweb-space-neighbors-k10ufw && git checkout claude/fineweb-space-neighbors-k10ufw`.)
+
+Then the environment. The **editable** install is not optional: the eval's child
+processes run with `cwd` set to the nanochat clone and find `marker_experiments.*`
+through the editable install's `.pth`, not through `cwd`.
+
+```bash
+uv sync --extra downstream          # editable script_bpe + pynanochat, torch, deps
+uv pip install "nanochat @ git+https://github.com/karpathy/nanochat"
+
+# pynanochat shells into a vendored clone; the runner errors without it
 git clone https://github.com/karpathy/nanochat eval/py-nanochat/vendor/nanochat
 ```
 
-Hardware: one H100 80 GB per job at `--depth 12`. `--depth 24` (what the MinGram table
-used) needs more; drop `--device-batch-size` to 16/8/4 on OOM.
+Verify the setup before asking for a GPU. This needs no GPU and takes seconds:
+
+```bash
+uv run python marker_experiments/downstream/smoke_test.py
+```
+
+Expect `0 failure(s)` over the checked-in compression tokenizers. It will note that
+their vocabularies are unmatched — correct, and `train_matched.py` is what fixes it.
+`write_token_bytes` reports `[ok]` here and `[skip]` without torch; on the cluster it
+must be `[ok]`.
+
+Hardware and budget: one H100 80 GB per job at `--depth 12`. `--depth 24` (what the
+MinGram table used) needs more; drop `--device-batch-size` to 16/8/4 on OOM. Tokenizer
+training wants ~90 CPUs and is a one-off shared across seeds. Disk: ~50 GB under
+`$NANOCHAT_BASE` for shards and checkpoints, plus ~15 MB per tokenizer.
 
 ## Run
 
@@ -209,6 +237,23 @@ logs are the record. The TSV columns (`method`, `seed`, `val_bpb`, `train_bpb`, 
 plus `task_*`) match what `paper_utils/hybrid/downstream_results.py` expects, so the
 existing table generators can read it. Logs without a result block — pre-empted or OOM
 jobs — are listed and skipped, and re-running `run_arms.sh` picks them up.
+
+`collect_results.py` also prints a per-arm summary, so a finished sweep is readable
+without opening the TSV:
+
+```
+  arm               n    val_bpb      CORE
+  bnd_wpd           3     0.9876    0.1234
+  plain             3     0.9990    0.1100
+```
+
+### What to send back
+
+`$OUT/results.tsv`, `$OUT/logs/`, and `marker_experiments/downstream/manifest.json` (the
+per-arm vocabulary sizes, train times, and chars/token — it is what shows the arms were
+genuinely matched). The tokenizers themselves are reproducible from the manifest and need
+not travel. Committing straight to the branch is fine; `tokenizers/` and `corpora/` are
+gitignored, the TSV and manifest are not large.
 
 ## What to expect
 

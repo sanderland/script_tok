@@ -1,4 +1,5 @@
-# Cluster-generated: matched tokenizers (~15 MB each) and their manifest.
+# Cluster-generated: matched tokenizers (~15 MB each) and their corpus cache.
+# manifest.json is deliberately NOT ignored -- it is the record of what was trained
+# (vocabulary sizes, train times, chars/token) and is what shows the arms were matched.
 tokenizers/
 corpora/
-manifest.json
