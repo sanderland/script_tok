@@ -97,6 +97,7 @@ def run_experiment(
     encode_workers: int | None = None,
     nproc: int = 1,
     seed: int | None = None,
+    eval_modes: str = "core,bpb",
     extra_train_args: list[str] | None = None,
 ) -> ExperimentResult:
     """Pretrain a nanochat base model on a script_bpe tokenizer and score CORE + bpb.
@@ -171,8 +172,12 @@ def run_experiment(
         train_flags += list(extra_train_args)
     _run_child(_launch_cmd(py, "scripts.base_train", train_flags, nproc, env), cwd=repo, env=env)
 
-    # 3) eval CORE + bpb on the final checkpoint (same GPU count).
-    eval_flags = ["--eval", "core,bpb", "--model-tag", tokenizer_id]
+    # 3) eval on the final checkpoint (same GPU count).
+    # `eval_modes` is not always "core,bpb": CORE's language_modeling tasks assert that
+    # encode(context) is a prefix of encode(context + continuation), which a pretokenizer
+    # whose marker depends on the following character does not satisfy. base_eval then
+    # raises and the run yields nothing, bpb included. Pass "bpb" for those tokenizers.
+    eval_flags = ["--eval", eval_modes, "--model-tag", tokenizer_id]
     if device_batch_size is not None:
         eval_flags += ["--device-batch-size", str(device_batch_size)]
     if split_tokens is not None:

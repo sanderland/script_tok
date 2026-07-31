@@ -15,8 +15,15 @@ set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$REPO"
 
-ARMS=${ARMS:-plain,bnd_wpd,bnd_wpd_caps}
+ARMS=${ARMS:-plain,bnd_w,bnd_wpd,bnd_wpd_caps}
 SEEDS=${SEEDS:-0}
+# Arms whose tokenization of a context is a prefix of its tokenization of that context
+# plus a continuation, which is what CORE's language_modeling tasks assert. Measured with
+# core_prefix_check.py on the real CORE prompts: plain 0/512 and bnd_w 0/512 violations,
+# against bnd_wp 311/512, bnd_wpd 399/512, bnd_wpd_caps 399/512. Any arm not listed here
+# is scored on bpb alone, because base_eval raises on the first violation and the run then
+# reports nothing at all, bpb included.
+CORE_SAFE_ARMS=${CORE_SAFE_ARMS:-plain bnd_w}
 TRAINER=${TRAINER:-bpe}
 CORPUS=${CORPUS:-fineweb_en_5gb}
 VOCAB=${VOCAB:-34685}
@@ -54,11 +61,18 @@ for arm in "${ARM_LIST[@]}"; do
     [[ -f "$tok" ]] || { echo "missing $tok"; exit 1; }
     tag="${arm}_${TRAINER}_d${DEPTH}_s${seed}"
     log="$OUT/logs/${tag}.log"
-    if [[ -s "$log" ]] && grep -q "CORE metric" "$log"; then
+    # Completion is the printed result block, not the CORE line: a bpb-only run never
+    # prints a CORE metric, and keying on that would rerun it forever.
+    if [[ -s "$log" ]] && grep -q "Downstream eval result" "$log"; then
       echo "-- $tag: already done, skipping"
       continue
     fi
-    echo "-- $tag -> $log"
+    if [[ " $CORE_SAFE_ARMS " == *" $arm "* ]]; then
+      eval_modes="core,bpb"
+    else
+      eval_modes="bpb"
+    fi
+    echo "-- $tag -> $log (eval: $eval_modes)"
     smoke_flag=()
     [[ "$SMOKE" == "1" ]] && smoke_flag=(--smoke)
     uv run python paper_utils/hybrid/downstream/run_downstream_eval.py \
@@ -68,6 +82,7 @@ for arm in "${ARM_LIST[@]}"; do
         --depth "$DEPTH" --gpus "$GPUS" --seed "$seed" \
         --num-shards "$NUM_SHARDS" \
         --base-dir "$NANOCHAT_BASE" \
+        --eval-modes "$eval_modes" \
         "${smoke_flag[@]}" 2>&1 | tee "$log"
   done
 done

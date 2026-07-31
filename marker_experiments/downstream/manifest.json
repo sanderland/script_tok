@@ -1,0 +1,32 @@
+{
+  "fineweb_en_5gb_bnd_wpd_bpe_v34685": {
+    "additional_vocab_size": 32974,
+    "arm": "bnd_wpd",
+    "atomic_vocab": 1711,
+    "corpus": "fineweb_en_5gb",
+    "eval_chars": 3602925,
+    "eval_chars_per_token": 3.74027539298105,
+    "eval_tokens": 963278,
+    "overshoot_factor": null,
+    "path": "downstream/tokenizers/fineweb_en_5gb_bnd_wpd_bpe_v34685.json.gz",
+    "roundtrip_failures": 0,
+    "total_vocab": 34685,
+    "train_seconds": 527,
+    "trainer": "bpe"
+  },
+  "fineweb_en_5gb_plain_bpe_v34685": {
+    "additional_vocab_size": 32975,
+    "arm": "plain",
+    "atomic_vocab": 1710,
+    "corpus": "fineweb_en_5gb",
+    "eval_chars": 3602925,
+    "eval_chars_per_token": 3.6359943687840914,
+    "eval_tokens": 990905,
+    "overshoot_factor": null,
+    "path": "downstream/tokenizers/fineweb_en_5gb_plain_bpe_v34685.json.gz",
+    "roundtrip_failures": 0,
+    "total_vocab": 34685,
+    "train_seconds": 1273,
+    "trainer": "bpe"
+  }
+}

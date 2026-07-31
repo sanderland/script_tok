@@ -452,12 +452,41 @@ does not substitute for the right boundary set: sweeping the BPE-initialisation 
 gap from $-7.83\%$ to $-7.95\%$, so a 2.5$\times$ larger pool buys 290 words and makes
 compression marginally worse.
 
+\subsection{Downstream language modelling}
+\label{sec:downstream}
+
+Compression is not quality, so we pretrain a model on each vocabulary. Arms are matched on
+\emph{total} vocabulary rather than on merges added: the grids above fix
+\texttt{additional\_vocab\_size}, which leaves the marker arms a few atomic tokens larger, and
+that difference should not be read as a modelling effect. Every arm is retrained at 34{,}685
+total tokens on 5\,GB of FineWeb English. Table~\ref{tab:downstream-compression} reports the
+resulting tokenizers. The matched-vocabulary gain is smaller than the \bnd{wpd} figure in
+Table~\ref{tab:main}, which is the expected cost of holding total vocabulary fixed.
+
+Models are nanochat at depth 12 on ClimbMix, scored on validation bits-per-byte and on DCLM
+CORE \citep{li2024datacomplm}, in Table~\ref{tab:downstream-lm}.
+
+\input{generated/downstream_tables}
+
+\paragraph{CORE cannot score the punctuation-marking arms.} Its language-modelling tasks
+tokenize a context and that context plus its continuation, and require the first to be a
+prefix of the second. A marker that depends on the following character does not satisfy this:
+under \bnd{wpd}, \texttt{':'} is one token at the end of a string and a different token when a
+space follows, so extending \texttt{"Answer:"} with \texttt{" Boston"} rewrites a token
+already emitted. Across the nine CORE language-modelling tasks at 60 examples each, this
+affects 0/512 examples for \texttt{plain} and \bnd{w}, 311/512 for \bnd{wp}, and 399/512 for
+\bnd{wpd} and \bnd{wpd\_caps}, with the same pattern in Korean and Russian. We report CORE
+only where it is defined, and bits-per-byte everywhere. This is a property of the evaluation
+protocol rather than of the models, but it constrains what any context-dependent marker scheme
+can be compared on.
+
 \section{Limitations}
 \label{sec:limitations}
 
-No language-modelling evaluation is reported. Everything here is compression and vocabulary
-structure; whether a canonical word form helps or hurts downstream quality is untested, and
-prior work repeatedly cautions that the two need not agree
+The language-modelling evaluation is confined to English at one model scale, and CORE covers
+only two of the arms (\S\ref{sec:downstream}); whether a canonical word form helps or hurts
+downstream quality in the other five languages, or at larger scale, is untested, and prior
+work repeatedly cautions that compression and quality need not agree
 \citep{rust-etal-2021-good,zouhar-etal-2023-tokenization,cognetta-etal-2024-two,ali-etal-2024-tokenizer,lotz-etal-2025-beyond}.
 Morphological alignment, another axis on which such a change could help or hurt
 \citep{bostrom-durrett-2020-byte,arnett2025evaluatingmorphologicalalignmenttokenizers}, is

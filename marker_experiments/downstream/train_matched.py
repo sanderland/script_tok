@@ -41,6 +41,7 @@ Usage
 
 import json
 import os
+import sys
 import time
 
 import cyclopts
@@ -71,7 +72,7 @@ def make_pretokenizer(arm: str):
     return get_boundary_pretokenizer(arm)
 
 
-def build_corpus(corpus_name, pt, base_dir, text_file):
+def build_corpus(corpus_name, pt, base_dir, text_file, workers=None):
     """Registry corpus, or -- with `text_file` -- a throwaway corpus from one local file.
 
     The local-file path exists so the vocabulary-matching logic and the full
@@ -79,9 +80,19 @@ def build_corpus(corpus_name, pt, base_dir, text_file):
     committing to a multi-GB download. It is not a research setting: at this size the
     vocabulary cannot be filled, so `total_vocab` is not reached and the matched-size
     assertion is skipped.
+
+    `workers` applies to pretokenizing the corpus as well as to training. Without it the
+    registry falls back to CORPUS_BUILD_DEFAULT_WORKERS (16), which is what made a
+    fineweb_en_5gb build take 8.6 hours on a 288-core node.
     """
     if not text_file:
-        return load_corpus_by_name(corpus_name, pt, base_dir=base_dir)
+        # `--corpus-base-dir` is optional and documented as defaulting to the repo's
+        # cache. Forwarding base_dir=None would override load_corpus_by_name's own
+        # default rather than fall back to it, and PretokenizedCorpus then fails with
+        # `TypeError: expected str ... not NoneType` when it joins the path.
+        if base_dir is None:
+            return load_corpus_by_name(corpus_name, pt, num_workers=workers)
+        return load_corpus_by_name(corpus_name, pt, base_dir=base_dir, num_workers=workers)
     from script_bpe.corpus.base import PretokenizedCorpus
     from script_bpe.corpus.registry import normalize_whitespace
 
@@ -101,7 +112,7 @@ def train_one(arm, trainer_name, corpus_name, total_vocab, workers, overshoot, b
     additional = total_vocab - len(pt.atomic_tokens)
     assert additional > 0, f"{arm}: total_vocab {total_vocab} below {len(pt.atomic_tokens)} atomic tokens"
 
-    corpus = build_corpus(corpus_name, pt, base_dir, text_file)
+    corpus = build_corpus(corpus_name, pt, base_dir, text_file, workers=workers)
 
     t = time.time()
     if trainer_name == "bpe":
@@ -162,6 +173,7 @@ def main(
     eval_texts: str | None = None,
     text_file: str | None = None,
     force: bool = False,
+    manifest_path: str | None = None,
 ) -> None:
     """Train one vocabulary-matched tokenizer per arm and record a manifest.
 
@@ -177,13 +189,18 @@ def main(
         corpus_base_dir: Pretokenized-corpus cache dir (defaults to the repo's).
         eval_texts: Optional JSON list of held-out texts for a chars/token sanity check.
             `marker_experiments/eval_texts/en.json` is the compression grid's slice.
+        manifest_path: Where to record the trained arms. Defaults to manifest.json next
+            to this script. Running one arm per job needs a separate file per job: the
+            manifest is rewritten by read-modify-write, so concurrent jobs would drop each
+            other's entries. Merge them afterwards with merge_manifests.py.
         text_file: Train on this local text file instead of a registry corpus. Seconds
             rather than hours; for pipeline checks only, and vocabulary matching is not
             enforced because the vocabulary cannot be filled at that size.
         force: Retrain arms whose output file already exists.
     """
     os.makedirs(out_dir, exist_ok=True)
-    manifest = json.load(open(MANIFEST)) if os.path.exists(MANIFEST) else {}
+    manifest_file = manifest_path or MANIFEST
+    manifest = json.load(open(manifest_file)) if os.path.exists(manifest_file) else {}
     if text_file:
         corpus = f"tiny_{os.path.basename(text_file).split('.')[0]}"
 
@@ -205,7 +222,7 @@ def main(
         if eval_texts:
             info.update(eval_compression(tokenizer, eval_texts))
         manifest[key] = info
-        with open(MANIFEST, "w") as f:
+        with open(manifest_file, "w") as f:
             json.dump(manifest, f, indent=2, sort_keys=True)
         cpt = info.get("eval_chars_per_token")
         print(
@@ -235,3 +252,11 @@ def main(
 
 if __name__ == "__main__":
     app()
+    # Everything this script produces (the tokenizers and the manifest) is on disk by
+    # now. Interpreter shutdown is not reliable here: multiprocessing's atexit handling
+    # can block on workers the forkserver never reaped, which left one job idle for 18
+    # minutes after its work had finished and would hold a node until its walltime.
+    # Flush and leave rather than wait for that.
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(0)
