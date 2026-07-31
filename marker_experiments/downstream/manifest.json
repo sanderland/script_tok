@@ -14,6 +14,21 @@
     "train_seconds": 527,
     "trainer": "bpe"
   },
+  "fineweb_en_5gb_bnd_wpd_caps_bpe_v34685": {
+    "additional_vocab_size": 32972,
+    "arm": "bnd_wpd_caps",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_en_5gb",
+    "eval_chars": 3602925,
+    "eval_chars_per_token": 3.7456414297565854,
+    "eval_tokens": 961898,
+    "overshoot_factor": null,
+    "path": "downstream/tokenizers/fineweb_en_5gb_bnd_wpd_caps_bpe_v34685.json.gz",
+    "roundtrip_failures": 0,
+    "total_vocab": 34685,
+    "train_seconds": 517,
+    "trainer": "bpe"
+  },
   "fineweb_en_5gb_plain_bpe_v34685": {
     "additional_vocab_size": 32975,
     "arm": "plain",
