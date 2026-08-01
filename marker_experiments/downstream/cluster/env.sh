@@ -34,6 +34,12 @@ export UV_NO_SYNC=1
 export HF_HOME="${DATA_ROOT}/hf_cache"
 export NANOCHAT_BASE="${DATA_ROOT}/nanochat_base"
 
+# torch.compile caches. Triton's default is ~/.triton/cache, which all 12 nodes of a
+# sweep would share over the home filesystem; entries are written by atomic rename so this
+# is contention rather than a correctness risk. Node-local is both faster and quieter.
+export TRITON_CACHE_DIR="${TRITON_CACHE_DIR:-/tmp/${USER}_triton_cache}"
+export TORCHINDUCTOR_CACHE_DIR="${TORCHINDUCTOR_CACHE_DIR:-/tmp/${USER}_inductor_cache}"
+
 # Results land under the repo's `results` symlink, which already points at capstor scratch.
 export OUT="${OUT:-results/marker_downstream}"
 

@@ -21,13 +21,13 @@ plain & 34{,}685 & 3.6360 & --- & 0 \\
 \begin{table}[t]
 \centering
 \small
-\begin{tabular}{lrrr}
+\begin{tabular}{lrrrr}
 \toprule
-Arm & $n$ & val bpb & CORE \\
+Arm & $n$ & bpb/byte & raw bpb & CORE \\
 \midrule
-\multicolumn{4}{c}{\textit{no downstream runs finished yet}} \\
+\multicolumn{5}{c}{\textit{no downstream runs finished yet}} \\
 \bottomrule
 \end{tabular}
-\caption{nanochat depth-12 pretraining on ClimbMix. $n$ is runs averaged; $\pm$ is the standard deviation across seeds. CORE is \textit{n/a} for the arms whose tokenization does not satisfy the prefix property its language-modelling tasks assume (\S\ref{sec:downstream}).}
+\caption{nanochat depth-12 pretraining on ClimbMix. bpb/byte is summed loss over the true UTF-8 length of the evaluation text; raw bpb is nanochat's figure, which divides instead by the summed byte length of the emitted tokens and so is not comparable across these tokenizers (\S\ref{sec:downstream}). $n$ is runs averaged. $\pm$ spans the seeds, which vary weight initialization only: the data order is identical across seeds, so this understates run-to-run variance. All arms train on the same number of tokens, so a worse-compressing arm sees less text; \bnd{w} reads 95.1\% of what \texttt{plain} does. CORE is \textit{n/a} for the arms whose tokenization does not satisfy the prefix property its language-modelling tasks assume.}
 \label{tab:downstream-lm}
 \end{table}

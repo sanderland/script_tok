@@ -50,8 +50,17 @@ def write_token_bytes(tokenizer: Tokenizer, tokenizer_dir: str | Path):
     tokenizer_dir = Path(tokenizer_dir)
     tokenizer_dir.mkdir(parents=True, exist_ok=True)
     special = set(tokenizer.get_special_tokens())
+    # Floor of 1 byte for non-special tokens. evaluate_bpb masks the loss of any token
+    # whose byte count is 0 (loss_eval.py: `total_nats += (loss2d * (num_bytes2d > 0))`),
+    # and a boundary marker decodes to the empty string, so at 0 the loss of predicting
+    # where a boundary goes would be dropped from the numerator. That is not neutral: it
+    # only happens for the marker arms, and in proportion to how many marker codes they
+    # use (measured on ClimbMix val text: plain 0.000% of emitted tokens, bnd_w 0.034%,
+    # bnd_wpd 0.097%, bnd_wpd_caps 0.135%), so it flatters exactly the arms being tested.
+    # The fictional byte cancels: `measure_byte_factor` applies the same floor, so the
+    # corrected bpb is still summed loss over true bytes, now with nothing masked but BOS.
     counts = [
-        0 if (s := tokenizer.decode([tid])) in special else len(s.encode("utf-8"))
+        0 if (s := tokenizer.decode([tid])) in special else max(1, len(s.encode("utf-8")))
         for tid in range(tokenizer.get_vocab_size())
     ]
     token_bytes = torch.tensor(counts, dtype=torch.int32, device="cpu")

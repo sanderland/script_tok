@@ -43,10 +43,16 @@ if [[ "$TRAINER" == "mingram" ]]; then DOTTED=$DOTTED_MINGRAM; else DOTTED=$DOTT
 mkdir -p "$OUT/logs"
 
 echo "== step 1/3: vocabulary-matched tokenizers (${TRAINER}, vocab ${VOCAB}, ${CORPUS})"
+# --manifest-path per arm: this script runs inside every job of the sweep, and the
+# manifest is rewritten read-modify-write, so a shared path lets concurrent jobs drop each
+# other's entries. Harmless while every tokenizer already exists and training is skipped,
+# but not something to leave armed. merge_manifests.py folds these back together.
+mkdir -p "$OUT/manifests"
 uv run python marker_experiments/downstream/train_matched.py \
     --arms "$ARMS" --trainer "$TRAINER" --corpus "$CORPUS" \
     --total-vocab "$VOCAB" --workers "$TRAIN_WORKERS" \
-    --eval-texts marker_experiments/eval_texts/en.json
+    --eval-texts marker_experiments/eval_texts/en.json \
+    --manifest-path "$OUT/manifests/${CORPUS}_${ARMS//,/_}_${TRAINER}_v${VOCAB}.json"
 
 echo "== step 2/3: tokenizer-side checks (must be clean before burning GPU hours)"
 uv run python marker_experiments/downstream/smoke_test.py \

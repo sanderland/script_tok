@@ -40,10 +40,20 @@ CORE_SAFE = {"plain", "bnd_w"}
 app = cyclopts.App()
 
 
-def _load_manifest(path):
+def _load_manifest(path, trainer="bpe", corpus="fineweb_en_5gb"):
+    """Arm -> manifest entry, restricted to one trainer and corpus.
+
+    Manifest keys are {corpus}_{arm}_{trainer}_v{vocab}, so keying on `arm` alone lets a
+    throwaway `tiny_*` entry, which train_matched.py writes into the same file when run
+    with --text-file, overwrite the real one and be reported under the real caption.
+    """
     if not os.path.exists(path):
         return {}
-    return {v["arm"]: v for v in json.load(open(path)).values()}
+    return {
+        v["arm"]: v
+        for v in json.load(open(path)).values()
+        if v.get("trainer") == trainer and v.get("corpus") == corpus
+    }
 
 
 def _load_results(path):
@@ -103,20 +113,25 @@ def downstream_table(by_arm):
         rows = by_arm.get(arm)
         if not rows:
             continue
-        val, val_sd, n = _mean_sd(rows, "val_bpb")
+        # val_bpb_true, not val_bpb: the raw column divides by summed token byte length,
+        # which undercounts every arm that elides a character between two tokens, so it is
+        # not comparable across these tokenizers. See runner.measure_byte_factor.
+        val, val_sd, n = _mean_sd(rows, "val_bpb_true")
+        raw, _, _ = _mean_sd(rows, "val_bpb")
         core, core_sd, n_core = _mean_sd(rows, "core")
         val_cell = "---" if val is None else f"{val:.4f}"
         if val is not None and n > 1:
             val_cell += f" {{\\footnotesize $\\pm$ {val_sd:.4f}}}"
-        if arm not in CORE_SAFE:
-            core_cell = r"\textit{n/a}"
-        elif core is None:
-            core_cell = "---"
+        # Driven by the data, not by a hardcoded arm list: CORE_SAFE_ARMS is settable at
+        # submit time, and a hardcoded list would print n/a over a number we measured.
+        if core is None:
+            core_cell = r"\textit{n/a}" if arm not in CORE_SAFE else "---"
         else:
             core_cell = f"{core:.4f}"
             if n_core > 1:
                 core_cell += f" {{\\footnotesize $\\pm$ {core_sd:.4f}}}"
-        lines.append(f"{ARM_LABEL[arm]} & {n} & {val_cell} & {core_cell} \\\\")
+        raw_cell = "---" if raw is None else f"{raw:.4f}"
+        lines.append(f"{ARM_LABEL[arm]} & {n} & {val_cell} & {raw_cell} & {core_cell} \\\\")
     return lines
 
 
@@ -170,20 +185,26 @@ def main(
         r"\begin{table}[t]",
         r"\centering",
         r"\small",
-        r"\begin{tabular}{lrrr}",
+        r"\begin{tabular}{lrrrr}",
         r"\toprule",
-        r"Arm & $n$ & val bpb & CORE \\",
+        r"Arm & $n$ & bpb/byte & raw bpb & CORE \\",
         r"\midrule",
     ]
-    body += down or [r"\multicolumn{4}{c}{\textit{no downstream runs finished yet}} \\"]
+    body += down or [r"\multicolumn{5}{c}{\textit{no downstream runs finished yet}} \\"]
     body += [
         r"\bottomrule",
         r"\end{tabular}",
         r"\caption{nanochat depth-12 pretraining on ClimbMix"
         + (f", seeds {', '.join(n_seeds)}" if n_seeds else "")
-        + r". $n$ is runs averaged; $\pm$ is the standard deviation across seeds. "
-        r"CORE is \textit{n/a} for the arms whose tokenization does not satisfy the "
-        r"prefix property its language-modelling tasks assume (\S\ref{sec:downstream}).}",
+        + r". bpb/byte is summed loss over the true UTF-8 length of the evaluation text; "
+        r"raw bpb is nanochat's figure, which divides instead by the summed byte length of "
+        r"the emitted tokens and so is not comparable across these tokenizers "
+        r"(\S\ref{sec:downstream}). $n$ is runs averaged. $\pm$ spans the seeds, which vary "
+        r"weight initialization only: the data order is identical across seeds, so this "
+        r"understates run-to-run variance. All arms train on the same number of tokens, so "
+        r"a worse-compressing arm sees less text; \bnd{w} reads 95.1\% of what \texttt{plain} "
+        r"does. CORE is \textit{n/a} for the arms whose tokenization does not satisfy the "
+        r"prefix property its language-modelling tasks assume.}",
         r"\label{tab:downstream-lm}",
         r"\end{table}",
         "",

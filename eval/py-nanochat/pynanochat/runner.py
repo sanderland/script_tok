@@ -50,8 +50,18 @@ class ExperimentResult:
     vocab_size: int
     core_metric: float | None = None          # headline (DCLM CORE, centered)
     core_per_task: dict = field(default_factory=dict)
-    val_bpb: float | None = None              # intrinsic companion
+    val_bpb: float | None = None              # as nanochat reports it (see byte_factor)
     train_bpb: float | None = None
+    # nanochat divides summed loss by the summed byte length of the target tokens, taking
+    # each token's length from its own decoding. A tokenizer that elides a character
+    # between two tokens has no token to charge it to, so that denominator is short and
+    # bpb is inflated, in proportion to how much the scheme elides. byte_factor is
+    # (summed token byte length) / (true UTF-8 length) over the same text; multiplying
+    # val_bpb by it gives loss per true byte, which is comparable across tokenizers.
+    byte_factor: float | None = None
+    val_bpb_per_true_byte: float | None = None
+    train_bpb_per_true_byte: float | None = None
+    byte_factor_sample_bytes: int | None = None
     artifact_dir: str | None = None
 
 
@@ -74,6 +84,91 @@ def _run_child(argv: list[str], *, cwd: Path, env: dict, capture: bool = False) 
     if proc.returncode != 0:
         raise subprocess.CalledProcessError(proc.returncode, argv)
     return "".join(chunks)
+
+
+# 0 means the whole validation shard. A 32 MB prefix was not enough: the running factor
+# still moved by 1.2e-3 (plain) and 2.0e-3 (bnd_wpd) between 32 MB and 140 MB, an order of
+# magnitude above the seed-to-seed spread of val bpb (2e-4 to 5e-4) that it would be
+# compared against. base_eval scores 40 x 524288 tokens per split, which spans roughly
+# 87-94 MB of text, so the factor has to be measured over at least that much.
+BYTE_FACTOR_SAMPLE_BYTES = 0
+
+
+def measure_byte_factor(adapter, base_dir: str, tokenizer_path: str,
+                        sample_bytes: int = BYTE_FACTOR_SAMPLE_BYTES,
+                        cache_dir: str | None = None):
+    """(summed token byte length) / (true UTF-8 length) over held-out validation text.
+
+    nanochat's bpb divides summed loss by the summed byte length of the target tokens,
+    where each token's length comes from decoding that token alone. A scheme that elides
+    a character *between* two tokens (here, the single space between two delimited spans,
+    rebuilt at decode time from the touching markers) has no token to charge that byte to,
+    so the denominator is short and bpb is inflated. The shortfall scales with how much
+    the scheme elides, which is exactly what it optimizes, so the raw number is not
+    comparable across these tokenizers.
+
+    Multiplying bpb by this factor gives loss per true byte. That is exact rather than
+    approximate: `evaluate_bpb` masks loss to tokens with a positive byte count, and these
+    tokenizers emit no zero-byte tokens, so the summed loss does not depend on the byte
+    table at all and only the denominator has to be corrected.
+
+    Cached under `cache_dir` (the shared base dir) keyed by tokenizer path, since the
+    seeds of one arm share a tokenizer and this is a deterministic function of tokenizer
+    and text. Written to a temp file and renamed, because those seeds run concurrently.
+    """
+    import hashlib
+    import json
+
+    key = hashlib.sha256(
+        f"{os.path.abspath(tokenizer_path)}:{sample_bytes}".encode()
+    ).hexdigest()[:16]
+    cache_path = os.path.join(cache_dir or base_dir, f"byte_factor_{key}.json")
+    if os.path.exists(cache_path):
+        with open(cache_path) as f:
+            cached = json.load(f)
+        print(f"[pynanochat] byte factor {cached['byte_factor']:.6f} (cached)", flush=True)
+        return cached["byte_factor"], cached["sample_bytes"]
+
+    import pyarrow.parquet as pq
+
+    data_dir = Path(base_dir) / "base_data_climbmix"
+    shards = sorted(data_dir.glob("shard_*.parquet"))
+    if not shards:
+        raise FileNotFoundError(f"no ClimbMix shards under {data_dir} to measure the byte factor")
+    # The val split is the last shard, the same one nanochat evaluates on.
+    docs, nchars = [], 0
+    for doc in pq.read_table(shards[-1]).column("text").to_pylist():
+        docs.append(doc)
+        nchars += len(doc)
+        if sample_bytes and nchars >= sample_bytes:
+            break
+    text = "\n".join(docs)
+    true_bytes = len(text.encode("utf-8"))
+
+    special = set(adapter.get_special_tokens())
+    lengths: dict[int, int] = {}
+
+    def token_bytes(tid: int) -> int:
+        # Must match write_token_bytes exactly, floor included, or the factor stops
+        # cancelling the denominator it is meant to correct.
+        if tid not in lengths:
+            decoded = adapter.decode([tid])
+            lengths[tid] = 0 if decoded in special else max(1, len(decoded.encode("utf-8")))
+        return lengths[tid]
+
+    measured = sum(token_bytes(t) for t in adapter.encode(text))
+    factor = measured / true_bytes
+    print(
+        f"[pynanochat] byte factor {factor:.6f} "
+        f"({measured:,} token bytes / {true_bytes:,} true bytes)",
+        flush=True,
+    )
+    tmp = f"{cache_path}.{os.getpid()}.tmp"
+    with open(tmp, "w") as f:
+        json.dump({"byte_factor": factor, "sample_bytes": true_bytes,
+                   "measured_token_bytes": measured}, f, indent=2)
+    os.replace(tmp, cache_path)
+    return factor, true_bytes
 
 
 def run_experiment(
@@ -111,8 +206,24 @@ def run_experiment(
     if not (repo / "scripts" / "base_train.py").exists():
         raise FileNotFoundError(f"vendored nanochat not found at {repo} (clone karpathy/nanochat there)")
 
-    base_dir = base_dir or os.path.join(os.path.expanduser("~"), ".cache", "nanochat")
+    shared_dir = base_dir or os.path.join(os.path.expanduser("~"), ".cache", "nanochat")
+    os.makedirs(shared_dir, exist_ok=True)
+    # Per-run base dir. bootstrap writes the bpb byte table to
+    # <base_dir>/tokenizer/token_bytes.pt and nanochat.tokenizer.get_token_bytes reads
+    # that same path, so concurrent runs sharing one base_dir race on a single file and a
+    # run can be scored against another tokenizer's byte table. Observed: a bnd_wpd_caps
+    # run reported bnd_wpd's val bpb despite its own training loss. Checkpoints are keyed
+    # by model tag and would not collide, but the byte table is not.
+    base_dir = os.path.join(shared_dir, "runs", tokenizer_id)
     os.makedirs(base_dir, exist_ok=True)
+    # The heavy, read-only artifacts stay shared: 700 MB of ClimbMix shards and the CORE
+    # bundle should not be re-downloaded per run. Link them only when they already exist,
+    # since base_eval tests `os.path.exists`, which follows a symlink and would try to
+    # download over a broken one.
+    for shared_name in ("base_data_climbmix", "eval_bundle"):
+        src, dst = os.path.join(shared_dir, shared_name), os.path.join(base_dir, shared_name)
+        if os.path.exists(src) and not os.path.exists(dst):
+            os.symlink(src, dst)
 
     env = dict(os.environ)
     env["NANOCHAT_BASE_DIR"] = base_dir
@@ -139,10 +250,28 @@ def run_experiment(
     # 1) data: download train shards (+ the always-included val shard). Skip if present.
     data_dir = Path(base_dir) / "base_data_climbmix"
     have = sorted(data_dir.glob("shard_*.parquet")) if data_dir.exists() else []
+    # `num_train_shards` train shards plus the pinned val shard. The old test was
+    # `len(have) < 2`, which a 2-shard --smoke leftover satisfies, so a run declared at 8
+    # shards would have trained on 1 shard and cycled it ~37 times with nothing in the log.
+    if have and len(have) < num_train_shards + 1:
+        raise FileNotFoundError(
+            f"{data_dir} holds {len(have)} shard(s) but this run declares "
+            f"{num_train_shards} train shards plus a val shard. Refusing to train on a "
+            f"smaller corpus than declared; delete the directory to re-download."
+        )
     if len(have) < 2:
         _run_child([py, "-m", "nanochat.dataset", "-n", str(num_train_shards), "-w", "16"], cwd=repo, env=env)
     else:
         print(f"[pynanochat] reusing {len(have)} existing data shards in {data_dir}", flush=True)
+
+    # 1b) byte-accounting factor, measured before training on purpose: it needs only the
+    # tokenizer and the val shard, and a failure here after training would throw away the
+    # GPU hours over a CPU-only measurement. Also fails fast on an unreadable shard.
+    byte_factor = byte_factor_sample = None
+    if "bpb" in {m.strip() for m in eval_modes.split(",")} and tokenizer is not None:
+        byte_factor, byte_factor_sample = measure_byte_factor(
+            tokenizer, base_dir, tokenizer_path, cache_dir=shared_dir
+        )
 
     # 2) train (1 or N GPUs). Skip mid-run CORE/sampling/checkpoints; eval at the end.
     train_flags = [
@@ -200,6 +329,14 @@ def run_experiment(
 
     vocab_size = tokenizer.get_vocab_size() if tokenizer is not None else _vocab_from(tokenizer_path, tokenizer_class)
 
+    # Correct the bpb denominator to true bytes, using the factor measured before training.
+    val_bpb_true = train_bpb_true = None
+    if byte_factor is not None:
+        if val_bpb is not None:
+            val_bpb_true = val_bpb * byte_factor
+        if train_bpb is not None:
+            train_bpb_true = train_bpb * byte_factor
+
     return ExperimentResult(
         tokenizer_id=tokenizer_id,
         depth=depth,
@@ -208,6 +345,10 @@ def run_experiment(
         core_per_task=core_per_task,
         val_bpb=val_bpb,
         train_bpb=train_bpb,
+        byte_factor=byte_factor,
+        val_bpb_per_true_byte=val_bpb_true,
+        train_bpb_per_true_byte=train_bpb_true,
+        byte_factor_sample_bytes=byte_factor_sample,
         artifact_dir=base_dir,
     )
 

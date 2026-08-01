@@ -191,12 +191,57 @@ Noted, not changed:
 
 - `README.md` still lists the `uv pip install nanochat` step described in section 3 above.
 
+## Findings from the pre-launch audit
+
+An independent audit of the harness was run before the second sweep. It found four things
+that would have changed the published numbers, all now fixed.
+
+1. Zero-byte tokens were dropped from the bpb numerator, for the marker arms only.
+   `loss_eval.py` masks the loss of any token whose byte count is 0, and a boundary marker
+   decodes to the empty string, so the cost of predicting where a boundary goes was not
+   counted. Measured share of emitted tokens on ClimbMix validation text: plain 0.000%,
+   bnd_w 0.034%, bnd_wpd 0.097%, bnd_wpd_caps 0.135%, so the effect scaled with the number
+   of marker codes and flattered exactly the arms under test. `write_token_bytes` and
+   `measure_byte_factor` now floor non-special tokens at 1 byte; the fictional byte appears
+   in both the denominator and the factor and cancels.
+   I had asserted the opposite to my collaborator, on a check against
+   `tests/data/taylorswift.txt`, which happens to emit none of these tokens.
+2. The byte factor was measured over a 32 MB prefix. Between 32 MB and 140 MB the running
+   factor still moved by 1.2e-3 (plain) and 2.0e-3 (bnd_wpd), against a seed-to-seed spread
+   of val bpb of 2e-4 to 5e-4, so the correction's own error exceeded the error bars. It is
+   now measured over the whole validation shard (252,166,727 bytes) and cached in the shared
+   directory, written through a temporary file and renamed.
+3. The factor was measured after training, so any failure in a CPU-only measurement
+   discarded about 5 GPU-hours. It now runs before training.
+4. Every job wrote the same `results.tsv` with a plain truncate-and-write. Two jobs
+   finishing together could interleave into one half-written file that the table generator
+   would read without complaint. The write is now atomic.
+
+Two reporting issues it raised, both now stated in the table caption rather than fixed in
+code, because the conventions themselves are defensible:
+
+- The three seeds vary weight initialization only. The data loader contains no RNG, and all
+  three seeds of an arm end training at the identical dataloader position, so the reported
+  interval understates run-to-run variance.
+- Training is matched on tokens, so a worse-compressing arm sees less text. bnd_w reads
+  95.1% of the text plain does. This is the equal-compute convention and seeing more data
+  per unit compute is a real consequence of better compression, but it was undocumented.
+
+Smaller fixes: the shard-count check accepted any two shards, so a `--smoke` leftover could
+silently reduce a declared 8-shard run to one shard; the table generator keyed the manifest
+on arm alone, so a throwaway `tiny_*` entry could be reported under the real caption; the
+CORE column was driven by a hardcoded arm list rather than by the data; `run_arms.sh` still
+called `train_matched.py` without `--manifest-path`; and the Triton compile cache defaulted
+to a home-directory path shared by all 12 nodes.
+
 ## Constants introduced
 
 - `script_bpe/utils.py`: `WORKER_JOIN_TIMEOUT_S = 60`. Seconds to wait for workers to exit
   before killing the forkserver. 60 rather than longer because both call sites collect
   every result before joining, so the workers have nothing left to do, and because the
   stall fires on most builds here.
+- `eval/py-nanochat/pynanochat/runner.py`: `BYTE_FACTOR_SAMPLE_BYTES = 0`, meaning the
+  whole validation shard. See audit finding 2 for why a prefix is not enough.
 - `script_bpe/corpus/registry.py`: `CORPUS_BUILD_DEFAULT_WORKERS = 16`. The previous
   hardcoded cap, kept as the default so callers that pass no worker count behave exactly
   as before.

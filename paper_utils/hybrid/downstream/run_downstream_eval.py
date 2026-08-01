@@ -145,6 +145,9 @@ def cli(
     print(f"  CORE metric  : {result.core_metric}")
     print(f"  val bpb      : {result.val_bpb}")
     print(f"  train bpb    : {result.train_bpb}")
+    print(f"  byte factor  : {result.byte_factor}")
+    print(f"  val bpb/byte : {result.val_bpb_per_true_byte}")
+    print(f"  train bpb/byte: {result.train_bpb_per_true_byte}")
     print(f"  artifact_dir : {result.artifact_dir}")
     if result.core_per_task:
         print("  per-task CORE (centered):")

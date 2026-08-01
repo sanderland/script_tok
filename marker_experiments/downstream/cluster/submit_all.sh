@@ -23,8 +23,14 @@ mkdir -p "${OUT}/slurm" "${OUT}/logs"
 IFS=',' read -ra ARM_LIST <<< "$ARMS"
 IFS=',' read -ra SEED_LIST <<< "$SEEDS"
 
-for arm in "${ARM_LIST[@]}"; do
-  for seed in "${SEED_LIST[@]}"; do
+# Seed-major, not arm-major. Slurm broadly starts same-priority jobs in submission
+# order, so this completes seed 0 across every arm before any arm's second seed. A
+# partially drained queue then leaves a full four-arm comparison at one seed, which is
+# usable; the arm-major order would instead leave three seeds of one arm, which answers
+# nothing. It also means the first cross-arm read is available after one run's wall-clock
+# rather than after three.
+for seed in "${SEED_LIST[@]}"; do
+  for arm in "${ARM_LIST[@]}"; do
     tag="${arm}_${TRAINER}_d${DEPTH}_s${seed}"
     log="${OUT}/logs/${tag}.log"
     # Same completion test as run_arms.sh: the result block, not the CORE line, because
