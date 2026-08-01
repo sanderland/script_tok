@@ -70,7 +70,12 @@ def parse_log(path):
         key, _, value = stripped.partition(":")
         col = SCALARS.get(key.strip())
         if col:
-            row[col] = value.strip().replace(",", "")
+            cleaned = value.strip().replace(",", "")
+            # A run scored on bits-per-byte alone prints "CORE metric : None". Recording
+            # the literal string would put a non-numeric value in a numeric column, which
+            # float() then trips over downstream. Leave the cell empty instead.
+            if cleaned != "None":
+                row[col] = cleaned
 
     if "core" not in row and "val_bpb" not in row:
         return None

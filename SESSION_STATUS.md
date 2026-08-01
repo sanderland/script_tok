@@ -1,7 +1,10 @@
 # Session Status
 
+## Deliverable
+- PR sanderland/script_tok#8, branch claude/downstream-lm-eval on the cimeister fork, into claude/fineweb-space-neighbors-k10ufw. Push further commits there as results land; tables regenerate with make_tex_tables.py.
+
 ## Ongoing experiments
-- Matched-tokenizer training, arms bnd_w / bnd_wpd / bnd_wpd_caps (jobs 2964899, 2964900, 2964901): one arm per node, each building its own fineweb_en_5gb corpus at 128 workers. Merge with merge_manifests.py when all three finish. First attempt (2957177-9) was cancelled after 6.4h: the parent's Counter merge was quadratic, so those jobs would have needed roughly 68h.
+- Matched-tokenizer training: bnd_wpd and bnd_wpd_caps finished; bnd_w (job 2964899) still pretokenizing. Jobs 2964899/2964900/2964901: one arm per node, each building its own fineweb_en_5gb corpus at 128 workers. Merge with merge_manifests.py when all three finish. First attempt (2957177-9) was cancelled after 6.4h: the parent's Counter merge was quadratic, so those jobs would have needed roughly 68h.
 - plain arm: finished (vocab 34,685, 0 roundtrip failures, 3.6360 chars/token). Corpus cached at results/corpora/fineweb_en_5gb/PT-e690609c.
 - Depth-12 sweep (not yet submitted): 4 arms x seeds 0,1,2 via cluster/submit_all.sh, blocked on the three tokenizer jobs.
 

@@ -186,11 +186,17 @@ def run_experiment(
         eval_flags += ["--max-per-task", str(max_per_task)]
     out = _run_child(_launch_cmd(py, "scripts.base_eval", eval_flags, nproc, env), cwd=repo, env=env, capture=True)
 
-    # 4) harvest.
-    core_metric = _search_float(r"CORE metric:\s*([-\d.]+)", out)
-    val_bpb = _search_float(r"val bpb:\s*([-\d.]+)", out)
-    train_bpb = _search_float(r"train bpb:\s*([-\d.]+)", out)
-    core_per_task = _read_core_csv(Path(base_dir) / "base_eval")
+    # 4) harvest. Only the metrics `eval_modes` asked for are present, so requiring a
+    # CORE line from a bpb-only run would throw away a finished run over a metric that
+    # was never requested. Anything that *was* requested is still required, so a silently
+    # missing number still fails.
+    modes = {m.strip() for m in eval_modes.split(",") if m.strip()}
+    want_core = "core" in modes
+    want_bpb = "bpb" in modes
+    core_metric = _search_float(r"CORE metric:\s*([-\d.]+)", out) if want_core else None
+    val_bpb = _search_float(r"val bpb:\s*([-\d.]+)", out) if want_bpb else None
+    train_bpb = _search_float(r"train bpb:\s*([-\d.]+)", out) if want_bpb else None
+    core_per_task = _read_core_csv(Path(base_dir) / "base_eval") if want_core else {}
 
     vocab_size = tokenizer.get_vocab_size() if tokenizer is not None else _vocab_from(tokenizer_path, tokenizer_class)
 
