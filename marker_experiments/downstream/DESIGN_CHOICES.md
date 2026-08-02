@@ -5,8 +5,10 @@ The first section lists the choices that depart from what the README says; the l
 sections cover choices the README leaves to the operator, and defects found in the code
 along the way. This file is updated as the run proceeds.
 
-Run identity: branch `claude/fineweb-space-neighbors-k10ufw`, base commit `b957b76`,
-account `a0229`, partition `normal`.
+Run identity: branch `claude/downstream-lm-eval`, based on
+`claude/fineweb-space-neighbors-k10ufw`, account `a0229`, partition `normal`. The vendored
+nanochat clone is at `92d63d4`; it is gitignored and not a submodule, so every job records
+its commit alongside the repo commit.
 
 ## Choices that differ from the README
 
@@ -33,12 +35,18 @@ Measured with `core_prefix_check.py` on the real CORE prompts, using nanochat's 
 |---|---|
 | plain | 0 / 512 |
 | bnd_w | 0 / 512 |
-| bnd_wp | 311 / 512 |
 | bnd_wpd | 399 / 512 |
 | bnd_wpd_caps | 399 / 512 |
+| bnd_wp (compression grid, not an arm here) | 311 / 512 |
 
-The same pattern holds for the checked-in Korean and Russian tokenizers, so it follows
-from the marker scheme rather than from English text.
+The last row comes from `marker_experiments/tokenizers/en_bnd_wp_bpe_32k.json.gz`, a
+32,768-additional-vocabulary FineWiki tokenizer. There is no matched `bnd_wp` arm; the row is
+included because it places the punctuation-only variant between the two extremes.
+
+The counts are identical for the Korean- and Russian-trained tokenizers. The prompts are the
+English CORE set in every case, so what this shows is that the counts follow from the marker
+scheme rather than from the tokenizer's training language. It is not a measurement on Korean
+or Russian text.
 
 Choice: arms in `CORE_SAFE_ARMS` (`plain`, `bnd_w`) are run with `--eval-modes core,bpb`,
 and the rest with `--eval-modes bpb`. Three alternatives were considered and rejected:
@@ -96,7 +104,27 @@ Lustre `cl_sync_io_wait` for minutes partway through importing `wcwidth`, and a 
 1.1 GB/s read on capstor. A job whose workers each import this environment cannot absorb
 that, so the environment moved to capstor. The same imports take 0.3 s on a compute node.
 
-### 5. Tokenizer training runs one arm per job
+### 5. The reported bits-per-byte is not nanochat's
+
+The README names the deliverable as "DCLM CORE and validation bits-per-byte". What is
+reported as the primary figure is summed loss divided by the true UTF-8 length of the scored
+text. nanochat divides instead by the summed byte length of the emitted tokens, taking each
+token's length from decoding it alone.
+
+Those differ for any scheme that elides a character between two tokens. The single space
+between two delimited spans is rebuilt at decode time from the touching markers, so it
+belongs to no token and the denominator is short: measured over the tokens the evaluation
+actually scores, the shortfall is 13.7% for bnd_wpd and 0.06% for plain. The shortfall
+tracks how much the scheme elides, which is what the scheme optimizes, so nanochat's own
+figure ranks these tokenizers by how aggressively they compress rather than by model quality.
+Both columns are reported; the corrected one is primary.
+
+The correction is exact rather than approximate, and only because the byte table it uses is
+the one the metric uses. `evaluate_bpb` masks the loss of any zero-byte token, and markers
+decode to the empty string, so `special_aware_token_bytes` floors non-special tokens at one
+byte and the same fictional byte appears in both the numerator's mask and the denominator.
+
+### 6. Tokenizer training runs one arm per job
 
 The README shows a single `train_matched.py` call covering all arms. Each arm needs its
 own pretokenized corpus, since the corpus directory keys on the pretokenizer hash, and
@@ -108,7 +136,7 @@ by read-modify-write, so concurrent jobs would drop each other's entries.
 `merge_manifests.py` folds the per-job files back into `manifest.json` and applies the
 cross-arm matched-vocabulary check that a single-process run does at the end.
 
-### 6. `eval_texts/en.json` was regenerated
+### 7. `eval_texts/en.json` was regenerated
 
 `marker_experiments/eval_texts/` is gitignored, so a fresh clone has no held-out slice and
 `train_matched.py`'s chars-per-token check reports nothing without saying why. Rebuilt
@@ -118,6 +146,31 @@ characters streamed. This reproduces the intended input rather than changing it,
 file is not the byte-identical artifact used previously, since it is not in version
 control.
 
+### 8. One `NANOCHAT_BASE` per run, not one per sweep
+
+The README documents `NANOCHAT_BASE` as a single directory. Each run now gets
+`<shared>/runs/<tokenizer_id>`, with the ClimbMix shards and the CORE bundle symlinked in
+from the shared copy so neither is duplicated or re-downloaded. The reason is in the
+discarded rounds below.
+
+## Discarded rounds
+
+Two complete sweeps were run and thrown away. Both are recorded because the numbers looked
+plausible in each case, and because the second was caused by the fix for the first.
+
+**Round 1 (jobs 2972879-90).** All 12 concurrent runs shared one `NANOCHAT_BASE` and
+therefore one `<base>/tokenizer/token_bytes.pt`, which `bootstrap` writes and
+`nanochat.tokenizer.get_token_bytes` reads. Runs were scored against whichever arm's byte
+table happened to be on disk. The symptom was a bnd_wpd_caps run reporting bnd_wpd's val bpb
+despite its own training loss. Logs in `results/marker_downstream/logs_invalid/`.
+
+**Round 2 (jobs 2973952-63).** Completed cleanly and was internally consistent. The one-byte
+floor introduced to stop marker loss being masked also un-masked BOS, which nanochat excludes
+by design: the `special` test compares decoded strings, these tokenizers decode BOS to the
+empty string, and it had been masked only incidentally by the `len("") == 0` behaviour the
+floor removed. Specials are now identified by id. Logs in
+`results/marker_downstream/logs_invalid_bos/`.
+
 ## Choices the README leaves open
 
 - Seeds 0, 1, 2 at depth 12, per the README's own example. The README notes that the
@@ -125,10 +178,10 @@ control.
   than a result. Whether to extend past 3 is still open.
 - `fineweb_en_5gb`, total vocabulary 34685, trainer `bpe`: the README's defaults.
 - 128 workers for corpus pretokenization and BPE training. A `PretokenizedCorpus` holds
-  128 partitions, so more workers than that do not help the training phase. Worth noting
-  that the worker count is not free in the corpus build: every extra worker adds one more
-  result to merge per block, so it trades encode time against merge time. That trade only
-  became favourable after defect 5 below.
+  128 partitions, so more workers than that do not help the training phase. The worker count
+  is not free in the corpus build either: every extra worker adds one more result to merge
+  per block, so encode time falls and merge time rises. Merge time stopped being the
+  constraint after the quadratic merge was fixed.
 - One GPU per run, on a node held exclusively. `run_downstream_eval.py` sets encode
   workers to `(cpu_count - gpus) // gpus`, and `script_bpe.encode` is pure Python, so
   wall-clock is set by cores per run rather than by GPUs.
@@ -223,9 +276,11 @@ code, because the conventions themselves are defensible:
 - The three seeds vary weight initialization only. The data loader contains no RNG, and all
   three seeds of an arm end training at the identical dataloader position, so the reported
   interval understates run-to-run variance.
-- Training is matched on tokens, so a worse-compressing arm sees less text. bnd_w reads
-  95.1% of the text plain does. This is the equal-compute convention and seeing more data
-  per unit compute is a real consequence of better compression, but it was undocumented.
+- Training is matched on tokens, so the amount of text each arm covers differs. Measured on
+  the ClimbMix validation shard, bnd_w covers 92.2% of what plain covers, bnd_wpd 100.6% and
+  bnd_wpd_caps 100.7%. The generalisation that a marker arm covers less text holds for one
+  of the three. This is the equal-compute convention, and the figures are now computed by
+  measure_text_stats.py rather than typed.
 
 Smaller fixes: the shard-count check accepted any two shards, so a `--smoke` leftover could
 silently reduce a declared 8-shard run to one shard; the table generator keyed the manifest
@@ -250,8 +305,9 @@ to a home-directory path shared by all 12 nodes.
 
 - `smoke_test.py` over the 56 checked-in tokenizers: 0 failures, `write_token_bytes` `[ok]`
   on all 20 to which it applies. Log at `results/marker_downstream/logs/smoke_test_checkedin.log`.
-- GPU leg on a checked-in `bnd_wpd` tokenizer: training and bits-per-byte completed
-  (train bpb 3.196317, val bpb 3.208251) before CORE raised. This is what identified the
-  CORE incompatibility.
+- GPU leg on a checked-in `bnd_wpd` tokenizer: training and bits-per-byte completed before
+  CORE raised, which is what identified the CORE incompatibility. The bits-per-byte values
+  from that run predate the byte-accounting fixes and are not comparable to anything
+  reported, so they are not quoted here.
 - `plain` arm trained: vocabulary 34,685 (1710 atomic plus 32,975), 0 roundtrip failures,
   3.6360 characters per token on the held-out slice.

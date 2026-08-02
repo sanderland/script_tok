@@ -56,6 +56,17 @@ def _load_manifest(path, trainer="bpe", corpus="fineweb_en_5gb"):
     }
 
 
+def _load_text_stats(path):
+    """Per-arm tokenization statistics measured on the ClimbMix validation shard.
+
+    Written by measure_text_stats.py. Used for the text-coverage and tokens-per-byte
+    figures, which were previously typed into the caption by hand and were wrong.
+    """
+    if not os.path.exists(path):
+        return {}
+    return json.load(open(path)).get("arms", {})
+
+
 def _load_results(path):
     """results.tsv rows grouped by arm."""
     if not os.path.exists(path):
@@ -139,6 +150,7 @@ def downstream_table(by_arm):
 def main(
     manifest: str = os.path.join(HERE, "manifest.json"),
     results: str = os.path.join(REPO, "results", "marker_downstream", "results.tsv"),
+    text_stats: str = os.path.join(REPO, "results", "marker_downstream", "text_stats.json"),
     out: str = DEFAULT_OUT,
 ) -> None:
     """Write the generated tables.
@@ -146,10 +158,28 @@ def main(
     Args:
         manifest: Merged tokenizer manifest.
         results: TSV from collect_results.py.
+        text_stats: JSON from measure_text_stats.py, for the text-coverage figures.
         out: LaTeX file to write, \\input{} by the paper.
     """
     man = _load_manifest(manifest)
     res = _load_results(results)
+    stats = _load_text_stats(text_stats)
+
+    # Measured, not asserted. At a fixed token budget the text an arm covers is
+    # proportional to its bytes per token, so this is the ratio of that against plain.
+    if stats and "plain" in stats:
+        parts = [
+            f"{ARM_LABEL[a]} {100 * stats[a]['text_coverage_vs_plain']:.1f}\\%"
+            for a in ARM_ORDER if a in stats and a != "plain"
+        ]
+        coverage_sentence = (
+            r"weight initialization. All arms train on the same number of tokens, so the "
+            r"amount of text each covers differs: " + ", ".join(parts)
+            + r" of what \texttt{plain} covers, measured on the ClimbMix validation shard."
+        )
+    else:
+        coverage_sentence = r"weight initialization."
+
 
     comp = compression_table(man)
     down = downstream_table(res)
@@ -199,11 +229,10 @@ def main(
         + r". bpb/byte is summed loss over the true UTF-8 length of the evaluation text; "
         r"raw bpb is nanochat's figure, which divides instead by the summed byte length of "
         r"the emitted tokens and so is not comparable across these tokenizers "
-        r"(\S\ref{sec:downstream}). $n$ is runs averaged. $\pm$ spans the seeds, which vary "
-        r"weight initialization only: the data order is identical across seeds, so this "
-        r"understates run-to-run variance. All arms train on the same number of tokens, so "
-        r"a worse-compressing arm sees less text; \bnd{w} reads 95.1\% of what \texttt{plain} "
-        r"does. CORE is \textit{n/a} for the arms whose tokenization does not satisfy the "
+        r"(\S\ref{sec:downstream}). $n$ is runs averaged; $\pm$ is the sample standard "
+        r"deviation over those seeds, which vary "
+        + coverage_sentence
+        + r" CORE is \textit{n/a} for the arms whose tokenization does not satisfy the "
         r"prefix property its language-modelling tasks assume.}",
         r"\label{tab:downstream-lm}",
         r"\end{table}",
