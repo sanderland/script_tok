@@ -33,9 +33,13 @@ manifest.json at the end:
         --parts 'marker_experiments/paper/generated/manifest_parts/*.json'
 
 Neither the pretokenized corpus nor the sampled-text cache is committed; both are large
-and both are gitignored, which also means they survive a working-tree wipe here (the wipe
-is `clean -fd`, which leaves ignored paths alone). The first cell of a language pays the
-source scan and every later cell of that language reuses it.
+and both are gitignored. On an ordinary machine that is all you need -- the first cell of
+a language pays the source scan and every later cell reuses it. In a container whose
+working tree is periodically restored from a snapshot, note that the restore removes
+anything created after that snapshot whether it is gitignored or not, so the caches are
+lost too and only the committed tokenizers carry progress forward. A cell that takes
+longer than the interval between restores can never finish there; run it somewhere with a
+persistent disk.
 
 Evaluation compression is optional and off the critical path. `--eval-texts` takes a
 pattern containing `{lang}`; a language with no such file trains and records nothing else.
