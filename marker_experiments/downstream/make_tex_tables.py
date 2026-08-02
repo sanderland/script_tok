@@ -2,7 +2,7 @@
 """Generate the downstream LaTeX tables from the run artifacts.
 
 Numbers in the paper are not transcribed by hand. This reads the two artifacts the
-pipeline writes and emits the table bodies that acl_latex.tex \\input{}s:
+pipeline writes and emits table bodies to \\input{} from the paper:
 
     manifest.json   one entry per trained tokenizer (train_matched.py / merge_manifests.py)
     results.tsv     one row per downstream run    (collect_results.py)
@@ -23,7 +23,9 @@ import cyclopts
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
-DEFAULT_OUT = os.path.join(REPO, "marker_experiments", "paper", "generated", "downstream_tables.tex")
+# One directory holds every paper artifact: the inputs this reads and the .tex it writes.
+GENERATED = os.path.join(REPO, "marker_experiments", "paper", "generated")
+DEFAULT_OUT = os.path.join(GENERATED, "downstream_tables.tex")
 
 # Presentation order, and the label each arm carries in the paper.
 ARM_ORDER = ["plain", "bnd_w", "bnd_wp", "bnd_wpd", "bnd_wpd_caps"]
@@ -148,9 +150,9 @@ def downstream_table(by_arm):
 
 @app.default
 def main(
-    manifest: str = os.path.join(HERE, "manifest.json"),
-    results: str = os.path.join(REPO, "results", "marker_downstream", "results.tsv"),
-    text_stats: str = os.path.join(REPO, "results", "marker_downstream", "text_stats.json"),
+    manifest: str = os.path.join(GENERATED, "manifest.json"),
+    results: str = os.path.join(GENERATED, "results.tsv"),
+    text_stats: str = os.path.join(GENERATED, "text_stats.json"),
     out: str = DEFAULT_OUT,
 ) -> None:
     """Write the generated tables.

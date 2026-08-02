@@ -19,7 +19,7 @@ import os
 import cyclopts
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-MANIFEST = os.path.join(HERE, "manifest.json")
+MANIFEST = os.path.join(os.path.dirname(HERE), "paper", "generated", "manifest.json")
 
 app = cyclopts.App()
 

@@ -106,4 +106,13 @@ for arm in "${ARM_LIST[@]}"; do
 done
 
 echo "== collecting"
+# Two destinations on purpose: $OUT keeps the run's own record next to its logs, and the
+# paper artifact directory holds the copy the table and figure generators read.
+GENERATED="marker_experiments/paper/generated"
+mkdir -p "$GENERATED"
 uv run python marker_experiments/downstream/collect_results.py --logs-dir "$OUT/logs" --out "$OUT/results.tsv"
+cp "$OUT/results.tsv" "$GENERATED/results.tsv"
+# Non-fatal: both also need manifest.json and text_stats.json, which a sweep that only ran
+# the LM leg has not produced. A missing table is not a reason to fail a finished sweep.
+uv run python marker_experiments/downstream/make_tex_tables.py || echo "  (tables skipped)"
+uv run python marker_experiments/downstream/make_figures.py || echo "  (figures skipped)"

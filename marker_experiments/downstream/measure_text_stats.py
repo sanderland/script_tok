@@ -13,7 +13,7 @@ Two figures the paper needs and that were previously typed by hand:
 
     uv run python marker_experiments/downstream/measure_text_stats.py
 
-Writes results/marker_downstream/text_stats.json, which make_tex_tables.py reads.
+Writes marker_experiments/paper/generated/text_stats.json, which make_tex_tables.py reads.
 """
 
 import json
@@ -39,7 +39,7 @@ def main(
     vocab: int = 34685,
     base_dir: str | None = None,
     max_chars: int = 20_000_000,
-    out: str = os.path.join(REPO, "results", "marker_downstream", "text_stats.json"),
+    out: str = os.path.join(REPO, "marker_experiments", "paper", "generated", "text_stats.json"),
 ) -> None:
     """Measure and record the statistics.
 

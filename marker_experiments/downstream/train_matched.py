@@ -55,7 +55,7 @@ from marker_experiments.boundary_pretokenizer import ALL_VARIANTS, get_boundary_
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT_DIR = os.path.join(HERE, "tokenizers")
-MANIFEST = os.path.join(HERE, "manifest.json")
+MANIFEST = os.path.join(os.path.dirname(HERE), "paper", "generated", "manifest.json")
 
 # 34,685 is the matched vocabulary of the MinGram downstream table.
 DEFAULT_TOTAL_VOCAB = 34_685
@@ -189,8 +189,8 @@ def main(
         corpus_base_dir: Pretokenized-corpus cache dir (defaults to the repo's).
         eval_texts: Optional JSON list of held-out texts for a chars/token sanity check.
             `marker_experiments/eval_texts/en.json` is the compression grid's slice.
-        manifest_path: Where to record the trained arms. Defaults to manifest.json next
-            to this script. Running one arm per job needs a separate file per job: the
+        manifest_path: Where to record the trained arms. Defaults to the paper artifact
+            directory. Running one arm per job needs a separate file per job: the
             manifest is rewritten by read-modify-write, so concurrent jobs would drop each
             other's entries. Merge them afterwards with merge_manifests.py.
         text_file: Train on this local text file instead of a registry corpus. Seconds
