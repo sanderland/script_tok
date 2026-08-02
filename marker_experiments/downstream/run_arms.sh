@@ -32,6 +32,10 @@ GPUS=${GPUS:-1}
 NUM_SHARDS=${NUM_SHARDS:-8}
 TRAIN_WORKERS=${TRAIN_WORKERS:-$(nproc)}
 SMOKE=${SMOKE:-0}
+# Appended to every run tag. Set it when a run differs from the default configuration in a
+# way the tag would otherwise hide, e.g. TAG_SUFFIX=_n32 for a 32-shard data regime, so the
+# two do not share a log, a checkpoint directory or a row in the TSV.
+TAG_SUFFIX=${TAG_SUFFIX:-}
 OUT=${OUT:-results/marker_downstream}
 NANOCHAT_BASE=${NANOCHAT_BASE:-$HOME/.cache/nanochat_marker}
 
@@ -72,7 +76,7 @@ for arm in "${ARM_LIST[@]}"; do
     # Smoke belongs in the tag. Without it a 20-iteration run writes a full result block
     # into the real run's log, which then counts as finished forever, and drops a
     # model_000020.pt into the real run's checkpoint directory.
-    tag="${arm}_${TRAINER}_d${DEPTH}_s${seed}"
+    tag="${arm}_${TRAINER}_d${DEPTH}_s${seed}${TAG_SUFFIX:-}"
     [[ "$SMOKE" == "1" ]] && tag="${tag}_smoke"
     log="$OUT/logs/${tag}.log"
     # Completion is the printed result block, not the CORE line: a bpb-only run never
