@@ -156,23 +156,36 @@ def measure_byte_factor(adapter, base_dir: str, tokenizer_path: str,
         return cached["byte_factor"], cached["true_bytes"]
 
     # nanochat's own loader, with base_eval's defaults, so the token multiset is the one
-    # the metric will be computed over rather than an approximation of it.
-    from nanochat.dataloader import tokenizing_distributed_data_loader_bos_bestfit
+    # the metric will be computed over rather than an approximation of it. This runs in the
+    # parent, which unlike the training/eval children has neither the vendored clone on its
+    # path nor NANOCHAT_BASE_DIR set, and list_parquet_files resolves through both.
+    vendor = str(_default_nanochat_repo())
+    if vendor not in sys.path:
+        sys.path.insert(0, vendor)
+    prior_base = os.environ.get("NANOCHAT_BASE_DIR")
+    os.environ["NANOCHAT_BASE_DIR"] = base_dir
+    try:
+        from nanochat.dataloader import tokenizing_distributed_data_loader_bos_bestfit
 
-    steps = split_tokens // (device_batch_size * sequence_len)
-    table = special_aware_token_bytes(adapter)
-    loader = tokenizing_distributed_data_loader_bos_bestfit(
-        adapter, device_batch_size, sequence_len, split, device="cpu"
-    )
-    measured = 0
-    true_bytes = 0
-    for _ in range(steps):
-        _, targets = next(loader)
-        for row in targets.tolist():
-            measured += sum(table[t] for t in row)
-            # decode is the inverse of encode and BOS decodes to "", so the byte length of
-            # the decoded row is exactly the text those target tokens stand for.
-            true_bytes += len(adapter.decode(row).encode("utf-8"))
+        steps = split_tokens // (device_batch_size * sequence_len)
+        table = special_aware_token_bytes(adapter)
+        loader = tokenizing_distributed_data_loader_bos_bestfit(
+            adapter, device_batch_size, sequence_len, split, device="cpu"
+        )
+        measured = 0
+        true_bytes = 0
+        for _ in range(steps):
+            _, targets = next(loader)
+            for row in targets.tolist():
+                measured += sum(table[t] for t in row)
+                # decode is the inverse of encode and BOS decodes to "", so the byte length
+                # of the decoded row is exactly the text those target tokens stand for.
+                true_bytes += len(adapter.decode(row).encode("utf-8"))
+    finally:
+        if prior_base is None:
+            os.environ.pop("NANOCHAT_BASE_DIR", None)
+        else:
+            os.environ["NANOCHAT_BASE_DIR"] = prior_base
     factor = measured / true_bytes
     print(
         f"[pynanochat] byte factor {factor:.6f} "
