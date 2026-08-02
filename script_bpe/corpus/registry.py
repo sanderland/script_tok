@@ -1,8 +1,10 @@
+import hashlib
 import json
 import heapq
 import os
 import random
 import re
+import shutil
 import tempfile
 from typing import Callable
 
@@ -83,6 +85,78 @@ def _write_text_batch(path: str, texts: list[str]) -> None:
             f.write("\n")
 
 
+SAMPLE_CACHE_DIRNAME = "_sampled_text"
+
+
+def _sample_cache_key(dataset_name, sample_max_chars, block_max_chars, seed, text_transform, kwargs) -> str:
+    """Identity of a sampled block set: everything that decides which text is selected.
+
+    Deliberately excludes the pretokenizer. The reservoir sampler is seeded and the stream
+    order is fixed, so every pretokenizer of a given corpus selects the same documents and
+    differs only in how they are then encoded -- but the corpus cache is keyed by
+    pretokenizer hash, so without this each arm of a grid rescanned the whole source. On
+    FineWeb sample-10BT that is ~45 GB per arm.
+
+    `text_transform` is part of the key because it is applied before blocking, so the
+    cached blocks hold transformed text.
+    """
+    parts = [
+        dataset_name,
+        repr(sorted((k, str(v)) for k, v in kwargs.items())),
+        str(sample_max_chars),
+        str(block_max_chars),
+        str(seed),
+        getattr(text_transform, "__name__", repr(text_transform)),
+    ]
+    return hashlib.sha256("|".join(parts).encode()).hexdigest()[:12]
+
+
+def _read_sample_cache(cache_dir: str) -> list[str] | None:
+    """Ordered block paths for a complete cache, or None. A cache is complete only if it
+    has a manifest naming every block and all of them are present: a scan killed partway
+    must never be mistaken for a full sample."""
+    manifest_path = os.path.join(cache_dir, "manifest.json")
+    if not os.path.exists(manifest_path):
+        return None
+    with open(manifest_path) as f:
+        manifest = json.load(f)
+    paths = [os.path.join(cache_dir, name) for name in manifest["blocks"]]
+    if not all(os.path.exists(p) for p in paths):
+        return None
+    return paths
+
+
+def _write_sample_cache(cache_dir: str, staged_paths: list[str], stats: dict, logger) -> list[str]:
+    """Publish a finished sample. Blocks are copied into a sibling temp directory and the
+    whole directory is renamed into place, so a cache directory either does not exist or is
+    complete -- there is no window where a concurrent build sees half a sample."""
+    os.makedirs(os.path.dirname(cache_dir), exist_ok=True)
+    staging = tempfile.mkdtemp(prefix=f"{os.path.basename(cache_dir)}.partial.", dir=os.path.dirname(cache_dir))
+    try:
+        names = []
+        for i, src in enumerate(staged_paths):
+            name = f"block_{i:06d}.jsonl"
+            # Moved, not copied: the sample is gigabytes and both paths are under
+            # base_dir, so a copy would briefly double it on disk for no benefit. The
+            # source is a scratch directory that is about to be deleted anyway.
+            os.replace(src, os.path.join(staging, name))
+            names.append(name)
+        with open(os.path.join(staging, "manifest.json"), "w") as f:
+            json.dump({"blocks": names, **stats}, f, indent=2)
+        os.rename(staging, cache_dir)
+    except OSError:
+        # Losing the rename race is not a failure: a concurrent build published the same
+        # sample, and it is the same text, so use theirs and drop ours.
+        cached = _read_sample_cache(cache_dir)
+        shutil.rmtree(staging, ignore_errors=True)
+        if cached:
+            logger.info(f"Sampled text already cached in {cache_dir} by a concurrent build")
+            return cached
+        raise
+    logger.info(f"Cached sampled text in {cache_dir} ({len(staged_paths):,} blocks)")
+    return [os.path.join(cache_dir, n) for n in names]
+
+
 def _read_text_batches(paths: list[str]):
     for path in paths:
         texts = []
@@ -161,6 +235,7 @@ def create_streaming_sampled_corpus(
     block_max_chars: int | None = None,
     seed: int | None = None,
     num_workers: int | None = None,
+    sample_cache: bool = True,
     **kwargs,
 ) -> PretokenizedCorpus:
     num_cpus = num_workers or min(os.cpu_count() or 4, CORPUS_BUILD_DEFAULT_WORKERS)
@@ -168,6 +243,34 @@ def create_streaming_sampled_corpus(
         block_max_chars = FINEWEB_BLOCK_MAX_CHARS
     if seed is None:
         seed = FINEWEB_SAMPLE_SEED
+
+    # The sampled TEXT does not depend on the pretokenizer, but the corpus cache is keyed
+    # by pretokenizer hash, so every arm of a grid used to rescan the entire source --
+    # ~45 GB per arm on FineWeb sample-10BT, and the scan does not parallelize. Cache the
+    # selected blocks so the scan is paid once per (dataset, sample size, seed).
+    cache_dir = None
+    if sample_cache:
+        key = _sample_cache_key(dataset_name, sample_max_chars, block_max_chars, seed, text_transform, kwargs)
+        cache_dir = os.path.join(base_dir, SAMPLE_CACHE_DIRNAME, f"{corpus_name.replace(':', '_')}_{key}")
+        cached_paths = _read_sample_cache(cache_dir)
+        if cached_paths:
+            logger.info(
+                f"Reusing cached sampled text for {corpus_name} from {cache_dir} "
+                f"({len(cached_paths):,} blocks); source not rescanned"
+            )
+            corpus = PretokenizedCorpus.from_text_batches(
+                name=corpus_name,
+                base_path=base_dir,
+                pretokenizer=pretokenizer,
+                text_batches=_read_text_batches(cached_paths),
+                num_workers=num_cpus,
+            )
+            logger.info(
+                f"Created streaming corpus {corpus_name} with pretokenizer "
+                f"{pretokenizer.hash()} in {corpus.dir_path()}"
+            )
+            return corpus
+
     dataset = load_dataset(
         dataset_name,
         streaming=True,
@@ -235,6 +338,22 @@ def create_streaming_sampled_corpus(
             f"accepted {accepted_blocks:,} candidate blocks, selected {len(block_paths):,} blocks "
             f"for {selected_chars:,} chars"
         )
+        if cache_dir is not None:
+            block_paths = _write_sample_cache(
+                cache_dir,
+                block_paths,
+                {
+                    "dataset": dataset_name,
+                    "dataset_kwargs": {k: str(v) for k, v in kwargs.items()},
+                    "sample_max_chars": sample_max_chars,
+                    "block_max_chars": block_max_chars,
+                    "seed": seed,
+                    "text_transform": getattr(text_transform, "__name__", repr(text_transform)),
+                    "selected_chars": selected_chars,
+                    "scanned_chars": scanned_chars,
+                },
+                logger,
+            )
         corpus = PretokenizedCorpus.from_text_batches(
             name=corpus_name,
             base_path=base_dir,
