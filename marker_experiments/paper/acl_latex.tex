@@ -479,6 +479,21 @@ CORE \citep{li2024datacomplm}, in Table~\ref{tab:downstream-lm}.
 
 \input{generated/downstream_tables}
 
+All three boundary arms reach lower bits-per-byte than the baseline. Because the seeds are
+paired across arms, the differences are paired: \texttt{plain} minus \bnd{w} is
+$+0.00853 \pm 0.00058$, minus \bnd{wpd\_caps} $+0.00578 \pm 0.00043$, and minus \bnd{wpd}
+$+0.00532 \pm 0.00055$, each 16 to 25 times its standard deviation over three seeds.
+\bnd{wpd} and \bnd{wpd\_caps} are indistinguishable ($+0.00046 \pm 0.00087$), so the two
+shift codes cost nothing measurable.
+
+Two qualifications. \bnd{w} appears strongest but emits $8.4\%$ more tokens per byte than
+\texttt{plain}, so its model spends proportionally more forward passes on the same text and
+the metric does not correct for that; \bnd{wpd} and \bnd{wpd\_caps} emit $0.6$ to $0.7\%$
+\emph{fewer}, so their improvement cannot come from that source and they are the evidence
+that carries the claim. And the improvement is close in size to the compression gain on the
+corpus the models read: $+0.59\%$ chars/token for \bnd{wpd} on ClimbMix against $+0.60\%$
+bits-per-byte.
+
 \paragraph{CORE cannot score the punctuation-marking arms.} Its language-modelling tasks
 tokenize a context and that context plus its continuation, and require the first to be a
 prefix of the second. A marker that depends on the following character does not satisfy this:
@@ -499,8 +514,8 @@ can be compared on.
 \label{sec:limitations}
 
 Four constraints apply to Table~\ref{tab:downstream-lm}. The seeds differ in weight
-initialization and in training data order, but a single permutation is shared across arms at
-each seed, so the interval reflects three draws rather than a population. All arms train on
+initialization and in training data order, with one permutation per seed shared across arms
+so the arms stay paired, so the interval reflects three draws rather than a population. All arms train on
 the same token count, so the amount of text each covers differs, by $-7.8$ to $+0.7$
 percentage points. The bits-per-byte we report divides by the true UTF-8 length of the scored
 text; nanochat's own figure divides by the summed byte length of the emitted tokens and is not

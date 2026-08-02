@@ -25,9 +25,12 @@ plain & 34{,}685 & 3.6360 & --- & 0 \\
 \toprule
 Arm & $n$ & bpb/byte & raw bpb & CORE \\
 \midrule
-\multicolumn{5}{c}{\textit{no downstream runs finished yet}} \\
+plain & 3 & 0.8853 {\footnotesize $\pm$ 0.0003} & 0.8848 & 0.1384 {\footnotesize $\pm$ 0.0022} \\
+\bnd{w} & 3 & 0.8768 {\footnotesize $\pm$ 0.0008} & 1.0162 & 0.1411 {\footnotesize $\pm$ 0.0058} \\
+\bnd{wpd} & 3 & 0.8800 {\footnotesize $\pm$ 0.0005} & 1.0446 & \textit{n/a} \\
+\bnd{wpd\_caps} & 3 & 0.8795 {\footnotesize $\pm$ 0.0007} & 1.0440 & \textit{n/a} \\
 \bottomrule
 \end{tabular}
-\caption{nanochat depth-12 pretraining on ClimbMix. bpb/byte is summed loss over the true UTF-8 length of the evaluation text; raw bpb is nanochat's figure, which divides instead by the summed byte length of the emitted tokens and so is not comparable across these tokenizers (\S\ref{sec:downstream}). $n$ is runs averaged; $\pm$ is the sample standard deviation over those seeds, which vary weight initialization. All arms train on the same number of tokens, so the amount of text each covers differs: \bnd{w} 92.2\%, \bnd{wpd} 100.6\%, \bnd{wpd\_caps} 100.7\% of what \texttt{plain} covers, measured on the ClimbMix validation shard. CORE is \textit{n/a} for the arms whose tokenization does not satisfy the prefix property its language-modelling tasks assume.}
+\caption{nanochat depth-12 pretraining on ClimbMix, seeds 0, 1, 2. bpb/byte is summed loss over the true UTF-8 length of the evaluation text; raw bpb is nanochat's figure, which divides instead by the summed byte length of the emitted tokens and so is not comparable across these tokenizers (\S\ref{sec:downstream}). $n$ is runs averaged; $\pm$ is the sample standard deviation over those seeds, which vary weight initialization and training data order, with one permutation per seed shared across arms so the arms stay paired. All arms train on the same number of tokens, so the amount of text each covers differs: \bnd{w} 92.2\%, \bnd{wpd} 100.6\%, \bnd{wpd\_caps} 100.7\% of what \texttt{plain} covers, measured on the ClimbMix validation shard. CORE is \textit{n/a} for the arms whose tokenization does not satisfy the prefix property its language-modelling tasks assume.}
 \label{tab:downstream-lm}
 \end{table}

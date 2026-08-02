@@ -173,12 +173,14 @@ def main(
             for a in ARM_ORDER if a in stats and a != "plain"
         ]
         coverage_sentence = (
-            r"weight initialization. All arms train on the same number of tokens, so the "
+            r"weight initialization and training data order, with one permutation per seed "
+            r"shared across arms so the arms stay paired. All arms train on the same number "
+            r"of tokens, so the "
             r"amount of text each covers differs: " + ", ".join(parts)
             + r" of what \texttt{plain} covers, measured on the ClimbMix validation shard."
         )
     else:
-        coverage_sentence = r"weight initialization."
+        coverage_sentence = r"weight initialization and training data order."
 
 
     comp = compression_table(man)
