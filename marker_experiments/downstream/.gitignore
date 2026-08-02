@@ -1,5 +1,7 @@
-# Cluster-generated: matched tokenizers (~15 MB each) and their corpus cache.
-# manifest.json is deliberately NOT ignored -- it is the record of what was trained
-# (vocabulary sizes, train times, chars/token) and is what shows the arms were matched.
-tokenizers/
+# The pretokenized-corpus cache is large and rebuildable.
 corpora/
+# tokenizers/ is deliberately NOT ignored, and manifest.json now lives in
+# ../paper/generated/. At ~1.1 MB each the matched grid is about 33 MB, which is worth
+# paying so a cell is never trained twice: builds are long and this container loses its
+# working tree regularly, so an untracked tokenizer is one that has to be retrained.
+# See train_multilang.py.
