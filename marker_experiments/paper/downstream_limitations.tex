@@ -1,0 +1,13 @@
+% Constraints on the downstream table. Belongs in Limitations; kept separate so it can
+% move with the section above if the paper is restructured.
+%
+Four constraints apply to Table~\ref{tab:downstream-lm}. The seeds differ in weight
+initialization and in training data order, with one permutation per seed shared across arms
+so the arms stay paired, so the interval reflects three draws rather than a population. All arms train on
+the same token count, so the amount of text each covers differs, by $-7.8$ to $+0.7$
+percentage points. The bits-per-byte we report divides by the true UTF-8 length of the scored
+text; nanochat's own figure divides by the summed byte length of the emitted tokens and is not
+comparable across these tokenizers. And \bnd{w} emits $8.4\%$ more tokens per byte than
+\texttt{plain}, so it spends correspondingly more forward passes per byte of evaluation text,
+which the metric does not correct for; \bnd{wpd} and \bnd{wpd\_caps} emit fewer and are not
+exposed to this.
