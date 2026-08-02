@@ -18,7 +18,22 @@ SEEDS=${SEEDS:-0,1,2}
 DEPTH=${DEPTH:-12}
 TRAINER=${TRAINER:-bpe}
 
+# The jobs run the working tree, not a snapshot of a commit, so an uncommitted edit
+# would be what actually executes while the provenance line records only a file count.
+# A job that starts hours after submission picks up whatever the tree holds at start.
+if ! git diff --quiet HEAD || ! git diff --cached --quiet HEAD; then
+  echo "refusing to submit: the working tree differs from HEAD, so the jobs would run" >&2
+  echo "code that no commit describes. Commit or stash first:" >&2
+  git status --porcelain >&2
+  exit 1
+fi
+
 mkdir -p "${OUT}/slurm" "${OUT}/logs"
+
+# Tags already queued or running. Completion is judged by the log, which an in-flight run
+# has not written yet, so without this a second invocation submits a duplicate of every
+# unfinished run. Two jobs with one tag share their log, checkpoint and byte table.
+IN_FLIGHT=$(squeue -u "$USER" -h -o "%j" 2>/dev/null || true)
 
 IFS=',' read -ra ARM_LIST <<< "$ARMS"
 IFS=',' read -ra SEED_LIST <<< "$SEEDS"
@@ -35,8 +50,15 @@ for seed in "${SEED_LIST[@]}"; do
     log="${OUT}/logs/${tag}.log"
     # Same completion test as run_arms.sh: the result block, not the CORE line, because
     # the arms scored on bpb alone never print a CORE metric.
-    if [[ -s "$log" ]] && grep -q "Downstream eval result" "$log"; then
+    # Completion keyed on the LAST line of the result block, not the header: a run killed
+    # mid-block would otherwise be treated as finished by this guard and as absent by
+    # collect_results.py, and would never be rerun.
+    if [[ -s "$log" ]] && grep -q "artifact_dir" "$log"; then
       echo "-- ${tag}: already has a result, not submitting"
+      continue
+    fi
+    if grep -qx "mds_${tag}" <<< "$IN_FLIGHT"; then
+      echo "-- ${tag}: already queued or running, not submitting"
       continue
     fi
     jid=$(sbatch --parsable \

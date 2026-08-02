@@ -52,11 +52,15 @@ uv run python marker_experiments/downstream/train_matched.py \
     --arms "$ARMS" --trainer "$TRAINER" --corpus "$CORPUS" \
     --total-vocab "$VOCAB" --workers "$TRAIN_WORKERS" \
     --eval-texts marker_experiments/eval_texts/en.json \
-    --manifest-path "$OUT/manifests/${CORPUS}_${ARMS//,/_}_${TRAINER}_v${VOCAB}.json"
+    --manifest-path "$OUT/manifests/${CORPUS}_${ARMS//,/_}_${TRAINER}_v${VOCAB}_s${SEEDS//,/_}.json"
 
 echo "== step 2/3: tokenizer-side checks (must be clean before burning GPU hours)"
+# --require-matched-vocab: train_matched.py's cross-arm assertion cannot fire here,
+# because each job is handed a per-arm manifest and so only ever sees one arm. This is the
+# one step in a job that loads every matched tokenizer at once.
 uv run python marker_experiments/downstream/smoke_test.py \
-    --tokenizer-dir "$TOK_DIR" --pattern "_${TRAINER}_v${VOCAB}"
+    --tokenizer-dir "$TOK_DIR" --pattern "_${TRAINER}_v${VOCAB}" \
+    --require-matched-vocab
 
 echo "== step 3/3: downstream runs"
 IFS=',' read -ra ARM_LIST <<< "$ARMS"
@@ -65,11 +69,15 @@ for arm in "${ARM_LIST[@]}"; do
   for seed in "${SEED_LIST[@]}"; do
     tok="${TOK_DIR}/${CORPUS}_${arm}_${TRAINER}_v${VOCAB}.json.gz"
     [[ -f "$tok" ]] || { echo "missing $tok"; exit 1; }
+    # Smoke belongs in the tag. Without it a 20-iteration run writes a full result block
+    # into the real run's log, which then counts as finished forever, and drops a
+    # model_000020.pt into the real run's checkpoint directory.
     tag="${arm}_${TRAINER}_d${DEPTH}_s${seed}"
+    [[ "$SMOKE" == "1" ]] && tag="${tag}_smoke"
     log="$OUT/logs/${tag}.log"
     # Completion is the printed result block, not the CORE line: a bpb-only run never
     # prints a CORE metric, and keying on that would rerun it forever.
-    if [[ -s "$log" ]] && grep -q "Downstream eval result" "$log"; then
+    if [[ -s "$log" ]] && grep -q "artifact_dir" "$log"; then
       echo "-- $tag: already done, skipping"
       continue
     fi

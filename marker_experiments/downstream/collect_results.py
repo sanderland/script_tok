@@ -126,8 +126,12 @@ def main(logs_dir: str, out: str = "results.tsv") -> None:
     # Written then renamed: every job in the sweep runs this when it finishes, so plain
     # truncate-and-write lets two finishing jobs interleave into one half-written TSV,
     # which the table generator would then read without complaint.
-    tmp = f"{out}.{os.getpid()}.tmp"
-    with open(tmp, "w", newline="") as f:
+    # mkstemp rather than the pid: every job in the sweep writes this file, and pids are
+    # not unique across nodes.
+    import tempfile
+
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(os.path.abspath(out)), suffix=".tmp")
+    with os.fdopen(fd, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=fields, delimiter="\t", extrasaction="ignore")
         w.writeheader()
         w.writerows(rows)

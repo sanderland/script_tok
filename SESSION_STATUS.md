@@ -1,17 +1,20 @@
 # Session Status
 
 ## Deliverable
-- PR sanderland/script_tok#8, branch claude/downstream-lm-eval on the cimeister fork, into claude/fineweb-space-neighbors-k10ufw. Push further commits there as results land; tables regenerate with make_tex_tables.py.
+- PR sanderland/script_tok#8, branch claude/downstream-lm-eval on the cimeister fork, into claude/fineweb-space-neighbors-k10ufw. Tables regenerate from artifacts with make_tex_tables.py; no number is hand-entered.
 
 ## Ongoing experiments
-- Matched-tokenizer training: bnd_wpd and bnd_wpd_caps finished; bnd_w (job 2964899) still pretokenizing. Jobs 2964899/2964900/2964901: one arm per node, each building its own fineweb_en_5gb corpus at 128 workers. Merge with merge_manifests.py when all three finish. First attempt (2957177-9) was cancelled after 6.4h: the parent's Counter merge was quadratic, so those jobs would have needed roughly 68h.
-- plain arm: finished (vocab 34,685, 0 roundtrip failures, 3.6360 chars/token). Corpus cached at results/corpora/fineweb_en_5gb/PT-e690609c.
-- Depth-12 sweep (not yet submitted): 4 arms x seeds 0,1,2 via cluster/submit_all.sh, blocked on the three tokenizer jobs.
+- Byte-factor recomputation (job 2976714): the four factors under the corrected byte convention, cached in the shared dir for the sweep to read.
+- Depth-12 sweep, round 3 (not yet submitted): 4 arms x seeds 0,1,2, held until four parallel audits report, so a fourth round is not discarded for a fixable reason.
+- Matched tokenizers: all four trained and merged into manifest.json. plain 3.6360 chars/token, bnd_w 3.0960, bnd_wpd 3.7403, bnd_wpd_caps 3.7456, zero roundtrip failures.
+
+## Discarded rounds, and why
+- Round 1 (jobs 2972879-90): all 12 runs shared one NANOCHAT_BASE and therefore one token_bytes.pt, so runs were scored against another arm's byte table. Logs in results/marker_downstream/logs_invalid/.
+- Round 2 (jobs 2973952-63): completed cleanly, but the 1-byte floor added to make marker loss count also un-masked BOS, which nanochat's bpb excludes by design. Logs in results/marker_downstream/logs_invalid_bos/.
 
 ## Open decisions
-- Whether to extend past 3 seeds: agreed to run 3 first and revisit, since the README calls 3 seeds a direction rather than a result and the MinGram table it compares against used 20.
-- Whether this branch should adopt the EXPERIMENTS_*.md documents from the global working agreements: the branch records experiments as per-grid result JSONs plus marker_experiments/paper.md instead, and I have not introduced the parallel system unasked.
+- Whether to extend past 3 seeds, and whether to vary data order rather than initialization alone. The three seeds currently differ only in weight init, so the error bars understate run-to-run variance. Deferred until round 3 lands and the gaps can be compared against the spread.
 
 ## Notes
-- All design choices and every deviation from the README are recorded in marker_experiments/downstream/DESIGN_CHOICES.md. The load-bearing ones: CORE cannot be computed for the punctuation-marking arms (bpb only for those), bnd_w added as a fourth arm, nanochat not pip-installed, environment on capstor scratch.
-- Four defects fixed in this session: a None corpus base dir, two worker-shutdown hangs, an interpreter-shutdown hang, and a completion test that assumed every run prints a CORE metric. Details in DESIGN_CHOICES.md.
+- The EXPERIMENTS_*.md document set from the global working agreements is deliberately NOT adopted on this branch, per the project owner. Experiments are recorded as per-grid result JSONs plus the paper, with divergences in DESIGN_CHOICES.md.
+- marker_experiments/downstream/DESIGN_CHOICES.md records every deviation from marker_experiments/downstream/README.md and is kept current.

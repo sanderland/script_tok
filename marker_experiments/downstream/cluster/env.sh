@@ -39,6 +39,13 @@ export NANOCHAT_BASE="${DATA_ROOT}/nanochat_base"
 # is contention rather than a correctness risk. Node-local is both faster and quieter.
 export TRITON_CACHE_DIR="${TRITON_CACHE_DIR:-/tmp/${USER}_triton_cache}"
 export TORCHINDUCTOR_CACHE_DIR="${TORCHINDUCTOR_CACHE_DIR:-/tmp/${USER}_inductor_cache}"
+# Bytecode caches too: the repo is an editable install, so every job would otherwise write
+# __pycache__ into the git working tree it is reading.
+export PYTHONPYCACHEPREFIX="${PYTHONPYCACHEPREFIX:-/tmp/${USER}_pycache}"
+# nanochat imports wandb in every job. --run dummy means wandb.init is never called, but
+# the import alone touches ~/.cache/wandb; keep that off the home filesystem as well.
+export WANDB_MODE="${WANDB_MODE:-disabled}"
+export WANDB_DIR="${WANDB_DIR:-/tmp/${USER}_wandb}"
 
 # Results land under the repo's `results` symlink, which already points at capstor scratch.
 export OUT="${OUT:-results/marker_downstream}"

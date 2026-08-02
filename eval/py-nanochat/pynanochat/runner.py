@@ -107,10 +107,13 @@ def measure_byte_factor(adapter, base_dir: str, tokenizer_path: str,
     the scheme elides, which is exactly what it optimizes, so the raw number is not
     comparable across these tokenizers.
 
-    Multiplying bpb by this factor gives loss per true byte. That is exact rather than
-    approximate: `evaluate_bpb` masks loss to tokens with a positive byte count, and these
-    tokenizers emit no zero-byte tokens, so the summed loss does not depend on the byte
-    table at all and only the denominator has to be corrected.
+    Multiplying bpb by this factor gives loss per true byte. It is exact only because the
+    table below is the one the metric itself uses: `evaluate_bpb` masks the loss of any
+    zero-byte token, so the numerator does depend on the byte table, and an earlier version
+    of this docstring claimed otherwise. Markers decode to the empty string and would be
+    masked; `special_aware_token_bytes` floors them to one byte so their loss counts, and
+    that same fictional byte is in this denominator, so it cancels. Only BOS stays at zero,
+    excluded from both, which is what nanochat's loss_eval documents.
 
     Cached under `cache_dir` (the shared base dir) keyed by tokenizer path, since the
     seeds of one arm share a tokenizer and this is a deterministic function of tokenizer
@@ -119,15 +122,7 @@ def measure_byte_factor(adapter, base_dir: str, tokenizer_path: str,
     import hashlib
     import json
 
-    key = hashlib.sha256(
-        f"{os.path.abspath(tokenizer_path)}:{sample_bytes}".encode()
-    ).hexdigest()[:16]
-    cache_path = os.path.join(cache_dir or base_dir, f"byte_factor_{key}.json")
-    if os.path.exists(cache_path):
-        with open(cache_path) as f:
-            cached = json.load(f)
-        print(f"[pynanochat] byte factor {cached['byte_factor']:.6f} (cached)", flush=True)
-        return cached["byte_factor"], cached["sample_bytes"]
+    from .tokenizer import TOKEN_BYTES_CONVENTION
 
     import pyarrow.parquet as pq
 
@@ -136,8 +131,27 @@ def measure_byte_factor(adapter, base_dir: str, tokenizer_path: str,
     if not shards:
         raise FileNotFoundError(f"no ClimbMix shards under {data_dir} to measure the byte factor")
     # The val split is the last shard, the same one nanochat evaluates on.
+    shard = shards[-1]
+
+    # Keyed on the tokenizer's CONTENT and on the shard actually read, not on the tokenizer
+    # path. Retraining an arm writes the same filename, so a path key would hand the new
+    # tokenizer the old tokenizer's factor, and that factor multiplies every bpb number for
+    # the arm. The shard identity matters for the same reason.
+    with open(tokenizer_path, "rb") as f:
+        tok_digest = hashlib.sha256(f.read()).hexdigest()
+    shard_id = f"{shard.name}:{shard.stat().st_size}"
+    key = hashlib.sha256(
+        f"{tok_digest}:{shard_id}:{sample_bytes}:{TOKEN_BYTES_CONVENTION}".encode()
+    ).hexdigest()[:16]
+    cache_path = os.path.join(cache_dir or base_dir, f"byte_factor_{key}.json")
+    if os.path.exists(cache_path):
+        with open(cache_path) as f:
+            cached = json.load(f)
+        print(f"[pynanochat] byte factor {cached['byte_factor']:.6f} (cached)", flush=True)
+        return cached["byte_factor"], cached["sample_bytes"]
+
     docs, nchars = [], 0
-    for doc in pq.read_table(shards[-1]).column("text").to_pylist():
+    for doc in pq.read_table(shard).column("text").to_pylist():
         docs.append(doc)
         nchars += len(doc)
         if sample_bytes and nchars >= sample_bytes:
@@ -145,28 +159,27 @@ def measure_byte_factor(adapter, base_dir: str, tokenizer_path: str,
     text = "\n".join(docs)
     true_bytes = len(text.encode("utf-8"))
 
-    special = set(adapter.get_special_tokens())
-    lengths: dict[int, int] = {}
+    # The very same table the bpb metric uses, not a reimplementation of the rule: these
+    # two drifting apart is what the factor exists to prevent.
+    from .tokenizer import special_aware_token_bytes
 
-    def token_bytes(tid: int) -> int:
-        # Must match write_token_bytes exactly, floor included, or the factor stops
-        # cancelling the denominator it is meant to correct.
-        if tid not in lengths:
-            decoded = adapter.decode([tid])
-            lengths[tid] = 0 if decoded in special else max(1, len(decoded.encode("utf-8")))
-        return lengths[tid]
-
-    measured = sum(token_bytes(t) for t in adapter.encode(text))
+    table = special_aware_token_bytes(adapter)
+    measured = sum(table[t] for t in adapter.encode(text))
     factor = measured / true_bytes
     print(
         f"[pynanochat] byte factor {factor:.6f} "
         f"({measured:,} token bytes / {true_bytes:,} true bytes)",
         flush=True,
     )
-    tmp = f"{cache_path}.{os.getpid()}.tmp"
-    with open(tmp, "w") as f:
+    # mkstemp, not the pid: 12 identical jobs on 12 nodes draw pids from a narrow range,
+    # so a pid-named temp file is not unique across the sweep.
+    import tempfile
+
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(cache_path) or ".", suffix=".tmp")
+    with os.fdopen(fd, "w") as f:
         json.dump({"byte_factor": factor, "sample_bytes": true_bytes,
-                   "measured_token_bytes": measured}, f, indent=2)
+                   "measured_token_bytes": measured, "tokenizer_sha256": tok_digest,
+                   "shard": shard_id, "convention": TOKEN_BYTES_CONVENTION}, f, indent=2)
     os.replace(tmp, cache_path)
     return factor, true_bytes
 
@@ -260,7 +273,16 @@ def run_experiment(
             f"smaller corpus than declared; delete the directory to re-download."
         )
     if len(have) < 2:
-        _run_child([py, "-m", "nanochat.dataset", "-n", str(num_train_shards), "-w", "16"], cwd=repo, env=env)
+        # nanochat.dataset writes shard_XXXXX.parquet.tmp with no unique suffix and, on a
+        # failed attempt, removes the FINAL file rather than the partial one. The data
+        # directory is symlinked into every run, so 12 concurrent jobs would collide on one
+        # temp name and could delete a shard another job is reading. Pre-download instead.
+        raise FileNotFoundError(
+            f"{data_dir} holds {len(have)} shard(s). Download them once before the sweep:\n"
+            f"  NANOCHAT_BASE_DIR={shared_dir} python -m nanochat.dataset "
+            f"-n {num_train_shards} -w 16\n"
+            f"Refusing to download from inside a run: concurrent jobs share this directory."
+        )
     else:
         print(f"[pynanochat] reusing {len(have)} existing data shards in {data_dir}", flush=True)
 
@@ -299,14 +321,25 @@ def run_experiment(
         train_flags += ["--total-batch-size", str(total_batch_size)]
     if extra_train_args:
         train_flags += list(extra_train_args)
-    _run_child(_launch_cmd(py, "scripts.base_train", train_flags, nproc, env), cwd=repo, env=env)
+    train_out = _run_child(_launch_cmd(py, "scripts.base_train", train_flags, nproc, env),
+                           cwd=repo, env=env, capture=True)
 
     # 3) eval on the final checkpoint (same GPU count).
     # `eval_modes` is not always "core,bpb": CORE's language_modeling tasks assert that
     # encode(context) is a prefix of encode(context + continuation), which a pretokenizer
     # whose marker depends on the following character does not satisfy. base_eval then
     # raises and the run yields nothing, bpb included. Pass "bpb" for those tokenizers.
+    # Pin the step to the one just trained. base_eval otherwise resolves the checkpoint
+    # with find_last_step, i.e. max(step) in the directory, so a checkpoint left by an
+    # earlier round at a higher step would be evaluated instead and would print a complete,
+    # plausible result block for the wrong weights.
+    trained_step = _search_int(r"[Ss]aving (?:model )?checkpoint.*?(\d{4,})|model_(\d{6})\.pt", train_out)
     eval_flags = ["--eval", eval_modes, "--model-tag", tokenizer_id]
+    if trained_step is not None:
+        eval_flags += ["--step", str(trained_step)]
+    else:
+        print("[pynanochat] WARNING: could not read the trained step from base_train output; "
+              "base_eval will resolve the checkpoint itself", flush=True)
     if device_batch_size is not None:
         eval_flags += ["--device-batch-size", str(device_batch_size)]
     if split_tokens is not None:
@@ -351,6 +384,12 @@ def run_experiment(
         byte_factor_sample_bytes=byte_factor_sample,
         artifact_dir=base_dir,
     )
+
+
+def _search_int(pattern: str, text: str):
+    """Last integer matching `pattern`, or None. Used to pin the evaluated checkpoint."""
+    found = [g for m in re.findall(pattern, text) for g in (m if isinstance(m, tuple) else (m,)) if g]
+    return int(found[-1]) if found else None
 
 
 def _search_float(pattern: str, text: str) -> float:
