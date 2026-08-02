@@ -23,9 +23,19 @@ committed cells are simply skipped.
     # the whole grid, in the order the corpora are cheapest to reuse
     uv run python marker_experiments/downstream/train_multilang.py --lang en,de,fi,ru,ar,ko
 
-The pretokenized corpus is NOT committed (it is far too large) and does not survive a
-wipe, so cells are ordered by pretokenizer: both trainers for one arm run back to back
-while that arm's corpus is still in the cache.
+Running languages on several machines at once is the intended use. Every file a cell
+commits is named after that cell -- its tokenizer, and its own manifest fragment under
+paper/generated/manifest_parts -- so concurrent machines never write the same path and a
+push rejected as non-fast-forward always rebases cleanly. Fold the fragments into
+manifest.json at the end:
+
+    uv run python marker_experiments/downstream/merge_manifests.py \
+        --parts 'marker_experiments/paper/generated/manifest_parts/*.json'
+
+Neither the pretokenized corpus nor the sampled-text cache is committed; both are large
+and both are gitignored, which also means they survive a working-tree wipe here (the wipe
+is `clean -fd`, which leaves ignored paths alone). The first cell of a language pays the
+source scan and every later cell of that language reuses it.
 
 Evaluation compression is optional and off the critical path. `--eval-texts` takes a
 pattern containing `{lang}`; a language with no such file trains and records nothing else.
@@ -49,7 +59,8 @@ sys.path.insert(0, REPO)
 from marker_experiments.downstream.train_matched import eval_compression, train_one  # noqa: E402
 
 TOKENIZERS = os.path.join(HERE, "tokenizers")
-MANIFEST = os.path.join(REPO, "marker_experiments", "paper", "generated", "manifest.json")
+GENERATED = os.path.join(REPO, "marker_experiments", "paper", "generated")
+MANIFEST_PARTS = os.path.join(GENERATED, "manifest_parts")
 BRANCH = "claude/fineweb-space-neighbors-k10ufw"
 
 # The four pretokenizers of the compression grid plus the caps variant the downstream runs
@@ -71,30 +82,47 @@ def git(*args):
 
 def commit_cell(key, paths):
     """Commit and push one finished cell. Never fatal: a cell is worth keeping locally
-    even when the remote is unreachable, and the next cell should still run."""
+    even when the remote is unreachable, and the next cell should still run.
+
+    Rebases before retrying, because languages are meant to run on several machines at
+    once and they all push here. A push rejected as non-fast-forward is then the normal
+    case, not a network blip, and retrying the same push cannot fix it. Every file a cell
+    commits is named after that cell, so concurrent machines never touch the same path and
+    the rebase is always clean.
+    """
     git("add", *paths)
     if not git("diff", "--cached", "--quiet").returncode:
         return  # nothing staged
-    r = git("commit", "-q", "-m", f"FineWeb 5GB matched grid: {key}")
-    if r.returncode:
-        log(f"  commit failed for {key}: {r.stderr.strip()[:200]}")
+    if git("commit", "-q", "-m", f"FineWeb 5GB matched grid: {key}").returncode:
+        log(f"  commit failed for {key}")
         return
     for delay in (2, 4, 8, 16, 0):
         if git("push", "-q", "-u", "origin", BRANCH).returncode == 0:
             return
+        pull = git("pull", "--rebase", "-q", "origin", BRANCH)
+        if pull.returncode:
+            git("rebase", "--abort")
+            log(f"  rebase failed for {key}: {pull.stderr.strip()[:160]}")
+            break
         if delay:
             time.sleep(delay)
     log(f"  WARNING: push failed for {key}; commit is local only")
 
 
 def record(key, info):
-    """Merge one entry into the shared manifest, re-reading first so a cell committed by
-    another process is not dropped."""
-    os.makedirs(os.path.dirname(MANIFEST), exist_ok=True)
-    manifest = json.load(open(MANIFEST)) if os.path.exists(MANIFEST) else {}
-    manifest[key] = info
-    with open(MANIFEST, "w") as f:
-        json.dump(manifest, f, indent=2, sort_keys=True)
+    """Write this cell's manifest entry to its own file, and return that path.
+
+    One file per cell, not one shared manifest. Languages are meant to run on several
+    machines that all push to this branch, and a single manifest rewritten by
+    read-modify-write is the one path two of them would both touch -- so every rebase
+    would conflict on it and one machine's entries would be lost. Fold the parts into
+    manifest.json afterwards with merge_manifests.py.
+    """
+    os.makedirs(MANIFEST_PARTS, exist_ok=True)
+    path = os.path.join(MANIFEST_PARTS, f"{key}.json")
+    with open(path, "w") as f:
+        json.dump({key: info}, f, indent=2, sort_keys=True)
+    return path
 
 
 @app.default
@@ -160,12 +188,12 @@ def main(
             info["eval_slice"] = os.path.relpath(slice_path, REPO)
             info.update(eval_compression(tokenizer, slice_path))
 
-        record(key, info)
+        part = record(key, info)
         cpt = info.get("eval_chars_per_token")
         log(f"{key}: vocab={info['total_vocab']:,} {round(time.time() - t0)}s"
             + (f" ch/tok={cpt:.4f} rt={info['roundtrip_failures']}" if cpt else " (no eval slice)"))
         if commit:
-            commit_cell(key, [path, MANIFEST])
+            commit_cell(key, [path, part])
         done += 1
 
     log(f"DONE: {done} trained, {skipped} already present")
