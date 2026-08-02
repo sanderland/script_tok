@@ -15,8 +15,15 @@ set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$REPO"
 
-ARMS=${ARMS:-plain,bnd_wpd,bnd_wpd_caps}
+ARMS=${ARMS:-plain,bnd_w,bnd_wpd,bnd_wpd_caps}
 SEEDS=${SEEDS:-0}
+# Arms whose tokenization of a context is a prefix of its tokenization of that context
+# plus a continuation, which is what CORE's language_modeling tasks assert. Measured with
+# core_prefix_check.py on the real CORE prompts: plain 0/512 and bnd_w 0/512 violations,
+# against bnd_wp 311/512, bnd_wpd 399/512, bnd_wpd_caps 399/512. Any arm not listed here
+# is scored on bpb alone, because base_eval raises on the first violation and the run then
+# reports nothing at all, bpb included.
+CORE_SAFE_ARMS=${CORE_SAFE_ARMS:-plain bnd_w}
 TRAINER=${TRAINER:-bpe}
 CORPUS=${CORPUS:-fineweb_en_5gb}
 VOCAB=${VOCAB:-34685}
@@ -25,6 +32,10 @@ GPUS=${GPUS:-1}
 NUM_SHARDS=${NUM_SHARDS:-8}
 TRAIN_WORKERS=${TRAIN_WORKERS:-$(nproc)}
 SMOKE=${SMOKE:-0}
+# Appended to every run tag. Set it when a run differs from the default configuration in a
+# way the tag would otherwise hide, e.g. TAG_SUFFIX=_n32 for a 32-shard data regime, so the
+# two do not share a log, a checkpoint directory or a row in the TSV.
+TAG_SUFFIX=${TAG_SUFFIX:-}
 OUT=${OUT:-results/marker_downstream}
 NANOCHAT_BASE=${NANOCHAT_BASE:-$HOME/.cache/nanochat_marker}
 
@@ -36,14 +47,24 @@ if [[ "$TRAINER" == "mingram" ]]; then DOTTED=$DOTTED_MINGRAM; else DOTTED=$DOTT
 mkdir -p "$OUT/logs"
 
 echo "== step 1/3: vocabulary-matched tokenizers (${TRAINER}, vocab ${VOCAB}, ${CORPUS})"
+# --manifest-path per arm: this script runs inside every job of the sweep, and the
+# manifest is rewritten read-modify-write, so a shared path lets concurrent jobs drop each
+# other's entries. Harmless while every tokenizer already exists and training is skipped,
+# but not something to leave armed. merge_manifests.py folds these back together.
+mkdir -p "$OUT/manifests"
 uv run python marker_experiments/downstream/train_matched.py \
     --arms "$ARMS" --trainer "$TRAINER" --corpus "$CORPUS" \
     --total-vocab "$VOCAB" --workers "$TRAIN_WORKERS" \
-    --eval-texts marker_experiments/eval_texts/en.json
+    --eval-texts marker_experiments/eval_texts/en.json \
+    --manifest-path "$OUT/manifests/${CORPUS}_${ARMS//,/_}_${TRAINER}_v${VOCAB}_s${SEEDS//,/_}.json"
 
 echo "== step 2/3: tokenizer-side checks (must be clean before burning GPU hours)"
+# --require-matched-vocab: train_matched.py's cross-arm assertion cannot fire here,
+# because each job is handed a per-arm manifest and so only ever sees one arm. This is the
+# one step in a job that loads every matched tokenizer at once.
 uv run python marker_experiments/downstream/smoke_test.py \
-    --tokenizer-dir "$TOK_DIR" --pattern "_${TRAINER}_v${VOCAB}"
+    --tokenizer-dir "$TOK_DIR" --pattern "_${TRAINER}_v${VOCAB}" \
+    --require-matched-vocab
 
 echo "== step 3/3: downstream runs"
 IFS=',' read -ra ARM_LIST <<< "$ARMS"
@@ -52,13 +73,24 @@ for arm in "${ARM_LIST[@]}"; do
   for seed in "${SEED_LIST[@]}"; do
     tok="${TOK_DIR}/${CORPUS}_${arm}_${TRAINER}_v${VOCAB}.json.gz"
     [[ -f "$tok" ]] || { echo "missing $tok"; exit 1; }
-    tag="${arm}_${TRAINER}_d${DEPTH}_s${seed}"
+    # Smoke belongs in the tag. Without it a 20-iteration run writes a full result block
+    # into the real run's log, which then counts as finished forever, and drops a
+    # model_000020.pt into the real run's checkpoint directory.
+    tag="${arm}_${TRAINER}_d${DEPTH}_s${seed}${TAG_SUFFIX:-}"
+    [[ "$SMOKE" == "1" ]] && tag="${tag}_smoke"
     log="$OUT/logs/${tag}.log"
-    if [[ -s "$log" ]] && grep -q "CORE metric" "$log"; then
+    # Completion is the printed result block, not the CORE line: a bpb-only run never
+    # prints a CORE metric, and keying on that would rerun it forever.
+    if [[ -s "$log" ]] && grep -q "artifact_dir" "$log"; then
       echo "-- $tag: already done, skipping"
       continue
     fi
-    echo "-- $tag -> $log"
+    if [[ " $CORE_SAFE_ARMS " == *" $arm "* ]]; then
+      eval_modes="core,bpb"
+    else
+      eval_modes="bpb"
+    fi
+    echo "-- $tag -> $log (eval: $eval_modes)"
     smoke_flag=()
     [[ "$SMOKE" == "1" ]] && smoke_flag=(--smoke)
     uv run python paper_utils/hybrid/downstream/run_downstream_eval.py \
@@ -68,6 +100,7 @@ for arm in "${ARM_LIST[@]}"; do
         --depth "$DEPTH" --gpus "$GPUS" --seed "$seed" \
         --num-shards "$NUM_SHARDS" \
         --base-dir "$NANOCHAT_BASE" \
+        --eval-modes "$eval_modes" \
         "${smoke_flag[@]}" 2>&1 | tee "$log"
   done
 done

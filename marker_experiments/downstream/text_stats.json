@@ -1,0 +1,47 @@
+{
+  "arms": {
+    "bnd_w": {
+      "text_coverage_vs_plain": 0.9221749024487211,
+      "token_bytes_sum": 17322714,
+      "tokens": 4872053,
+      "tokens_per_true_byte": 0.24278243382556372,
+      "true_bytes": 20067568,
+      "true_bytes_per_token": 4.118914141533353,
+      "zero_byte_share_before_floor": 0.00026210716509036334,
+      "zero_byte_tokens_after_floor": 0
+    },
+    "bnd_wpd": {
+      "text_coverage_vs_plain": 1.006176735111428,
+      "token_bytes_sum": 16906076,
+      "tokens": 4465304,
+      "tokens_per_true_byte": 0.22251346052496246,
+      "true_bytes": 20067568,
+      "true_bytes_per_token": 4.494110143452719,
+      "zero_byte_share_before_floor": 0.0005968238668632639,
+      "zero_byte_tokens_after_floor": 0
+    },
+    "bnd_wpd_caps": {
+      "text_coverage_vs_plain": 1.0071675942425211,
+      "token_bytes_sum": 16907252,
+      "tokens": 4460911,
+      "tokens_per_true_byte": 0.2222945500919693,
+      "true_bytes": 20067568,
+      "true_bytes_per_token": 4.498535837186619,
+      "zero_byte_share_before_floor": 0.0010018133067438467,
+      "zero_byte_tokens_after_floor": 0
+    },
+    "plain": {
+      "text_coverage_vs_plain": 1.0,
+      "token_bytes_sum": 20082725,
+      "tokens": 4492885,
+      "tokens_per_true_byte": 0.22388786722935236,
+      "true_bytes": 20067568,
+      "true_bytes_per_token": 4.466521622520942,
+      "zero_byte_share_before_floor": 0.0,
+      "zero_byte_tokens_after_floor": 0
+    }
+  },
+  "documents": 6850,
+  "shard": "shard_06542.parquet",
+  "true_bytes": 20067568
+}

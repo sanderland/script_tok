@@ -96,7 +96,8 @@ def fresh_process_load(path, dotted):
 
 
 @app.default
-def main(tokenizer_dir: str = DEFAULT_DIR, pattern: str = "en_") -> None:
+def main(tokenizer_dir: str = DEFAULT_DIR, pattern: str = "en_",
+         require_matched_vocab: bool = False) -> None:
     """Check the tokenizer-side downstream path for every matching tokenizer.
 
     Args:
@@ -191,6 +192,15 @@ def main(tokenizer_dir: str = DEFAULT_DIR, pattern: str = "en_") -> None:
         print("  NOTE: these are the compression-grid tokenizers, which match "
               "additional_vocab_size, not total vocab.\n"
               "        Use train_matched.py before running the downstream comparison.")
+        if require_matched_vocab:
+            # train_matched.py's own cross-arm assertion can no longer fire: each job of
+            # the sweep is handed a per-arm manifest, so the dict it checks holds one arm.
+            # This is the only place in a job that sees every arm at once.
+            raise SystemExit(
+                "vocabulary sizes are NOT matched across arms: "
+                + ", ".join(f"{k}={v}" for k, v in sorted(vocabs.items()))
+                + "\nA downstream comparison across unmatched vocabularies is not valid."
+            )
 
     if token_counts:
         print("\ntokens on taylorswift.txt (lower is better)")

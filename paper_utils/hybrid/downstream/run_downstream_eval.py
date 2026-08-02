@@ -51,6 +51,7 @@ def cli(
     max_per_task: int | None = None,
     tokenizer_id: str | None = None,
     base_dir: str | None = None,
+    eval_modes: str = "core,bpb",
 ) -> None:
     """Pretrain a nanochat base model on a script_bpe tokenizer and score CORE + bpb.
 
@@ -70,6 +71,12 @@ def cli(
         max_per_task: Cap examples per CORE task (eval speed).
         tokenizer_id: Model tag / checkpoint dir name (defaults to the tokenizer file stem).
         base_dir: NANOCHAT_BASE_DIR for data, tokenizer, checkpoints (defaults to ~/.cache/nanochat).
+        eval_modes: What base_eval scores: "core,bpb", "bpb", or "core". Use "bpb" for a
+            tokenizer whose pretokenizer marks a character from its right neighbour
+            (bnd_wp, bnd_wpd and their _caps forms). CORE's language_modeling tasks
+            assert that encode(context) is a prefix of encode(context + continuation);
+            those tokenizers break it, base_eval raises, and the run reports nothing at
+            all, bpb included.
     """
     import importlib
     import os
@@ -126,6 +133,7 @@ def cli(
         seed=seed,
         disable_compile=smoke,
         base_dir=base_dir,
+        eval_modes=eval_modes,
     )
 
     print("\n" + "=" * 60)
@@ -137,6 +145,9 @@ def cli(
     print(f"  CORE metric  : {result.core_metric}")
     print(f"  val bpb      : {result.val_bpb}")
     print(f"  train bpb    : {result.train_bpb}")
+    print(f"  byte factor  : {result.byte_factor}")
+    print(f"  val bpb/byte : {result.val_bpb_per_true_byte}")
+    print(f"  train bpb/byte: {result.train_bpb_per_true_byte}")
     print(f"  artifact_dir : {result.artifact_dir}")
     if result.core_per_task:
         print("  per-task CORE (centered):")

@@ -45,6 +45,11 @@ FINEWEB_5GB_MAX_CHARS = 5_000_000_000
 FINEWEB_SOURCE_MAX_CHARS = 500_000_000_000
 FINEWEB_BLOCK_MAX_CHARS = 10_000_000
 FINEWEB_SAMPLE_SEED = 42
+# Worker processes used to pretokenize a corpus when the caller names no count.
+# Pretokenization is pure Python and scales with cores, so this cap is what makes a
+# 5 GB build take 8.6 hours on a 288-core node. It stays 16 to leave the behaviour of
+# existing callers unchanged; pass `num_workers` to use the machine you actually have.
+CORPUS_BUILD_DEFAULT_WORKERS = 16
 FINEWEB2_LANGUAGE_CONFIGS = {
     "de": "deu_Latn",
     "nl": "nld_Latn",
@@ -94,6 +99,7 @@ def create_merged_corpus(
     pretokenizer,
     base_dir: str,
     logger,
+    num_workers: int | None = None,
 ) -> PretokenizedCorpus:
     corpus = PretokenizedCorpus(corpus_name, base_dir, pretokenizer, dummy=True)
     if os.path.exists(corpus.metadata_path()):
@@ -101,7 +107,10 @@ def create_merged_corpus(
             f"Corpus {corpus_name} already exists at {corpus.metadata_path()}. Use a different name or delete the existing corpus."
         )
 
-    source_corpora = [load_corpus_by_name(name, pretokenizer, base_dir=base_dir) for name in source_corpus_names]
+    source_corpora = [
+        load_corpus_by_name(name, pretokenizer, base_dir=base_dir, num_workers=num_workers)
+        for name in source_corpus_names
+    ]
     logger.info(f"Merging {len(source_corpora)} corpora into {corpus_name}")
 
     merged = (
@@ -151,9 +160,10 @@ def create_streaming_sampled_corpus(
     text_transform: Callable | None = None,
     block_max_chars: int | None = None,
     seed: int | None = None,
+    num_workers: int | None = None,
     **kwargs,
 ) -> PretokenizedCorpus:
-    num_cpus = min(os.cpu_count() or 4, 16)
+    num_cpus = num_workers or min(os.cpu_count() or 4, CORPUS_BUILD_DEFAULT_WORKERS)
     if block_max_chars is None:
         block_max_chars = FINEWEB_BLOCK_MAX_CHARS
     if seed is None:
@@ -246,9 +256,10 @@ def create_huggingface_corpus(
     subsample: int | None = None,
     max_chars: int | None = None,
     text_transform: Callable | None = None,
+    num_workers: int | None = None,
     **kwargs,
 ) -> PretokenizedCorpus:
-    num_cpus = min(os.cpu_count() or 4, 16)
+    num_cpus = num_workers or min(os.cpu_count() or 4, CORPUS_BUILD_DEFAULT_WORKERS)
     dataset = load_dataset(dataset_name, **kwargs)
     if subsample:
         dataset = dataset.select(range(0, len(dataset), subsample))
@@ -286,6 +297,7 @@ def load_corpus_by_name(
     corpus_name,
     pretokenizer,
     base_dir: str = PretokenizedCorpus.DEFAULT_BASE_PATH,
+    num_workers: int | None = None,
 ) -> PretokenizedCorpus:  # little hardcoded dataset registry
     logger = create_logger("corpus")
     try:
@@ -311,6 +323,7 @@ def load_corpus_by_name(
             corpus_name=corpus_name,
             base_dir=base_dir,
             pretokenizer=pretokenizer,
+            num_workers=num_workers,
             logger=logger,
             split="train",
             data_files=[f"{corpus_name.removeprefix('smol_')}.txt"],
@@ -328,6 +341,7 @@ def load_corpus_by_name(
             corpus_name=corpus_name,
             base_dir=base_dir,
             pretokenizer=pretokenizer,
+            num_workers=num_workers,
             logger=logger,
             split="train",
             data_files=[f"{lang_script}.txt"],
@@ -339,6 +353,7 @@ def load_corpus_by_name(
             corpus_name=corpus_name,
             base_dir=base_dir,
             pretokenizer=pretokenizer,
+            num_workers=num_workers,
             logger=logger,
             name=FLORES_PLUS_LANGUAGE_CONFIGS[lang_key],
             split="dev+devtest",
@@ -352,6 +367,7 @@ def load_corpus_by_name(
             logger=logger,
             pretokenizer=pretokenizer,
             split="train",
+            num_workers=num_workers,
         )
     elif corpus_name.startswith("finewiki_"):
         # Format: finewiki_{lang}_1gb
@@ -369,6 +385,7 @@ def load_corpus_by_name(
             split="train",
             max_chars=max_chars,
             text_transform=normalize_whitespace,
+            num_workers=num_workers,
         )
     elif corpus_name.startswith("fineweb_") and (corpus_name.endswith("_5gb") or corpus_name.endswith("_1gb")):
         size_suffix = corpus_name.rsplit("_", 1)[1]  # "5gb" or "1gb" (1gb is for wiki-vs-web size control)
@@ -389,6 +406,7 @@ def load_corpus_by_name(
             source_max_chars=FINEWEB_SOURCE_MAX_CHARS,
             sample_max_chars=sample_max,
             text_transform=normalize_whitespace,
+            num_workers=num_workers,
             **dataset_kwargs,
         )
     elif corpus_name == "finewiki:hybrid6":
@@ -398,6 +416,7 @@ def load_corpus_by_name(
             pretokenizer=pretokenizer,
             base_dir=base_dir,
             logger=logger,
+            num_workers=num_workers,
         )
     elif corpus_name == "fineweb:hybrid6":
         return create_merged_corpus(
@@ -406,6 +425,7 @@ def load_corpus_by_name(
             pretokenizer=pretokenizer,
             base_dir=base_dir,
             logger=logger,
+            num_workers=num_workers,
         )
     elif corpus_name == "swift":
         with open("tests/data/taylorswift.txt", "r") as f:
@@ -418,7 +438,7 @@ def load_corpus_by_name(
     elif corpus_name.startswith("toksuite_"):
         # Format: toksuite_{subset}_1pct or toksuite_all_1pct
         # Dataset: toksuite/toksuite_pretraining_data
-        num_cpus = min(os.cpu_count() or 4, 16)
+        num_cpus = num_workers or min(os.cpu_count() or 4, CORPUS_BUILD_DEFAULT_WORKERS)
         suffix = corpus_name.removeprefix("toksuite_")
 
         if suffix == "all_1pct":
@@ -452,6 +472,7 @@ def load_corpus_by_name(
                 name=hf_subset,
                 split="train",
                 subsample=100,  # 1% subsample
+                num_workers=num_workers,
             )
     else:
         raise ValueError(f"Unknown dataset: {corpus_name}")
