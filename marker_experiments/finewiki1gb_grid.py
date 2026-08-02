@@ -100,6 +100,13 @@ def commit_cell(key):
     for delay in (2, 4, 8, 16, 0):
         if git("push", "-q", "-u", "origin", "claude/fineweb-space-neighbors-k10ufw").returncode == 0:
             return
+        # The branch has other contributors now, so a rejected push is usually
+        # non-fast-forward rather than a network blip, and repeating it cannot succeed.
+        pull = git("pull", "--rebase", "-q", "origin", "claude/fineweb-space-neighbors-k10ufw")
+        if pull.returncode:
+            git("rebase", "--abort")
+            log(f"rebase failed for {key}: {pull.stderr.strip()[:160]}")
+            break
         if delay:
             time.sleep(delay)
     log(f"WARNING: push failed for {key}; commit is local only")
