@@ -96,90 +96,96 @@ BYTE_FACTOR_SAMPLE_BYTES = 0
 
 def measure_byte_factor(adapter, base_dir: str, tokenizer_path: str,
                         sample_bytes: int = BYTE_FACTOR_SAMPLE_BYTES,
-                        cache_dir: str | None = None):
-    """(summed token byte length) / (true UTF-8 length) over held-out validation text.
+                        cache_dir: str | None = None,
+                        device_batch_size: int = 32, sequence_len: int = 2048,
+                        split_tokens: int = 40 * 524288, split: str = "val"):
+    """(summed token byte length) / (true UTF-8 length) over the text bpb is scored on.
 
     nanochat's bpb divides summed loss by the summed byte length of the target tokens,
-    where each token's length comes from decoding that token alone. A scheme that elides
-    a character *between* two tokens (here, the single space between two delimited spans,
+    where each token's length comes from decoding that token alone. A scheme that elides a
+    character *between* two tokens (here, the single space between two delimited spans,
     rebuilt at decode time from the touching markers) has no token to charge that byte to,
-    so the denominator is short and bpb is inflated. The shortfall scales with how much
-    the scheme elides, which is exactly what it optimizes, so the raw number is not
-    comparable across these tokenizers.
+    so the denominator is short and bpb is inflated. The shortfall scales with how much the
+    scheme elides, which is exactly what it optimizes, so the raw number is not comparable
+    across these tokenizers. Multiplying by this factor gives loss per true byte.
 
-    Multiplying bpb by this factor gives loss per true byte. It is exact only because the
-    table below is the one the metric itself uses: `evaluate_bpb` masks the loss of any
-    zero-byte token, so the numerator does depend on the byte table, and an earlier version
-    of this docstring claimed otherwise. Markers decode to the empty string and would be
-    masked; `special_aware_token_bytes` floors them to one byte so their loss counts, and
-    that same fictional byte is in this denominator, so it cancels. Only BOS stays at zero,
-    excluded from both, which is what nanochat's loss_eval documents.
+    Measured over the tokens nanochat's own loader emits, not over the shard. Those differ:
+    the best-fit packer never places a document longer than the row capacity, which is
+    21.7% of plain's bytes and 23.0% of bnd_w's, and the eval stops after a fixed token
+    budget part-way through the shard. Estimating the factor on the whole shard therefore
+    biased it by 0.14% (plain) to 0.27% (bnd_w), two to four times the seed spread, and
+    moved the between-arm gap by 13.6%. Driving the real loader removes the estimate.
 
-    Cached under `cache_dir` (the shared base dir) keyed by tokenizer path, since the
-    seeds of one arm share a tokenizer and this is a deterministic function of tokenizer
-    and text. Written to a temp file and renamed, because those seeds run concurrently.
+    Exactness also depends on the table below being the one the metric uses:
+    `evaluate_bpb` masks the loss of any zero-byte token, so the numerator does depend on
+    the byte table. Markers decode to the empty string and would be masked;
+    `special_aware_token_bytes` floors them to one byte so their loss counts, and the same
+    fictional byte sits in this denominator, so it cancels. Only BOS stays at zero.
+
+    Cached under `cache_dir` keyed by the tokenizer's content, the shard, and the byte
+    convention. Written to a temp file and renamed, since an arm's seeds run concurrently.
     """
     import hashlib
     import json
+    import tempfile
 
-    from .tokenizer import TOKEN_BYTES_CONVENTION
-
-    import pyarrow.parquet as pq
+    from .tokenizer import TOKEN_BYTES_CONVENTION, special_aware_token_bytes
 
     data_dir = Path(base_dir) / "base_data_climbmix"
     shards = sorted(data_dir.glob("shard_*.parquet"))
     if not shards:
         raise FileNotFoundError(f"no ClimbMix shards under {data_dir} to measure the byte factor")
-    # The val split is the last shard, the same one nanochat evaluates on.
     shard = shards[-1]
 
-    # Keyed on the tokenizer's CONTENT and on the shard actually read, not on the tokenizer
-    # path. Retraining an arm writes the same filename, so a path key would hand the new
-    # tokenizer the old tokenizer's factor, and that factor multiplies every bpb number for
-    # the arm. The shard identity matters for the same reason.
+    # Keyed on the tokenizer's CONTENT, not its path: retraining an arm writes the same
+    # filename, and a path key would hand the new tokenizer the old factor, which then
+    # multiplies every bpb number for that arm.
     with open(tokenizer_path, "rb") as f:
         tok_digest = hashlib.sha256(f.read()).hexdigest()
     shard_id = f"{shard.name}:{shard.stat().st_size}"
+    spec = f"{split}:{device_batch_size}x{sequence_len}:{split_tokens}"
     key = hashlib.sha256(
-        f"{tok_digest}:{shard_id}:{sample_bytes}:{TOKEN_BYTES_CONVENTION}".encode()
+        f"{tok_digest}:{shard_id}:{spec}:{TOKEN_BYTES_CONVENTION}".encode()
     ).hexdigest()[:16]
     cache_path = os.path.join(cache_dir or base_dir, f"byte_factor_{key}.json")
     if os.path.exists(cache_path):
         with open(cache_path) as f:
             cached = json.load(f)
-        print(f"[pynanochat] byte factor {cached['byte_factor']:.6f} (cached)", flush=True)
-        return cached["byte_factor"], cached["sample_bytes"]
+        print(f"[pynanochat] byte factor {cached['byte_factor']:.6f} (cached, "
+              f"{cached['true_bytes']:,} true bytes, key {key})", flush=True)
+        return cached["byte_factor"], cached["true_bytes"]
 
-    docs, nchars = [], 0
-    for doc in pq.read_table(shard).column("text").to_pylist():
-        docs.append(doc)
-        nchars += len(doc)
-        if sample_bytes and nchars >= sample_bytes:
-            break
-    text = "\n".join(docs)
-    true_bytes = len(text.encode("utf-8"))
+    # nanochat's own loader, with base_eval's defaults, so the token multiset is the one
+    # the metric will be computed over rather than an approximation of it.
+    from nanochat.dataloader import tokenizing_distributed_data_loader_bos_bestfit
 
-    # The very same table the bpb metric uses, not a reimplementation of the rule: these
-    # two drifting apart is what the factor exists to prevent.
-    from .tokenizer import special_aware_token_bytes
-
+    steps = split_tokens // (device_batch_size * sequence_len)
     table = special_aware_token_bytes(adapter)
-    measured = sum(table[t] for t in adapter.encode(text))
+    loader = tokenizing_distributed_data_loader_bos_bestfit(
+        adapter, device_batch_size, sequence_len, split, device="cpu"
+    )
+    measured = 0
+    true_bytes = 0
+    for _ in range(steps):
+        _, targets = next(loader)
+        for row in targets.tolist():
+            measured += sum(table[t] for t in row)
+            # decode is the inverse of encode and BOS decodes to "", so the byte length of
+            # the decoded row is exactly the text those target tokens stand for.
+            true_bytes += len(adapter.decode(row).encode("utf-8"))
     factor = measured / true_bytes
     print(
         f"[pynanochat] byte factor {factor:.6f} "
-        f"({measured:,} token bytes / {true_bytes:,} true bytes)",
+        f"({measured:,} token bytes / {true_bytes:,} true bytes over {steps} scored steps)",
         flush=True,
     )
-    # mkstemp, not the pid: 12 identical jobs on 12 nodes draw pids from a narrow range,
-    # so a pid-named temp file is not unique across the sweep.
-    import tempfile
 
     fd, tmp = tempfile.mkstemp(dir=os.path.dirname(cache_path) or ".", suffix=".tmp")
     with os.fdopen(fd, "w") as f:
-        json.dump({"byte_factor": factor, "sample_bytes": true_bytes,
+        json.dump({"byte_factor": factor, "true_bytes": true_bytes,
                    "measured_token_bytes": measured, "tokenizer_sha256": tok_digest,
-                   "shard": shard_id, "convention": TOKEN_BYTES_CONVENTION}, f, indent=2)
+                   "shard": shard_id, "loader_spec": spec, "steps": steps,
+                   "convention": TOKEN_BYTES_CONVENTION}, f, indent=2)
     os.replace(tmp, cache_path)
     return factor, true_bytes
 
