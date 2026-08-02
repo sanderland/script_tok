@@ -48,8 +48,12 @@ SCALARS = {
     "val bpb/byte": "val_bpb_true",
     "train bpb/byte": "train_bpb_true",
 }
-# tokenizer_id is <arm>_<trainer>_d<depth>_s<seed>, e.g. bnd_wpd_caps_bpe_d12_s0
-TAG_RE = re.compile(r"^(?P<arm>.+)_(?P<trainer>bpe|mingram)_d(?P<depth>\d+)_s(?P<seed>\d+)$")
+# tokenizer_id is <arm>_<trainer>_d<depth>_s<seed>[<suffix>], e.g. bnd_wpd_caps_bpe_d12_s0
+# or plain_bpe_d12_s0_n32. Without the optional suffix a tagged run fails to match, `arm`
+# falls back to the whole tag, and every run becomes its own single-run arm.
+TAG_RE = re.compile(
+    r"^(?P<arm>.+)_(?P<trainer>bpe|mingram)_d(?P<depth>\d+)_s(?P<seed>\d+)(?P<suffix>_.*)?$"
+)
 
 
 def parse_log(path):
@@ -92,6 +96,7 @@ def parse_log(path):
         row["arm"] = m["arm"]
         row["trainer"] = m["trainer"]
         row["seed"] = m["seed"]
+        row["variant"] = (m["suffix"] or "").lstrip("_")
     else:
         row["method"] = tag
     row["log"] = os.path.basename(path)
@@ -116,7 +121,7 @@ def main(logs_dir: str, out: str = "results.tsv") -> None:
     if not rows:
         raise SystemExit(f"no finished runs in {logs_dir} ({len(skipped)} incomplete)")
 
-    lead = ["method", "arm", "trainer", "seed", "val_bpb_true", "train_bpb_true",
+    lead = ["method", "arm", "variant", "trainer", "seed", "val_bpb_true", "train_bpb_true",
             "val_bpb", "train_bpb", "byte_factor", "core",
             "depth", "vocab_size", "tokenizer_id", "log"]
     tasks = sorted({k for r in rows for k in r if k.startswith("task_")})
