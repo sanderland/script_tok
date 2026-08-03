@@ -11,19 +11,11 @@ Nothing is dropped for being incomplete. A cell the grid has not reached is `--`
 trainer that has only started still shows the languages it has, and the table fills in
 place as the grid runs. This is a snapshot of a running experiment, not a finished one.
 
-Two source formats, because the grids they come from are not the same experiment:
-
-    marker_experiments/*_result.json           FineWiki grids, keys `<lang>_<arm>_<trainer>`,
-                                               matched *additional* vocabulary (32,768),
-                                               no training-corpus token counts
-    paper/generated/eval_goldfish.json         FineWeb 5 GB grid evaluated on held-out
-                                               Goldfish, keys `fineweb_<lang>_5gb[_quick]_
-                                               <arm>_<trainer>_v<vocab>`, matched *total*
-                                               vocabulary
-
-The format is detected from the keys. The FineWeb grid holds two corpora -- the reservoir
-sample and the `_quick` read-until-full sample -- so it yields one table each, selected
-with `--corpus`.
+The source is `paper/generated/eval_goldfish.json`: the FineWeb 5 GB grid, matched total
+vocabulary, evaluated on held-out Goldfish. It holds two corpora -- the reservoir sample
+and the `_quick` read-until-full sample -- so it yields one table each, selected with
+`--corpus`. The older FineWiki grid JSONs are no longer read; their tables are committed
+under `paper/generated/` and stay as they are.
 
 Both corpus columns are a percentage change against the same trainer's `plain`, and both
 are signed so that positive means better compression. On the evaluation corpus that is
@@ -33,9 +25,10 @@ change derived from the token counts.
 
 Emitted as a `table*` body: thirteen columns do not fit a single ACL column.
 
-Needs `booktabs` and the paper's boundary macros. `\bndx` is the external-caps form, which
-the bracket notation can carry for free -- the case marker sits outside the brackets
-exactly as it sits outside the boundary markers:
+Needs `booktabs` and the paper's boundary macros. The `\textuparrow` key is the canonical
+case form; it belongs to the `_extcaps` arms, which put it outside the markers and are the
+ones expected to stay. The inside-the-markers placement is the ablation that is likely to
+be dropped, so it takes the marked-up `in` key rather than the clean one:
 
     \colorlet{bndcol}{OliveGreen!75!black}
     \makeatletter
@@ -43,12 +36,14 @@ exactly as it sits outside the boundary markers:
     \@namedef{bnd@w}{w}
     \@namedef{bnd@wp}{w,p}
     \@namedef{bnd@wpd}{w,p,d}
+    \@namedef{bnd@wcaps}{w,\textuparrow}
+    \@namedef{bnd@wpcaps}{w,p,\textuparrow}
     \@namedef{bnd@wpdcaps}{w,p,d,\textuparrow}
+    \@namedef{bnd@wpdcapsin}{w,p,d,\textuparrow\textsubscript{in}}
     % prose
     \newcommand{\bnd}[1]{\textcolor{bndcol}{{boundary[\bnd@key{#1}]}}}
     % tables
     \newcommand{\bnds}[1]{\textcolor{bndcol}{{[\bnd@key{#1}]}}}
-    \newcommand{\bndsx}[1]{\textcolor{bndcol}{{[\bnd@key{#1}]\textuparrow}}}
     \makeatother
     \newcommand{\plainscheme}{\textcolor{bndcol}{plain}}
 
@@ -69,18 +64,19 @@ LANG_LABEL = {"en": "English", "de": "German", "fi": "Finnish",
 LANG_ORDER = ["en", "de", "fi", "ru", "ar", "ko"]
 
 # Every arm the grid trains, in display order: each boundary scope followed by its
-# case-handling forms. `_extcaps` puts the canonical case form outside the markers,
-# `_caps` inside them -- the placement ablation.
+# case-handling form. `_extcaps` puts the canonical case form outside the markers and is
+# the form that stays, so it gets the plain `caps` notation; `bnd_wpd_caps` puts it inside
+# them, exists only as the placement ablation, and is marked `in` until it is dropped.
 ARM_ORDER = ["bnd_w", "bnd_w_extcaps", "bnd_wp", "bnd_wp_extcaps",
              "bnd_wpd", "bnd_wpd_extcaps", "bnd_wpd_caps"]
 ARM_LABEL = {
     "bnd_w": r"\bnds{w}",
     "bnd_wp": r"\bnds{wp}",
     "bnd_wpd": r"\bnds{wpd}",
-    "bnd_wpd_caps": r"\bnds{wpdcaps}",
-    "bnd_w_extcaps": r"\bndsx{w}",
-    "bnd_wp_extcaps": r"\bndsx{wp}",
-    "bnd_wpd_extcaps": r"\bndsx{wpd}",
+    "bnd_w_extcaps": r"\bnds{wcaps}",
+    "bnd_wp_extcaps": r"\bnds{wpcaps}",
+    "bnd_wpd_extcaps": r"\bnds{wpdcaps}",
+    "bnd_wpd_caps": r"\bnds{wpdcapsin}",
 }
 PLAIN_LABEL = r"\plainscheme"
 KNOWN_TRAINERS = ["bpe", "mingram"]
@@ -93,25 +89,18 @@ app = cyclopts.App()
 def read_cells(data, corpus):
     """(lang, arm, trainer) -> measurement, for one corpus variant.
 
-    Handles both source formats. The FineWiki grids have one corpus per file and their
-    keys carry no corpus at all, so `corpus` only selects among the FineWeb ones.
+    Keys are `fineweb_<lang>_5gb[_quick]_<arm>_<trainer>_v<vocab>`, the naming
+    `train_multilang.py` gives each cell.
     """
     cells = {}
     for key, info in data.items():
-        if key.startswith("_"):                        # `_note`, `_common`, ... metadata
+        stem, _, _vocab = key.rpartition("_v")         # ..._<arm>_<trainer>_v<vocab>
+        rest, _, trainer = stem.rpartition("_")
+        lang = rest.split("_")[1]
+        arm = rest.removeprefix(f"fineweb_{lang}_5gb_")
+        if arm.startswith("quick_") != (corpus == "quick"):
             continue
-        if key.startswith("fineweb_"):
-            stem, _, _vocab = key.rpartition("_v")     # ..._<arm>_<trainer>_v<vocab>
-            rest, _, trainer = stem.rpartition("_")
-            lang = rest.split("_")[1]
-            arm = rest.removeprefix(f"fineweb_{lang}_5gb_")
-            quick = arm.startswith("quick_")
-            if quick != (corpus == "quick"):
-                continue
-            arm = arm.removeprefix("quick_")
-        else:                                          # <lang>_<arm>_<trainer>
-            lang, _, rest = key.partition("_")
-            arm, _, trainer = rest.rpartition("_")
+        arm = arm.removeprefix("quick_")
         if trainer not in KNOWN_TRAINERS or lang not in LANG_LABEL:
             continue
         cells[(lang, arm, trainer)] = info
@@ -298,7 +287,7 @@ def main(
     )
     tex = "\n".join([
         "% Generated by marker_experiments/make_intrinsic_table.py. Do not edit.",
-        r"% Requires booktabs and the paper's \bnds, \bndsx and \plainscheme macros.",
+        r"% Requires booktabs and the paper's \bnds and \plainscheme macros.",
         f"% source: {os.path.relpath(results, os.path.dirname(HERE))} ({corpus} corpus)",
         r"\centering",
         r"\small",
