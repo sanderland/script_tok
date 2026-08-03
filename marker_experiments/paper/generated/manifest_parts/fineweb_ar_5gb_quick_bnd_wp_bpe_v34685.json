@@ -1,0 +1,14 @@
+{
+  "fineweb_ar_5gb_quick_bnd_wp_bpe_v34685": {
+    "additional_vocab_size": 32974,
+    "arm": "bnd_wp",
+    "atomic_vocab": 1711,
+    "corpus": "fineweb_ar_5gb_quick",
+    "lang": "ar",
+    "overshoot_factor": null,
+    "path": "downstream/tokenizers/fineweb_ar_5gb_quick_bnd_wp_bpe_v34685.json.gz",
+    "total_vocab": 34685,
+    "train_seconds": 100,
+    "trainer": "bpe"
+  }
+}
