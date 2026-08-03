@@ -10,19 +10,19 @@ Scheme & \multicolumn{2}{c}{English} & \multicolumn{2}{c}{German} & \multicolumn
  & {\footnotesize train} & {\footnotesize eval} & {\footnotesize train} & {\footnotesize eval} & {\footnotesize train} & {\footnotesize eval} & {\footnotesize train} & {\footnotesize eval} & {\footnotesize train} & {\footnotesize eval} & {\footnotesize train} & {\footnotesize eval} & {\footnotesize train} & {\footnotesize eval} \\
 \midrule
 \multicolumn{15}{l}{\emph{BPE}} \\
-\plainscheme & 1.152 & 4.4571 & 1.098 & 4.5744 & 1.072 & 5.0118 & 1.152 & 4.3216 & 1.223 & 3.9735 & 2.182 & 2.2987 & -- & -- \\
+\plainscheme & -- & 4.4571 & -- & 4.5744 & -- & 5.0118 & -- & 4.3216 & -- & 3.9735 & 2.2881 & 2.2987 & -- & 4.1062 \\
 \bnds{w} & $-8.29$ & $-8.87$ & $-9.73$ & $-10.68$ & $-7.76$ & $-7.74$ & $-10.03$ & $-10.87$ & $-8.01$ & $-8.49$ & $-8.15$ & $-9.12$ & $-8.66$ & $-9.30$ \\
 \bnds{wp} & $-0.94$ & $-1.30$ & $-2.43$ & $-2.97$ & $-1.70$ & $-1.67$ & $-0.91$ & $-1.22$ & $-1.23$ & $-1.91$ & $-3.39$ & $-4.00$ & $-1.77$ & $-2.18$ \\
 \bnds{wpd} & $\mathbf{+0.80}$ & $\mathbf{+0.62}$ & $-0.63$ & $-1.03$ & $-0.21$ & $-0.47$ & $\mathbf{+0.79}$ & $\mathbf{+0.52}$ & $\mathbf{+0.37}$ & $-0.21$ & $-1.63$ & $-2.18$ & $-0.08$ & $-0.46$ \\
 \bnds{wpdcapsin} & $\mathbf{+0.96}$ & $\mathbf{+0.72}$ & $-0.39$ & $-0.78$ & $\mathbf{+0.06}$ & $-0.35$ & $\mathbf{+1.09}$ & $\mathbf{+0.92}$ & $-2.44$ & $-2.52$ & $-1.63$ & $-2.22$ & $-0.39$ & $-0.71$ \\
 \midrule
 \multicolumn{15}{l}{\emph{MinGram}} \\
-\plainscheme & 1.142 & 4.5002 & -- & -- & -- & -- & -- & -- & -- & -- & 2.171 & 2.3103 & -- & -- \\
-\bnds{w} & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & $-8.36$ & $-9.33$ & -- & -- \\
-\bnds{wp} & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & $-3.59$ & $-4.17$ & -- & -- \\
-\bnds{wpd} & $\mathbf{+0.60}$ & $\mathbf{+0.35}$ & -- & -- & -- & -- & -- & -- & -- & -- & $-1.83$ & $-2.35$ & -- & -- \\
-\bnds{wpdcapsin} & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & $-1.82$ & $-2.38$ & -- & -- \\
+\plainscheme & -- & 4.5002 & -- & -- & -- & -- & -- & -- & -- & -- & 2.2998 & 2.3103 & -- & 3.4052 \\
+\bnds{w} & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & $-8.36$ & $-9.33$ & $-8.36$ & $-9.33$ \\
+\bnds{wp} & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & $-3.59$ & $-4.17$ & $-3.59$ & $-4.17$ \\
+\bnds{wpd} & $\mathbf{+0.60}$ & $\mathbf{+0.35}$ & -- & -- & -- & -- & -- & -- & -- & -- & $-1.83$ & $-2.35$ & $-0.61$ & $-1.00$ \\
+\bnds{wpdcapsin} & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & $-1.82$ & $-2.38$ & $-1.82$ & $-2.38$ \\
 \bottomrule
 \end{tabular}
-\caption{Compression, trained on 5\,GB of FineWeb per language, 34{,}685 matched total vocabulary, evaluated on held-out Goldfish. \plainscheme{} is absolute (training-corpus tokens in billions; evaluation characters per token), every other cell the percentage change against it within the same block, positive meaning better compression. --~marks cells the grid has not reached. Means over the languages complete for a trainer (BPE 6).}
+\caption{Compression, trained on 5\,GB of FineWeb per language, 34{,}685 matched total vocabulary, evaluated on held-out Goldfish. \plainscheme{} is absolute characters per token on each corpus, every other cell the percentage change against it within the same block, positive meaning better compression. --~marks cells the grid has not reached. Means cover the languages present in that row, and a train mean is shown only where it covers the same ones as the eval mean beside it.}
 \label{tab:intrinsic}

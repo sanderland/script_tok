@@ -39,6 +39,7 @@ axis the boundary marker changes.
 """
 
 import concurrent.futures
+import glob
 import hashlib
 import json
 import os
@@ -47,7 +48,8 @@ import cyclopts
 import requests
 from huggingface_hub import hf_hub_url
 
-from script_bpe.corpus.registry import normalize_whitespace
+from script_bpe.corpus.base import PretokenizedCorpus
+from script_bpe.corpus.registry import SAMPLE_CACHE_DIRNAME, normalize_whitespace
 from script_bpe.tokenizers.load import load_tokenizer
 
 # Registers BoundaryScriptPretokenizer, without which loading any bnd_* tokenizer raises
@@ -122,6 +124,25 @@ def slice_hash(docs: list[str]) -> str:
     return h.hexdigest()[:16]
 
 
+def train_chars(corpus: str) -> int | None:
+    """Characters in the training corpus, from the sample cache's manifest.
+
+    `selected_chars` is what the sampler actually kept, which is not the 5 GB it aimed for
+    (Korean landed at 4.99 GB), so the nominal budget would be wrong in the fourth decimal
+    of a characters-per-token figure. None when the corpus was built on another machine
+    and its cache is not here; only the absolute baseline needs this, since characters
+    cancel in every percentage against it.
+    """
+    root = os.path.join(PretokenizedCorpus.DEFAULT_BASE_PATH, SAMPLE_CACHE_DIRNAME)
+    # The cache key is a hash of the sampling config, so glob it -- but `fineweb_de_5gb_*`
+    # also matches `fineweb_de_5gb_quick_*`, hence the single-token suffix check.
+    for path in sorted(glob.glob(os.path.join(root, f"{corpus}_*", "manifest.json"))):
+        if "_" in os.path.basename(os.path.dirname(path)).removeprefix(f"{corpus}_"):
+            continue
+        return json.load(open(path))["selected_chars"]
+    return None
+
+
 def train_tokens(tokenizer) -> int:
     """Tokens the tokenizer's own training corpus takes, read from the saved model.
 
@@ -137,7 +158,7 @@ def train_tokens(tokenizer) -> int:
 
 
 def evaluate(args) -> tuple[str, dict]:
-    key, path, lang = args
+    key, path, lang, corpus = args
     tokenizer = load_tokenizer(path)
     docs = build_slice(lang)  # cached on disk by the parent before the pool starts
     chars = toks = fails = 0
@@ -152,6 +173,8 @@ def evaluate(args) -> tuple[str, dict]:
         if tokenizer.decode(ids) != tokenizer.pretokenizer.normalize(doc):
             fails += 1
     return key, {
+        "train_corpus": corpus,
+        "train_chars": train_chars(corpus),
         "train_tokens": train_tokens(tokenizer),
         "eval_corpus": f"goldfish:{GOLDFISH_FILE[lang]}",
         "eval_docs": len(docs),
@@ -194,13 +217,16 @@ def main(
             continue
         if key in results and not force:
             continue
-        jobs.append((key, os.path.join(tokenizers, name), lang))
+        corpus = key[: key.index(f"_{lang}_") + len(f"_{lang}_5gb")]
+        if "_quick_" in key:
+            corpus += "_quick"
+        jobs.append((key, os.path.join(tokenizers, name), lang, corpus))
 
     if not jobs:
         print(f"[eval] nothing to do: {len(results)} key(s) already in {out}")
         return
 
-    for lang in sorted({lang for _, _, lang in jobs}):  # build once here, not per worker
+    for lang in sorted({job[2] for job in jobs}):  # build once here, not per worker
         build_slice(lang)
 
     print(f"[eval] {len(jobs)} tokenizer(s) on {workers} worker(s)")

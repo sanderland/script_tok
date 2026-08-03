@@ -17,13 +17,16 @@ and the `_quick` read-until-full sample -- so it yields one table each, selected
 `--corpus`. The older FineWiki grid JSONs are no longer read; their tables are committed
 under `paper/generated/` and stay as they are.
 
-Both corpus columns are a percentage change against the same trainer's `plain`, and both
-are signed so that positive means better compression. On the evaluation corpus that is
-the change in characters per token directly; on the training corpus, where the character
-count is not recorded but is identical across arms of one language, it is the equivalent
-change derived from the token counts.
+Both corpus columns are characters per token, and every non-baseline cell a percentage
+change against the same trainer's `plain`, signed so that positive means better
+compression. The evaluation figure is measured here; the training one divides the
+sampler's own `selected_chars` by the token count the trainer left behind, so it costs
+nothing to compute -- but the sample cache lives where the corpus was built, so a corpus
+trained on another machine has percentages (characters cancel) and no absolute baseline.
 
-Emitted as a `table*` body: thirteen columns do not fit a single ACL column.
+Two layouts. `--layout languages` is the appendix table: every language, both corpora,
+fifteen columns of `\tiny` in a `table*`. `--layout mean` is the main-paper one: means
+only, with `n` for how many languages each covers, narrow enough for a single ACL column.
 
 Needs `booktabs` and the paper's boundary macros. The `\textuparrow` key is the canonical
 case form; it belongs to the `_extcaps` arms, which put it outside the markers and are the
@@ -49,6 +52,7 @@ be dropped, so it takes the marked-up `in` key rather than the clean one:
 
     uv run python marker_experiments/make_intrinsic_table.py
     uv run python marker_experiments/make_intrinsic_table.py --corpus quick
+    uv run python marker_experiments/make_intrinsic_table.py --layout mean --corpus quick
 """
 
 import json
@@ -141,41 +145,78 @@ def fmt(value):
         f"$\\mathbf{{{value:+.2f}}}$" if value > 0 else f"${value:+.2f}$")
 
 
+def chars_per_token(cell, corpus):
+    """Absolute characters per token on one corpus, or None where the count is missing.
+
+    The evaluation figure is measured directly. The training one divides the corpus
+    character count -- the sampler's own `selected_chars`, recorded per cell -- by the
+    token count the trainer left behind, so it costs nothing to compute but is only
+    available where that corpus was built.
+    """
+    if cell is None:
+        return None
+    if corpus == "eval":
+        return cell["eval_chars_per_token"]
+    return None if cell.get("train_chars") is None else cell["train_chars"] / cell["train_tokens"]
+
+
+def fmt_chars_per_token(cell, corpus):
+    value = chars_per_token(cell, corpus)
+    return MISSING if value is None else f"{value:.4f}"
+
+
+def row_mean(values):
+    """Mean of the languages a row actually has, and which ones those were.
+
+    Restricting instead to the languages complete across a whole block keeps rows exactly
+    comparable, but in a grid that fills one cell at a time it empties the column: a single
+    newly started arm is enough to leave no language complete. What each mean covers
+    travels with it instead, so the caller can label it or withhold it.
+    """
+    present = [v for v in values if v is not None]
+    return (sum(present) / len(present) if present else None), frozenset(
+        i for i, v in enumerate(values) if v is not None)
+
+
+def matched_means(pairs, digits=None):
+    """The (train, eval) means of a row, with train withheld unless it covers the same
+    languages as eval.
+
+    Only the appendix layout uses this. It has no room for a count column, so a train mean
+    over one language sitting beside an evaluation mean over six -- which is what the
+    unbuilt training corpora produce here -- would read as a comparison and is not one.
+    """
+    (train, train_set), (ev, ev_set) = (row_mean([p[i] for p in pairs]) for i in (0, 1))
+    if train_set != ev_set:
+        train = None
+    if digits is None:
+        return [fmt(train), fmt(ev)]
+    return [MISSING if v is None else f"{v:.{digits}f}" for v in (train, ev)]
+
+
 def body(cells, langs, trainers, arms):
     """One block per trainer: the absolute `plain` anchors, then a row per variant."""
     lines, means = [], {}
     for i, tr in enumerate(trainers):
-        # The mean covers the languages complete for the whole block, so every row in it
-        # averages the same set and the rows stay comparable. Below two languages there is
-        # nothing to average: the column would silently repeat a language already shown.
-        block = [lg for lg in langs
-                 if all((lg, arm, tr) in cells for arm in ["plain", *arms])]
-        block = block if len(block) > 1 else []
-        means[tr] = block
+        means[tr] = [lg for lg in langs if (lg, "plain", tr) in cells]
         if i:
             lines.append(r"\midrule")
-        lines.append(rf"\multicolumn{{{1 + 2 * (len(langs) + 1)}}}{{l}}"
+        lines.append(rf"\multicolumn{{{1 + 2 * (len(langs) + 1)}}}{{l}}"  # noqa: E501
                      rf"{{\emph{{{TRAINER_LABEL[tr]}}}}} \\")
 
-        anchors = []
+        anchors, absolute = [], []
         for lg in langs:
             base = cells.get((lg, "plain", tr))
-            anchors.append(MISSING if base is None or "train_tokens" not in base
-                           else f"{base['train_tokens'] / 1e9:.3f}")
-            anchors.append(MISSING if base is None else f"{base['eval_chars_per_token']:.4f}")
-        lines.append(f"{PLAIN_LABEL} & " + " & ".join([*anchors, MISSING, MISSING]) + r" \\")
+            anchors += [fmt_chars_per_token(base, c) for c in ("train", "eval")]
+            absolute.append(tuple(chars_per_token(base, c) for c in ("train", "eval")))
+        anchors += matched_means(absolute, digits=4)
+        lines.append(f"{PLAIN_LABEL} & " + " & ".join(anchors) + r" \\")
 
         for arm in arms:
-            row, totals = [], ([], [])
-            for lg in langs:
-                train, ev = deltas(cells, lg, arm, tr)
-                row += [fmt(train), fmt(ev)]
-                if lg in block:
-                    for acc, value in zip(totals, (train, ev)):
-                        if value is not None:
-                            acc.append(value)
-            row += [fmt(sum(a) / len(a)) if a else MISSING for a in totals]
-            lines.append(f"{ARM_LABEL[arm]} & " + " & ".join(row) + r" \\")
+            pairs = [deltas(cells, lg, arm, tr) for lg in langs]
+            row = [fmt(value) for pair in pairs for value in pair]
+            lines.append(f"{ARM_LABEL[arm]} & " + " & ".join(row + matched_means(pairs))
+                         + r" \\")
     return lines, means
 
 
@@ -186,32 +227,29 @@ def mean_body(cells, langs, trainers, arms):
     which gives the rest of the column its scale; per-language baselines are in the
     appendix table.
     """
-    blocks = {tr: [lg for lg in langs
-                   if all((lg, arm, tr) in cells for arm in ["plain", *arms])]
-              for tr in trainers}
-    blocks = {tr: block if len(block) > 1 else [] for tr, block in blocks.items()}
-
     anchors = []
     for tr in trainers:
-        bases = [cells[(lg, "plain", tr)] for lg in blocks[tr]]
-        for field, digits in (("train_tokens", 3), ("eval_chars_per_token", 4)):
-            values = [b[field] for b in bases if field in b]
-            scale = 1e9 if field == "train_tokens" else 1
-            anchors.append(MISSING if not values
-                           else f"{sum(values) / len(values) / scale:.{digits}f}")
+        bases = [cells.get((lg, "plain", tr)) for lg in langs]
+        counts = set()
+        for corpus in ("train", "eval"):
+            mean, covered = row_mean([chars_per_token(b, corpus) for b in bases])
+            anchors.append(MISSING if mean is None else f"{mean:.4f}")
+            counts.add(len(covered))
+        anchors.append(str(max(counts)))
     lines = [f"{PLAIN_LABEL} & " + " & ".join(anchors) + r" \\"]
 
     for arm in arms:
         row = []
         for tr in trainers:
-            totals = ([], [])
-            for lg in blocks[tr]:
-                for acc, value in zip(totals, deltas(cells, lg, arm, tr)):
-                    if value is not None:
-                        acc.append(value)
-            row += [fmt(sum(a) / len(a)) if a else MISSING for a in totals]
+            pairs = [deltas(cells, lg, arm, tr) for lg in langs]
+            counts = set()
+            for i in (0, 1):
+                mean, covered = row_mean([p[i] for p in pairs])
+                row.append(fmt(mean))
+                counts.add(len(covered))
+            row.append(str(max(counts)))
         lines.append(f"{ARM_LABEL[arm]} & " + " & ".join(row) + r" \\")
-    return lines, blocks
+    return lines, {tr: [lg for lg in langs if (lg, "plain", tr) in cells] for tr in trainers}
 
 
 def excess_roundtrip_failures(cells, langs, trainers, arms):
@@ -240,7 +278,7 @@ def main(
     layout: str = "languages",
     setting: str | None = None,
     label: str | None = None,
-    detail: str = "tab:intrinsic",
+    detail: str | None = None,
 ) -> None:
     """Write the compression table for one grid.
 
@@ -271,6 +309,9 @@ def main(
     suffix = "_main" if layout == "mean" else ("_quick" if corpus == "quick" else "")
     out = out or os.path.join(GENERATED, f"table_intrinsic{suffix}.tex")
     label = label or f"tab:intrinsic{suffix.replace('_', '-')}"
+    # The per-language table of the same corpus, which is where the main table's reader
+    # goes for the numbers behind a mean.
+    detail = detail or f"tab:intrinsic{'-quick' if corpus == 'quick' else ''}"
     setting = setting or (
         "trained on 5\\,GB of FineWeb per language"
         + (" (the \\texttt{quick} read-until-full sample, which is not uniform over the "
@@ -286,29 +327,26 @@ def main(
     if layout == "mean":
         lines, means = mean_body(cells, langs, trainers, arms)
         columns = [TRAINER_LABEL[tr] for tr in trainers]
-        anchor = (r"\plainscheme{} is the mean absolute baseline (training-corpus tokens "
-                  r"in billions; evaluation characters per token), every other cell the "
-                  r"mean percentage change against it, ")
+        # A third column per trainer: how many languages went into that row's mean.
+        subheads = [r"{\footnotesize train}", r"{\footnotesize eval}", r"{\footnotesize $n$}"]
+        anchor = (r"\plainscheme{} is the mean absolute baseline in characters per token, "
+                  r"every other cell the mean percentage change against it, ")
     else:
         lines, means = body(cells, langs, trainers, arms)
         columns = [LANG_LABEL[lg] for lg in langs] + ["Mean"]
-        anchor = (r"\plainscheme{} is absolute (training-corpus tokens in billions; "
-                  r"evaluation characters per token), every other cell the percentage "
-                  r"change against it within the same block, ")
+        subheads = [r"{\footnotesize train}", r"{\footnotesize eval}"]
+        anchor = (r"\plainscheme{} is absolute characters per token on each corpus, every "
+                  r"other cell the percentage change against it within the same block, ")
+    width = len(subheads)
     header = [
-        r"\begin{tabular}{l" + " rr" * len(columns) + "}",
+        r"\begin{tabular}{l" + (" " + "r" * width) * len(columns) + "}",
         r"\toprule",
-        "Scheme " + "".join(rf"& \multicolumn{{2}}{{c}}{{{c}}} " for c in columns) + r"\\",
-        " ".join(rf"\cmidrule(lr){{{2 + 2 * i}-{3 + 2 * i}}}" for i in range(len(columns))),
-        " & " + " & ".join([r"{\footnotesize train}", r"{\footnotesize eval}"] * len(columns))
-        + r" \\",
+        "Scheme " + "".join(rf"& \multicolumn{{{width}}}{{c}}{{{c}}} " for c in columns) + r"\\",
+        " ".join(rf"\cmidrule(lr){{{2 + width * i}-{1 + width * (i + 1)}}}"
+                 for i in range(len(columns))),
+        " & " + " & ".join(subheads * len(columns)) + r" \\",
         r"\midrule",
     ]
-    covered = (
-        "; ".join(f"{TRAINER_LABEL[tr]} {len(block)}"
-                  for tr, block in means.items() if block)
-        if any(means.values()) else None
-    )
     # Only a variant that loses a round trip its own baseline keeps is this table's
     # business, and it never has. The shared counts are the encoding, not the markers.
     lossy = excess_roundtrip_failures(cells, langs, trainers, arms)
@@ -318,7 +356,10 @@ def main(
         + (r"\bnds{w} $<$ \bnds{wp} $<$ \bnds{wpd} throughout. " if ordered else "")
         + (rf"Per-language numbers in Table~\ref{{{detail}}}. " if layout == "mean"
            else MISSING + r"~marks cells the grid has not reached. ")
-        + (rf"Means over the languages complete for a trainer ({covered}). " if covered else "")
+        + (r"Each mean covers the languages that have that scheme; $n$ is how many. "
+           if layout == "mean" else
+           r"Means cover the languages present in that row, and a train mean is shown "
+           r"only where it covers the same ones as the eval mean beside it. ")
         + (rf"{lossy} documents fail to round-trip under a variant but not under its "
            rf"baseline. " if lossy > 0 else "")
     ).rstrip() + r"}"
