@@ -88,7 +88,8 @@ def _write_text_batch(path: str, texts: list[str]) -> None:
 SAMPLE_CACHE_DIRNAME = "_sampled_text"
 
 
-def _sample_cache_key(dataset_name, sample_max_chars, block_max_chars, seed, text_transform, kwargs) -> str:
+def _sample_cache_key(dataset_name, sample_max_chars, block_max_chars, seed, text_transform, kwargs,
+                      method: str = "reservoir") -> str:
     """Identity of a sampled block set: everything that decides which text is selected.
 
     Deliberately excludes the pretokenizer. The reservoir sampler is seeded and the stream
@@ -108,6 +109,10 @@ def _sample_cache_key(dataset_name, sample_max_chars, block_max_chars, seed, tex
         str(seed),
         getattr(text_transform, "__name__", repr(text_transform)),
     ]
+    # Appended only for non-reservoir methods, so keys already published by 5 GB builds
+    # elsewhere stay valid and are not silently rescanned.
+    if method != "reservoir":
+        parts.append(method)
     return hashlib.sha256("|".join(parts).encode()).hexdigest()[:12]
 
 
@@ -221,6 +226,108 @@ def create_merged_corpus(
 
     logger.info(f"Created merged corpus {corpus_name} in {corpus.dir_path()}")
     return PretokenizedCorpus(corpus_name, base_dir, pretokenizer)
+
+
+# Documents held in the shuffle buffer of a quick sample. Large enough that the sample is
+# not simply the head of one shard, small enough to stay in memory.
+QUICK_SHUFFLE_BUFFER = 10_000
+
+
+def create_streaming_quick_corpus(
+    dataset_name: str,
+    corpus_name: str,
+    pretokenizer,
+    base_dir: str,
+    logger,
+    sample_max_chars: int,
+    text_transform: Callable | None = None,
+    block_max_chars: int | None = None,
+    seed: int | None = None,
+    num_workers: int | None = None,
+    shuffle_buffer: int = QUICK_SHUFFLE_BUFFER,
+    sample_cache: bool = True,
+    **kwargs,
+) -> PretokenizedCorpus:
+    """Sample by reading until full, letting the dataset do the shuffling.
+
+    `create_streaming_sampled_corpus` reservoir-samples, which is uniform over the whole
+    source but has to READ the whole source to be so: ~45 GB on FineWeb sample-10BT for a
+    5 GB sample, about 1.9 hours before a single merge is learned. This reads only as much
+    as it keeps.
+
+    The sample is therefore NOT uniform over the source. `IterableDataset.shuffle` shuffles
+    shard order and draws through a buffer, so the sample spans shards rather than being
+    the head of one file, but it is still drawn from the first documents each shard offers.
+    That is the trade: use it to iterate, and the reservoir path for anything reported as a
+    result. The two write to different corpus names so both can exist at once.
+    """
+    num_cpus = num_workers or min(os.cpu_count() or 4, CORPUS_BUILD_DEFAULT_WORKERS)
+    block_max_chars = block_max_chars or FINEWEB_BLOCK_MAX_CHARS
+    seed = FINEWEB_SAMPLE_SEED if seed is None else seed
+
+    cache_dir = None
+    if sample_cache:
+        key = _sample_cache_key(dataset_name, sample_max_chars, block_max_chars, seed,
+                                text_transform, kwargs, method=f"quick{shuffle_buffer}")
+        cache_dir = os.path.join(base_dir, SAMPLE_CACHE_DIRNAME, f"{corpus_name.replace(':', '_')}_{key}")
+        cached = _read_sample_cache(cache_dir)
+        if cached:
+            logger.info(f"Reusing cached quick sample for {corpus_name} from {cache_dir}")
+            return PretokenizedCorpus.from_text_batches(
+                name=corpus_name, base_path=base_dir, pretokenizer=pretokenizer,
+                text_batches=_read_text_batches(cached), num_workers=num_cpus,
+            )
+
+    dataset = load_dataset(dataset_name, streaming=True, columns=["text"], **kwargs)
+    dataset = dataset.shuffle(seed=seed, buffer_size=shuffle_buffer)
+
+    temp_root = os.path.join(base_dir, "_tmp")
+    os.makedirs(temp_root, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=f"{corpus_name.replace(':', '_')}_", dir=temp_root) as temp_dir:
+        paths, cur, cur_chars, total, docs = [], [], 0, 0, 0
+
+        def flush_block():
+            nonlocal cur, cur_chars
+            if not cur:
+                return
+            path = os.path.join(temp_dir, f"block_{len(paths):06d}.jsonl")
+            _write_text_batch(path, cur)
+            paths.append(path)
+            cur, cur_chars = [], 0
+
+        for doc in dataset:
+            text = doc["text"]
+            if text_transform is not None:
+                text = text_transform(text)
+            if not text:
+                continue
+            cur.append(text)
+            cur_chars += len(text)
+            total += len(text)
+            docs += 1
+            if cur_chars >= block_max_chars:
+                flush_block()
+            if total >= sample_max_chars:
+                break
+        flush_block()
+        logger.info(f"Quick sample: {total:,} chars over {docs:,} documents in {len(paths):,} blocks "
+                    f"(source read only until full)")
+        if cache_dir is not None:
+            paths = _write_sample_cache(
+                cache_dir, paths,
+                {"dataset": dataset_name, "dataset_kwargs": {k: str(v) for k, v in kwargs.items()},
+                 "sample_max_chars": sample_max_chars, "block_max_chars": block_max_chars,
+                 "seed": seed, "method": "quick", "shuffle_buffer": shuffle_buffer,
+                 "text_transform": getattr(text_transform, "__name__", repr(text_transform)),
+                 "selected_chars": total, "documents": docs},
+                logger,
+            )
+        corpus = PretokenizedCorpus.from_text_batches(
+            name=corpus_name, base_path=base_dir, pretokenizer=pretokenizer,
+            text_batches=_read_text_batches(paths), num_workers=num_cpus,
+        )
+    logger.info(f"Created quick corpus {corpus_name} with pretokenizer {pretokenizer.hash()}")
+    return corpus
 
 
 def create_streaming_sampled_corpus(
@@ -506,9 +613,16 @@ def load_corpus_by_name(
             text_transform=normalize_whitespace,
             num_workers=num_workers,
         )
-    elif corpus_name.startswith("fineweb_") and (corpus_name.endswith("_5gb") or corpus_name.endswith("_1gb")):
-        size_suffix = corpus_name.rsplit("_", 1)[1]  # "5gb" or "1gb" (1gb is for wiki-vs-web size control)
-        lang_code = corpus_name.removeprefix("fineweb_").removesuffix(f"_{size_suffix}")
+    elif corpus_name.startswith("fineweb_") and any(
+        corpus_name.endswith(sfx) for sfx in ("_5gb", "_1gb", "_5gb_quick", "_1gb_quick")
+    ):
+        # <lang>_<size>[_quick]. The quick variant is a separate corpus name on purpose:
+        # it draws a different, non-uniform sample, so it must never share a cache or a
+        # tokenizer path with the reservoir build.
+        quick = corpus_name.endswith("_quick")
+        stem = corpus_name.removesuffix("_quick")
+        size_suffix = stem.rsplit("_", 1)[1]
+        lang_code = stem.removeprefix("fineweb_").removesuffix(f"_{size_suffix}")
         sample_max = FINEWEB_5GB_MAX_CHARS if size_suffix == "5gb" else FINEWIKI_1GB_MAX_CHARS
         if lang_code == "en":
             dataset_name = "HuggingFaceFW/fineweb"
@@ -516,18 +630,20 @@ def load_corpus_by_name(
         else:
             dataset_name = "HuggingFaceFW/fineweb-2"
             dataset_kwargs = {"name": FINEWEB2_LANGUAGE_CONFIGS[lang_code], "split": "train"}
-        return create_streaming_sampled_corpus(
+        common = dict(
             dataset_name=dataset_name,
             corpus_name=corpus_name,
             base_dir=base_dir,
             logger=logger,
             pretokenizer=pretokenizer,
-            source_max_chars=FINEWEB_SOURCE_MAX_CHARS,
             sample_max_chars=sample_max,
             text_transform=normalize_whitespace,
             num_workers=num_workers,
             **dataset_kwargs,
         )
+        if quick:
+            return create_streaming_quick_corpus(**common)
+        return create_streaming_sampled_corpus(source_max_chars=FINEWEB_SOURCE_MAX_CHARS, **common)
     elif corpus_name == "finewiki:hybrid6":
         return create_merged_corpus(
             corpus_name=corpus_name,
