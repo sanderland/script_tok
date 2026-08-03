@@ -81,6 +81,11 @@ BRANCH = "claude/fineweb-space-neighbors-k10ufw"
 # whether the caps code sits inside or outside the span's markers, which decides whether
 # the lowercase entry can be reused at all. Likely dropped once that is measured.
 DEFAULT_ARMS = "plain,bnd_w,bnd_wp,bnd_wpd,bnd_wpd_caps,bnd_wpd_extcaps"
+# Both trainers by default: the grid is the intrinsic comparison as well as the source of
+# downstream tokenizers, and a BPE-only grid cannot answer whether the variant ordering
+# survives a change of trainer. Cells are ordered arm-major, so an arm's two trainers run
+# back to back while its pretokenized corpus is still warm.
+DEFAULT_TRAINERS = "bpe,mingram"
 DEFAULT_LANGS = "en,de,fi,ru,ar,ko"
 TOTAL_VOCAB = 34_685
 
@@ -145,7 +150,7 @@ def record(key, info):
 def main(
     lang: str = "en",
     arms: str = DEFAULT_ARMS,
-    trainers: str = "bpe",
+    trainers: str = DEFAULT_TRAINERS,
     quick: bool = False,
     total_vocab: int = TOTAL_VOCAB,
     workers: int = 0,
@@ -159,7 +164,8 @@ def main(
         lang: Comma-separated languages. Each maps to the registry corpus fineweb_<lang>_5gb.
         arms: Comma-separated arms. `plain` is the SCRIPT-v3 baseline; the rest are
             boundary variants.
-        trainers: Comma-separated trainers: bpe, mingram, or both.
+        trainers: Comma-separated trainers: bpe, mingram, or both. Both by default;
+            pass `--trainers bpe` for the cheaper half.
         quick: Sample by reading until full instead of scanning the whole source, which
             takes minutes rather than the ~1.9 hours a full pass costs. The sample is not
             uniform over the source, so this is for iterating, not for reported results.
