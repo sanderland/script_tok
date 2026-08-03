@@ -179,36 +179,46 @@ def body(cells, langs, trainers, arms):
     return lines, means
 
 
-def roundtrip_sentence(cells, langs, trainers, arms):
-    """Report what was measured rather than assert zero.
+def mean_body(cells, langs, trainers, arms):
+    """The main-paper layout: one row per scheme, one column pair per trainer, means only.
 
-    The FineWiki slices did round-trip cleanly, but a slice drawn from a different corpus
-    need not, and a caption that claims zero failures while the numbers say otherwise is
-    the one error this table must not make. A failure count that is the same for the
-    baseline and every variant of a language is a property of that text under the base
-    script encoding rather than an effect of the markers, so the two are separated: only
-    the amount by which a variant exceeds its baseline is the markers' doing.
+    No \\plainscheme row. Averaging characters per token across languages would produce a
+    number no language has, and the absolute baselines are one cross-reference away in the
+    per-language table.
     """
-    shown = [(lg, arm, tr) for lg in langs for tr in trainers for arm in ["plain", *arms]
-             if (lg, arm, tr) in cells]
-    if not max(cells[c]["roundtrip_failures"] for c in shown):
-        return rf"No roundtrip failures in any of the {len(shown)} cells."
-    shares, over = [], 0
-    for lg in langs:
-        bases = [cells[(lg, "plain", tr)] for tr in trainers if (lg, "plain", tr) in cells]
-        worst = max(b["roundtrip_failures"] for b in bases)
-        if worst:
-            shares.append(f"{LANG_LABEL[lg]} {100 * worst / bases[0]['eval_docs']:.2f}\\%")
-    for lg, arm, tr in shown:
-        base = cells.get((lg, "plain", tr))
-        if base is not None:
-            over = max(over, cells[(lg, arm, tr)]["roundtrip_failures"] - base["roundtrip_failures"])
-    return (
-        r"The \plainscheme{} baseline itself fails to round-trip part of the evaluation "
-        r"slice (" + ", ".join(shares) + r" of documents), which is the base script "
-        r"encoding's handling of that text rather than an effect of the markers; "
-        + (r"no variant fails on more documents than its own baseline does."
-           if over <= 0 else rf"the worst variant adds {over} failures over its own baseline.")
+    blocks = {tr: [lg for lg in langs
+                   if all((lg, arm, tr) in cells for arm in ["plain", *arms])]
+              for tr in trainers}
+    blocks = {tr: block if len(block) > 1 else [] for tr, block in blocks.items()}
+    lines = []
+    for arm in arms:
+        row = []
+        for tr in trainers:
+            totals = ([], [])
+            for lg in blocks[tr]:
+                for acc, value in zip(totals, deltas(cells, lg, arm, tr)):
+                    if value is not None:
+                        acc.append(value)
+            row += [fmt(sum(a) / len(a)) if a else MISSING for a in totals]
+        lines.append(f"{ARM_LABEL[arm]} & " + " & ".join(row) + r" \\")
+    return lines, blocks
+
+
+def excess_roundtrip_failures(cells, langs, trainers, arms):
+    """Documents a variant fails to round-trip that its own baseline does not.
+
+    Not a caption's business, and not reported in one: the raw counts are per cell in the
+    source JSON. What matters to a table of markers is only whether a marker scheme costs
+    a round-trip the baseline kept, and that is one number -- normally zero. The shared
+    part is the base script encoding on that text (on the Goldfish slice, Arabic diacritic
+    sequences come back canonically reordered under every arm alike), which is a property
+    of SCRIPT-v3 rather than of anything this table varies.
+    """
+    return max(
+        (cells[(lg, arm, tr)]["roundtrip_failures"] - cells[(lg, "plain", tr)]["roundtrip_failures"]
+         for lg in langs for tr in trainers for arm in arms
+         if (lg, arm, tr) in cells and (lg, "plain", tr) in cells),
+        default=0,
     )
 
 
@@ -217,74 +227,89 @@ def main(
     results: str = os.path.join(GENERATED, "eval_goldfish.json"),
     out: str | None = None,
     corpus: str = "full",
+    layout: str = "languages",
     setting: str | None = None,
     label: str | None = None,
+    detail: str = "tab:intrinsic",
 ) -> None:
     """Write the compression table for one grid.
 
     Args:
-        results: A grid result JSON or `eval_goldfish.json`.
+        results: `eval_goldfish.json`, or any file with the same per-cell keys.
         out: LaTeX file to write, \\input{} from a table* environment. Defaults to
-            `table_intrinsic[_quick].tex` beside the other generated artifacts.
+            `table_intrinsic[_quick|_main].tex` beside the other generated artifacts.
         corpus: `full` or `quick`, for sources holding both. `quick` is the
             read-until-full sample -- useful for iterating, not for reported results.
+        layout: `languages` for the per-language appendix table, or `mean` for the
+            main-paper one: means only, four columns, fits a single ACL column.
         setting: How the corpora and vocabulary are described in the caption. Defaults to
             the FineWeb grid's description.
-        label: LaTeX label. Defaults to `tab:intrinsic[-quick]`.
+        label: LaTeX label. Defaults to `tab:intrinsic[-quick|-main]`.
+        detail: Label the `mean` layout points at for the per-language numbers.
     """
     if corpus not in ("full", "quick"):
         raise SystemExit(f"--corpus must be full or quick, not {corpus!r}")
+    if layout not in ("languages", "mean"):
+        raise SystemExit(f"--layout must be languages or mean, not {layout!r}")
     with open(results) as f:
         data = json.load(f)
     cells = read_cells(data, corpus)
     langs, trainers, arms = select(cells)
     if not langs:
         raise SystemExit(f"no usable cells in {results} ({corpus} corpus)")
-    lines, means = body(cells, langs, trainers, arms)
 
-    out = out or os.path.join(GENERATED, f"table_intrinsic{'_quick' if corpus == 'quick' else ''}.tex")
-    label = label or f"tab:intrinsic{'-quick' if corpus == 'quick' else ''}"
+    suffix = "_main" if layout == "mean" else ("_quick" if corpus == "quick" else "")
+    out = out or os.path.join(GENERATED, f"table_intrinsic{suffix}.tex")
+    label = label or f"tab:intrinsic{suffix.replace('_', '-')}"
     setting = setting or (
         "trained on 5\\,GB of FineWeb per language"
         + (" (the \\texttt{quick} read-until-full sample, which is not uniform over the "
            "source)" if corpus == "quick" else "")
         + ", 34{,}685 matched total vocabulary, evaluated on held-out Goldfish"
     )
-
-    columns = [*langs, None]                            # trailing Mean pair
-    header = [
-        r"\begin{tabular}{l" + " rr" * len(columns) + "}",
-        r"\toprule",
-        "Scheme "
-        + "".join(rf"& \multicolumn{{2}}{{c}}{{{LANG_LABEL[c] if c else 'Mean'}}} "
-                  for c in columns) + r"\\",
-        " ".join(rf"\cmidrule(lr){{{2 + 2 * i}-{3 + 2 * i}}}" for i in range(len(columns))),
-        " & " + " & ".join([r"{\footnotesize train}", r"{\footnotesize eval}"] * len(columns))
-        + r" \\",
-        r"\midrule",
-    ]
     ordered = all(
         (d := [deltas(cells, lg, arm, tr)[1] for arm in ["bnd_w", "bnd_wp", "bnd_wpd"]])
         and None not in d and d == sorted(d)
         for lg in langs for tr in trainers if (lg, "plain", tr) in cells
     )
+
+    if layout == "mean":
+        lines, means = mean_body(cells, langs, trainers, arms)
+        columns = [TRAINER_LABEL[tr] for tr in trainers]
+        anchor = r"Mean percentage change against \plainscheme{}, "
+    else:
+        lines, means = body(cells, langs, trainers, arms)
+        columns = [LANG_LABEL[lg] for lg in langs] + ["Mean"]
+        anchor = (r"\plainscheme{} is absolute (training-corpus tokens in billions; "
+                  r"evaluation characters per token), every other cell the percentage "
+                  r"change against it within the same block, ")
+    header = [
+        r"\begin{tabular}{l" + " rr" * len(columns) + "}",
+        r"\toprule",
+        "Scheme " + "".join(rf"& \multicolumn{{2}}{{c}}{{{c}}} " for c in columns) + r"\\",
+        " ".join(rf"\cmidrule(lr){{{2 + 2 * i}-{3 + 2 * i}}}" for i in range(len(columns))),
+        " & " + " & ".join([r"{\footnotesize train}", r"{\footnotesize eval}"] * len(columns))
+        + r" \\",
+        r"\midrule",
+    ]
     covered = (
-        r"Means cover the languages complete in that block ("
-        + "; ".join(f"{TRAINER_LABEL[tr]} " + ", ".join(LANG_LABEL[lg] for lg in block)
-                    for tr, block in means.items() if block)
-        + r"). " if any(means.values()) else
-        r"No block is complete across enough languages to average yet. "
+        "; ".join(f"{TRAINER_LABEL[tr]} {len(block)}"
+                  for tr, block in means.items() if block)
+        if any(means.values()) else None
     )
+    # Only a variant that loses a round trip its own baseline keeps is this table's
+    # business, and it never has. The shared counts are the encoding, not the markers.
+    lossy = excess_roundtrip_failures(cells, langs, trainers, arms)
     caption = (
-        r"\caption{Compression, " + setting + r". The \plainscheme{} row is absolute: "
-        r"training-corpus tokens in billions, and evaluation characters per token. Every "
-        r"other cell is the percentage change against the \plainscheme{} row of its own "
-        r"block, signed so that positive is better compression on either corpus. "
-        + (r"\bnds{w} $<$ \bnds{wp} $<$ \bnds{wpd} in every cell. " if ordered else "")
-        + r"Cells the grid has not reached are " + MISSING + r". " + covered
-        + roundtrip_sentence(cells, langs, trainers, arms)
-        + r"}"
-    )
+        r"\caption{Compression, " + setting + r". " + anchor
+        + r"positive meaning better compression. "
+        + (r"\bnds{w} $<$ \bnds{wp} $<$ \bnds{wpd} throughout. " if ordered else "")
+        + (rf"Per-language numbers in Table~\ref{{{detail}}}. " if layout == "mean"
+           else MISSING + r"~marks cells the grid has not reached. ")
+        + (rf"Means over the languages complete for a trainer ({covered}). " if covered else "")
+        + (rf"{lossy} documents fail to round-trip under a variant but not under its "
+           rf"baseline. " if lossy > 0 else "")
+    ).rstrip() + r"}"
     tex = "\n".join([
         "% Generated by marker_experiments/make_intrinsic_table.py. Do not edit.",
         r"% Requires booktabs and the paper's \bnds and \plainscheme macros.",

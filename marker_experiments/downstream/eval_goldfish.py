@@ -145,7 +145,11 @@ def evaluate(args) -> tuple[str, dict]:
         ids = tokenizer.encode(doc)
         chars += len(doc)
         toks += len(ids)
-        if tokenizer.decode(ids) != doc:
+        # Against the normalized text, which is all a round trip can return: the
+        # pretokenizer applies NFC, so e.g. an Arabic shadda/fatha sequence comes back
+        # canonically reordered. Comparing against the raw document counted that as a
+        # loss and made 3.3% of the Arabic slice look broken under every arm alike.
+        if tokenizer.decode(ids) != tokenizer.pretokenizer.normalize(doc):
             fails += 1
     return key, {
         "train_tokens": train_tokens(tokenizer),
