@@ -121,6 +121,7 @@ class BoundaryScriptPretokenizer(ScriptPretokenizer, config_type=BoundaryScriptP
             self.is_initial_char_tokens.add(self.caps_token_id)
         else:
             self.shift_token_id = self.caps_token_id = None
+        self.caps_code_ids = {self.shift_token_id, self.caps_token_id} - {None}
         blocks = self.config.script_config.blocks
         # the ~20 space-using writing systems, as letters
         self.word_script_ids = {b.script_id for b in blocks if b.category == "LM" and b.combines_with_spaces}
@@ -145,15 +146,19 @@ class BoundaryScriptPretokenizer(ScriptPretokenizer, config_type=BoundaryScriptP
         self.digit_token_ids = {tid for tid, txt in self.atomic_tokens.items() if txt.isdigit()}
 
     def _place_caps_code(self, out, code_id):
-        """Put the code inside the span: <|><^>the<|>.
+        """Put the code inside the span, before the markers are applied: <|><^>the<|>.
 
-        Returns (span runs, chunks to emit before the span). This layout keeps the code
-        in the same chunk as the word, so `<|><^>the<|>` is a different chunk from
-        `<|>the<|>` and the trainer learns a separate token for it -- see
-        ExtCapsBoundaryScriptPretokenizer for the layout that actually shares.
+        This layout keeps the code between the opening marker and the word, so the atomic
+        sequence of `<|>the<|>` does not occur anywhere inside it and no piece can ever
+        cover the span alone. The word entry therefore cannot be shared with the
+        lowercase form -- see ExtCapsBoundaryScriptPretokenizer.
         """
         out[0] = [CodeCharEnc(code_id)] + out[0]
-        return out, []
+        return out
+
+    def _place_caps_code_outside(self, out, code_id):
+        """Applied after the markers. A no-op unless the code belongs outside them."""
+        return out
 
     def bpe_merge_allowed(self, a, b) -> bool:
         # No learned token may span an elided-space point. Without this, BPE learns tokens
@@ -340,10 +345,10 @@ class BoundaryScriptPretokenizer(ScriptPretokenizer, config_type=BoundaryScriptP
                 # can carry a marker -- 10 digits under SPLIT, 1110 under RTL3.
                 digits = "".join(c for run in runs for c, _ in run)
                 out = [self.encode_digits([g]) for g in group_digits(digits, self.config.digit_handling)]
-                pre_chunks = []
+                code_id = None
             else:
                 out = [[e for _, e in run] for run in runs]
-                pre_chunks: list = []
+                code_id = None
                 if kind == self.WORD and self.config.caps_codes:
                     text = "".join(c for run in runs for c, _ in run)
                     form = self._caps_form(text)
@@ -355,9 +360,8 @@ class BoundaryScriptPretokenizer(ScriptPretokenizer, config_type=BoundaryScriptP
                         low_runs = [list(g) for _, g in itertools.groupby(low_pairs, key=lambda x: x[1].script_id)]
                         out = [[e for _, e in r] for r in low_runs]
                         code_id = self.shift_token_id if code == "shift" else self.caps_token_id
-                        out, pre_chunks = self._place_caps_code(out, code_id)
+                        out = self._place_caps_code(out, code_id)
             if kind not in marked:
-                chunks.extend(pre_chunks)
                 chunks.extend(out)
                 continue
             if kind == self.WORD:
@@ -370,7 +374,8 @@ class BoundaryScriptPretokenizer(ScriptPretokenizer, config_type=BoundaryScriptP
                 out[0] = [marker] + list(out[0])
             if right:
                 out[-1] = list(out[-1]) + [marker]
-            chunks.extend(pre_chunks)
+            if code_id is not None:
+                out = self._place_caps_code_outside(out, code_id)
             chunks.extend(out)
         return chunks
 
@@ -386,7 +391,7 @@ class ExtCapsBoundaryScriptPretokenizerConfig(BoundaryScriptPretokenizerConfig):
 class ExtCapsBoundaryScriptPretokenizer(
     BoundaryScriptPretokenizer, config_type=ExtCapsBoundaryScriptPretokenizerConfig
 ):
-    """Caps codes OUTSIDE the span, as their own chunk: `<^>` `<|>the<|>`.
+    """Caps codes outside the span's markers, in the same pre-token: `<^><|>the<|>`.
 
     The default layout puts the code inside the delimited span, `<|><^>the<|>`, which is
     a different chunk from `<|>the<|>`. The trainer therefore learns a separate token for
@@ -394,12 +399,18 @@ class ExtCapsBoundaryScriptPretokenizer(
     cell, 4,837 of 21,819 alphabetic entries were the same word in two or three cased
     forms. The scheme cost nothing and bought nothing because it did nothing.
 
-    Here the code is its own chunk, so no merge can ever join it to the word, and the
-    span is byte-identical to the lowercase one. `The` is then exactly `the` plus one
-    code token, which is what sharing an entry means:
+    Here the code sits outside the markers, so the atomic sequence of `<|>the<|>` occurs
+    inside `<^><|>the<|>` as a suffix and the trainer CAN cover the span with the same
+    piece the lowercase form uses:
 
         the   ->  [<|>the<|>]
-        The   ->  [<^>] [<|>the<|>]
+        The   ->  [<^>] [<|>the<|>]    when the merged form is not worth a slot
+
+    It is not forced to. For a word whose title-case form is frequent enough, BPE will
+    still merge the code in and spend an entry on `<^><|>the<|>`, which is the right call
+    when the frequency justifies it. What the layout buys is the option, over the band of
+    words common enough to hold an entry but not common enough in title case to earn a
+    second one. The inside layout does not offer that option at any frequency.
 
     Space elision still applies across the code. Two delimited spans separated only by
     caps codes had a space between them, so decode reads `<|> <^> <|>` as one elided
@@ -407,7 +418,11 @@ class ExtCapsBoundaryScriptPretokenizer(
     """
 
     def _place_caps_code(self, out, code_id):
-        return out, [[CodeCharEnc(code_id)]]
+        return out  # not inside; see _place_caps_code_outside
+
+    def _place_caps_code_outside(self, out, code_id):
+        out[0] = [CodeCharEnc(code_id)] + out[0]
+        return out
 
     def decode(self, tokenization, errors="replace") -> str:
         decoded = ""

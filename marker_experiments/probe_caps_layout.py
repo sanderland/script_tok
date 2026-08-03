@@ -9,12 +9,15 @@ Those are different chunks, so the trainer learns a separate token for the title
 form and the case duplication the codes exist to remove survives. The compression result
 (-0.04%, i.e. nothing) is what a scheme that does nothing looks like.
 
-The extcaps layout puts the code in its own chunk:
+The extcaps layout keeps the code in the same pre-token but moves it outside the markers:
 
-    the  ->  <|>the<|>          The  ->  <^>  <|>the<|>
+    the  ->  <|>the<|>          The  ->  <^><|>the<|>
 
-so no merge can join the code to the word and the span is byte-identical to the lowercase
-one. `The` is `the` plus one code token, which is what sharing an entry means.
+so the lowercase atomic sequence occurs inside the cased one and the trainer MAY cover it
+with the same piece. It is not forced to: merging the code in is the right call for a word
+whose title-case form is frequent enough to earn a slot. What the layout buys is the
+option, over the band of words common enough to hold an entry but not common enough in
+title case to earn a second.
 
 Trains both on one corpus and counts words held in more than one cased form.
 
@@ -84,7 +87,7 @@ def main(
         n_tokens = sum(len(tok.encode(line)) for line in text.split("\n"))
         assert tok.decode(tok.encode(text)) == text, f"{name} does not round-trip"
 
-        label = "code inside the span" if name.endswith("_caps") else "code in its own chunk"
+        label = "code inside the markers" if name.endswith("_caps") else "code outside the markers"
         print(f"{name}  ({label})")
         print(f"   alphabetic word-strings   {len(forms):,}")
         print(f"   held in >1 cased form     {len(dup):,}  "

@@ -40,17 +40,24 @@ def ext():
     return get_boundary_pretokenizer("bnd_wpd_extcaps")
 
 
-def test_code_is_its_own_chunk(ext):
-    assert _chunks(ext, "The cat") == ["<^>", "<|>the<|>", "<|>cat<|>"]
-    assert _chunks(ext, "THE cat") == ["<^^>", "<|>the<|>", "<|>cat<|>"]
+def test_code_sits_outside_the_markers(ext):
+    """Same pre-token as the word, but outside its markers, so the pre-token count is
+    unchanged and no code is stranded as a token of its own."""
+    assert _chunks(ext, "The cat") == ["<^><|>the<|>", "<|>cat<|>"]
+    assert _chunks(ext, "THE cat") == ["<^^><|>the<|>", "<|>cat<|>"]
+    assert len(_chunks(ext, "The cat")) == len(_chunks(ext, "the cat"))
 
 
-def test_word_chunk_is_identical_across_cases(ext):
-    """The property the whole design exists for: one entry serves both cases."""
-    lower = _chunks(ext, "the cat")[0]
-    title = _chunks(ext, "The cat")[1]
-    upper = _chunks(ext, "THE cat")[1]
-    assert lower == title == upper == "<|>the<|>"
+def test_lowercase_span_is_available_as_a_piece(ext):
+    """The property the design exists for: the atomic sequence of the lowercase chunk
+    occurs inside the cased one, so the trainer MAY cover it with the same piece. It is
+    not obliged to -- merging the code in is the right call when frequency justifies it."""
+    lower = [t for c in ext.pretokenize("the") for t in c]
+    title = [t for c in ext.pretokenize("The") for t in c]
+    upper = [t for c in ext.pretokenize("THE") for t in c]
+    assert title[1:] == lower, "title-case span must end with the lowercase sequence"
+    assert upper[1:] == lower
+    assert title[0] == ext.shift_token_id and upper[0] == ext.caps_token_id
 
 
 def test_inside_layout_does_not_share(ext):
@@ -62,7 +69,7 @@ def test_inside_layout_does_not_share(ext):
 
 def test_space_still_elides_across_a_code(ext):
     """Two delimited spans separated only by a code had a space between them."""
-    assert _chunks(ext, "a The b") == ["<|>a<|>", "<^>", "<|>the<|>", "<|>b<|>"]
+    assert _chunks(ext, "a The b") == ["<|>a<|>", "<^><|>the<|>", "<|>b<|>"]
     assert _roundtrip(ext, "a The b") == "a The b"
 
 

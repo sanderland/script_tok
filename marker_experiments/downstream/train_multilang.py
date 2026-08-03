@@ -77,7 +77,10 @@ BRANCH = "claude/fineweb-space-neighbors-k10ufw"
 
 # The four pretokenizers of the compression grid plus the caps variant the downstream runs
 # use, so one grid covers both. Ordered so the cheapest cells finish first.
-DEFAULT_ARMS = "plain,bnd_w,bnd_wp,bnd_wpd,bnd_wpd_caps"
+# bnd_wpd_caps is kept alongside bnd_wpd_extcaps as an ablation: the two differ only in
+# whether the caps code sits inside or outside the span's markers, which decides whether
+# the lowercase entry can be reused at all. Likely dropped once that is measured.
+DEFAULT_ARMS = "plain,bnd_w,bnd_wp,bnd_wpd,bnd_wpd_caps,bnd_wpd_extcaps"
 DEFAULT_LANGS = "en,de,fi,ru,ar,ko"
 TOTAL_VOCAB = 34_685
 
