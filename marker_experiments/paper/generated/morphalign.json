@@ -1,10 +1,58 @@
 {
+  "fineweb_de_5gb_quick_bnd_w_bpe_v34685": {
+    "arm": "bnd_w",
+    "dropped": 0,
+    "lang": "de",
+    "morphalign": 0.35569090094278377,
+    "trainer": "bpe",
+    "words": 16009
+  },
+  "fineweb_de_5gb_quick_bnd_w_mingram_v34685": {
+    "arm": "bnd_w",
+    "dropped": 0,
+    "lang": "de",
+    "morphalign": 0.4814524376467819,
+    "trainer": "mingram",
+    "words": 16009
+  },
+  "fineweb_de_5gb_quick_bnd_wp_bpe_v34685": {
+    "arm": "bnd_wp",
+    "dropped": 0,
+    "lang": "de",
+    "morphalign": 0.3575480516591967,
+    "trainer": "bpe",
+    "words": 16009
+  },
+  "fineweb_de_5gb_quick_bnd_wp_mingram_v34685": {
+    "arm": "bnd_wp",
+    "dropped": 0,
+    "lang": "de",
+    "morphalign": 0.4780075812044695,
+    "trainer": "mingram",
+    "words": 16009
+  },
   "fineweb_de_5gb_quick_bnd_wpd_bpe_v34685": {
     "arm": "bnd_wpd",
     "dropped": 0,
     "lang": "de",
     "morphalign": 0.35835048082965265,
     "trainer": "bpe",
+    "words": 16009
+  },
+  "fineweb_de_5gb_quick_bnd_wpd_caps_bpe_v34685": {
+    "arm": "bnd_wpd_caps",
+    "dropped": 0,
+    "lang": "de",
+    "morphalign": 0.3525226467488234,
+    "trainer": "bpe",
+    "words": 16009
+  },
+  "fineweb_de_5gb_quick_bnd_wpd_caps_mingram_v34685": {
+    "arm": "bnd_wpd_caps",
+    "dropped": 0,
+    "lang": "de",
+    "morphalign": 0.48785506156610775,
+    "trainer": "mingram",
     "words": 16009
   },
   "fineweb_de_5gb_quick_bnd_wpd_extcaps_bpe_v34685": {
@@ -15,6 +63,22 @@
     "trainer": "bpe",
     "words": 16009
   },
+  "fineweb_de_5gb_quick_bnd_wpd_extcaps_mingram_v34685": {
+    "arm": "bnd_wpd_extcaps",
+    "dropped": 0,
+    "lang": "de",
+    "morphalign": 0.4887542662989538,
+    "trainer": "mingram",
+    "words": 16009
+  },
+  "fineweb_de_5gb_quick_bnd_wpd_mingram_v34685": {
+    "arm": "bnd_wpd",
+    "dropped": 0,
+    "lang": "de",
+    "morphalign": 0.48094737643660407,
+    "trainer": "mingram",
+    "words": 16009
+  },
   "fineweb_de_5gb_quick_plain_bpe_v34685": {
     "arm": "plain",
     "dropped": 0,
@@ -22,5 +86,205 @@
     "morphalign": 0.6928639437991644,
     "trainer": "bpe",
     "words": 16009
+  },
+  "fineweb_de_5gb_quick_plain_mingram_v34685": {
+    "arm": "plain",
+    "dropped": 0,
+    "lang": "de",
+    "morphalign": 0.8866564415630881,
+    "trainer": "mingram",
+    "words": 16009
+  },
+  "fineweb_en_5gb_quick_bnd_w_bpe_v34685": {
+    "arm": "bnd_w",
+    "dropped": 0,
+    "lang": "en",
+    "morphalign": 0.21027088249774478,
+    "trainer": "bpe",
+    "words": 27427
+  },
+  "fineweb_en_5gb_quick_bnd_w_mingram_v34685": {
+    "arm": "bnd_w",
+    "dropped": 0,
+    "lang": "en",
+    "morphalign": 0.2306502402096415,
+    "trainer": "mingram",
+    "words": 27427
+  },
+  "fineweb_en_5gb_quick_bnd_wp_bpe_v34685": {
+    "arm": "bnd_wp",
+    "dropped": 0,
+    "lang": "en",
+    "morphalign": 0.21139077917436758,
+    "trainer": "bpe",
+    "words": 27427
+  },
+  "fineweb_en_5gb_quick_bnd_wp_mingram_v34685": {
+    "arm": "bnd_wp",
+    "dropped": 0,
+    "lang": "en",
+    "morphalign": 0.23052872682906553,
+    "trainer": "mingram",
+    "words": 27427
+  },
+  "fineweb_en_5gb_quick_bnd_wpd_bpe_v34685": {
+    "arm": "bnd_wpd",
+    "dropped": 0,
+    "lang": "en",
+    "morphalign": 0.21189539116474942,
+    "trainer": "bpe",
+    "words": 27427
+  },
+  "fineweb_en_5gb_quick_bnd_wpd_caps_bpe_v34685": {
+    "arm": "bnd_wpd_caps",
+    "dropped": 16,
+    "lang": "en",
+    "morphalign": 0.21221783564004348,
+    "trainer": "bpe",
+    "words": 27411
+  },
+  "fineweb_en_5gb_quick_bnd_wpd_caps_mingram_v34685": {
+    "arm": "bnd_wpd_caps",
+    "dropped": 16,
+    "lang": "en",
+    "morphalign": 0.23042301832481754,
+    "trainer": "mingram",
+    "words": 27411
+  },
+  "fineweb_en_5gb_quick_bnd_wpd_extcaps_bpe_v34685": {
+    "arm": "bnd_wpd_extcaps",
+    "dropped": 16,
+    "lang": "en",
+    "morphalign": 0.21469971928382386,
+    "trainer": "bpe",
+    "words": 27411
+  },
+  "fineweb_en_5gb_quick_bnd_wpd_extcaps_mingram_v34685": {
+    "arm": "bnd_wpd_extcaps",
+    "dropped": 16,
+    "lang": "en",
+    "morphalign": 0.23123187082379612,
+    "trainer": "mingram",
+    "words": 27411
+  },
+  "fineweb_en_5gb_quick_bnd_wpd_mingram_v34685": {
+    "arm": "bnd_wpd",
+    "dropped": 0,
+    "lang": "en",
+    "morphalign": 0.2307595672591266,
+    "trainer": "mingram",
+    "words": 27427
+  },
+  "fineweb_en_5gb_quick_plain_bpe_v34685": {
+    "arm": "plain",
+    "dropped": 0,
+    "lang": "en",
+    "morphalign": 0.42385351882954553,
+    "trainer": "bpe",
+    "words": 27427
+  },
+  "fineweb_en_5gb_quick_plain_mingram_v34685": {
+    "arm": "plain",
+    "dropped": 0,
+    "lang": "en",
+    "morphalign": 0.5677393640739298,
+    "trainer": "mingram",
+    "words": 27427
+  },
+  "fineweb_fi_5gb_quick_bnd_w_bpe_v34685": {
+    "arm": "bnd_w",
+    "dropped": 0,
+    "lang": "fi",
+    "morphalign": 1.0669861509298588,
+    "trainer": "bpe",
+    "words": 13929
+  },
+  "fineweb_fi_5gb_quick_bnd_w_mingram_v34685": {
+    "arm": "bnd_w",
+    "dropped": 0,
+    "lang": "fi",
+    "morphalign": 1.1106886964997418,
+    "trainer": "mingram",
+    "words": 13929
+  },
+  "fineweb_fi_5gb_quick_bnd_wp_bpe_v34685": {
+    "arm": "bnd_wp",
+    "dropped": 0,
+    "lang": "fi",
+    "morphalign": 1.066401810802954,
+    "trainer": "bpe",
+    "words": 13929
+  },
+  "fineweb_fi_5gb_quick_bnd_wp_mingram_v34685": {
+    "arm": "bnd_wp",
+    "dropped": 0,
+    "lang": "fi",
+    "morphalign": 1.1116369079980208,
+    "trainer": "mingram",
+    "words": 13929
+  },
+  "fineweb_fi_5gb_quick_bnd_wpd_bpe_v34685": {
+    "arm": "bnd_wpd",
+    "dropped": 0,
+    "lang": "fi",
+    "morphalign": 1.079205793144664,
+    "trainer": "bpe",
+    "words": 13929
+  },
+  "fineweb_fi_5gb_quick_bnd_wpd_caps_bpe_v34685": {
+    "arm": "bnd_wpd_caps",
+    "dropped": 4,
+    "lang": "fi",
+    "morphalign": 1.3360777016397702,
+    "trainer": "bpe",
+    "words": 13925
+  },
+  "fineweb_fi_5gb_quick_bnd_wpd_caps_mingram_v34685": {
+    "arm": "bnd_wpd_caps",
+    "dropped": 4,
+    "lang": "fi",
+    "morphalign": 1.4437294450896796,
+    "trainer": "mingram",
+    "words": 13925
+  },
+  "fineweb_fi_5gb_quick_bnd_wpd_extcaps_bpe_v34685": {
+    "arm": "bnd_wpd_extcaps",
+    "dropped": 4,
+    "lang": "fi",
+    "morphalign": 1.0407660349470276,
+    "trainer": "bpe",
+    "words": 13925
+  },
+  "fineweb_fi_5gb_quick_bnd_wpd_extcaps_mingram_v34685": {
+    "arm": "bnd_wpd_extcaps",
+    "dropped": 4,
+    "lang": "fi",
+    "morphalign": 1.1048591078429668,
+    "trainer": "mingram",
+    "words": 13925
+  },
+  "fineweb_fi_5gb_quick_bnd_wpd_mingram_v34685": {
+    "arm": "bnd_wpd",
+    "dropped": 0,
+    "lang": "fi",
+    "morphalign": 1.1159043421146357,
+    "trainer": "mingram",
+    "words": 13929
+  },
+  "fineweb_fi_5gb_quick_plain_bpe_v34685": {
+    "arm": "plain",
+    "dropped": 0,
+    "lang": "fi",
+    "morphalign": 1.2122203914609513,
+    "trainer": "bpe",
+    "words": 13929
+  },
+  "fineweb_fi_5gb_quick_plain_mingram_v34685": {
+    "arm": "plain",
+    "dropped": 0,
+    "lang": "fi",
+    "morphalign": 1.2227443149701818,
+    "trainer": "mingram",
+    "words": 13929
   }
 }
