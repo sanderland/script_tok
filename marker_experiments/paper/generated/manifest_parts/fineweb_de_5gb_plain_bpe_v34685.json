@@ -1,0 +1,19 @@
+{
+  "fineweb_de_5gb_plain_bpe_v34685": {
+    "additional_vocab_size": 32975,
+    "arm": "plain",
+    "atomic_vocab": 1710,
+    "corpus": "fineweb_de_5gb",
+    "eval_chars": 1404827,
+    "eval_chars_per_token": 3.8164898096681825,
+    "eval_slice": "marker_experiments/eval_texts/de.json",
+    "eval_tokens": 368094,
+    "lang": "de",
+    "overshoot_factor": null,
+    "path": "downstream/tokenizers/fineweb_de_5gb_plain_bpe_v34685.json.gz",
+    "roundtrip_failures": 0,
+    "total_vocab": 34685,
+    "train_seconds": 682,
+    "trainer": "bpe"
+  }
+}

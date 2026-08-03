@@ -1,0 +1,19 @@
+{
+  "fineweb_ar_5gb_bnd_wpd_bpe_v34685": {
+    "additional_vocab_size": 32974,
+    "arm": "bnd_wpd",
+    "atomic_vocab": 1711,
+    "corpus": "fineweb_ar_5gb",
+    "eval_chars": 745245,
+    "eval_chars_per_token": 3.811215096655416,
+    "eval_slice": "marker_experiments/eval_texts/ar.json",
+    "eval_tokens": 195540,
+    "lang": "ar",
+    "overshoot_factor": null,
+    "path": "downstream/tokenizers/fineweb_ar_5gb_bnd_wpd_bpe_v34685.json.gz",
+    "roundtrip_failures": 0,
+    "total_vocab": 34685,
+    "train_seconds": 204,
+    "trainer": "bpe"
+  }
+}
