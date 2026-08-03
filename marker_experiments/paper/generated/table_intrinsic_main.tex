@@ -9,11 +9,12 @@ Scheme & \multicolumn{2}{c}{BPE} & \multicolumn{2}{c}{MinGram} \\
 \cmidrule(lr){2-3} \cmidrule(lr){4-5}
  & {\footnotesize train} & {\footnotesize eval} & {\footnotesize train} & {\footnotesize eval} \\
 \midrule
+\plainscheme & 1.313 & 4.1062 & -- & -- \\
 \bnds{w} & $-8.66$ & $-9.30$ & -- & -- \\
 \bnds{wp} & $-1.77$ & $-2.18$ & -- & -- \\
 \bnds{wpd} & $-0.08$ & $-0.46$ & -- & -- \\
 \bnds{wpdcapsin} & $-0.39$ & $-0.71$ & -- & -- \\
 \bottomrule
 \end{tabular}
-\caption{Compression, trained on 5\,GB of FineWeb per language, 34{,}685 matched total vocabulary, evaluated on held-out Goldfish. Mean percentage change against \plainscheme{}, positive meaning better compression. Per-language numbers in Table~\ref{tab:intrinsic}. Means over the languages complete for a trainer (BPE 6).}
+\caption{Compression, trained on 5\,GB of FineWeb per language, 34{,}685 matched total vocabulary, evaluated on held-out Goldfish. \plainscheme{} is the mean absolute baseline (training-corpus tokens in billions; evaluation characters per token), every other cell the mean percentage change against it, positive meaning better compression. Per-language numbers in Table~\ref{tab:intrinsic}. Means over the languages complete for a trainer (BPE 6).}
 \label{tab:intrinsic-main}

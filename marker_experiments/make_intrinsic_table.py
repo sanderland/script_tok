@@ -182,15 +182,25 @@ def body(cells, langs, trainers, arms):
 def mean_body(cells, langs, trainers, arms):
     """The main-paper layout: one row per scheme, one column pair per trainer, means only.
 
-    No \\plainscheme row. Averaging characters per token across languages would produce a
-    number no language has, and the absolute baselines are one cross-reference away in the
-    per-language table.
+    The \\plainscheme row averages the absolute baselines, which no single language has but
+    which gives the rest of the column its scale; per-language baselines are in the
+    appendix table.
     """
     blocks = {tr: [lg for lg in langs
                    if all((lg, arm, tr) in cells for arm in ["plain", *arms])]
               for tr in trainers}
     blocks = {tr: block if len(block) > 1 else [] for tr, block in blocks.items()}
-    lines = []
+
+    anchors = []
+    for tr in trainers:
+        bases = [cells[(lg, "plain", tr)] for lg in blocks[tr]]
+        for field, digits in (("train_tokens", 3), ("eval_chars_per_token", 4)):
+            values = [b[field] for b in bases if field in b]
+            scale = 1e9 if field == "train_tokens" else 1
+            anchors.append(MISSING if not values
+                           else f"{sum(values) / len(values) / scale:.{digits}f}")
+    lines = [f"{PLAIN_LABEL} & " + " & ".join(anchors) + r" \\"]
+
     for arm in arms:
         row = []
         for tr in trainers:
@@ -276,7 +286,9 @@ def main(
     if layout == "mean":
         lines, means = mean_body(cells, langs, trainers, arms)
         columns = [TRAINER_LABEL[tr] for tr in trainers]
-        anchor = r"Mean percentage change against \plainscheme{}, "
+        anchor = (r"\plainscheme{} is the mean absolute baseline (training-corpus tokens "
+                  r"in billions; evaluation characters per token), every other cell the "
+                  r"mean percentage change against it, ")
     else:
         lines, means = body(cells, langs, trainers, arms)
         columns = [LANG_LABEL[lg] for lg in langs] + ["Mean"]
@@ -315,7 +327,9 @@ def main(
         r"% Requires booktabs and the paper's \bnds and \plainscheme macros.",
         f"% source: {os.path.relpath(results, os.path.dirname(HERE))} ({corpus} corpus)",
         r"\centering",
-        r"\small",
+        # Thirteen columns of a per-language table need \tiny to fit the page width; the
+        # main table has four and stays readable.
+        r"\tiny" if layout == "languages" else r"\small",
         *header, *lines,
         r"\bottomrule",
         r"\end{tabular}",
