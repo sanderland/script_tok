@@ -1,0 +1,63 @@
+{
+  "arms": {
+    "bnd_wpd": {
+      "allcaps_duplicates": 146,
+      "coded_tokens": 0,
+      "examples": [
+        "aar",
+        "abbau",
+        "abend",
+        "abends",
+        "abent"
+      ],
+      "learned_surfaces": 27046,
+      "lowercase_words": 14563,
+      "titlecase_duplicates": 4675
+    },
+    "bnd_wpd_caps": {
+      "allcaps_duplicates": 62,
+      "coded_tokens": 12630,
+      "examples": [
+        "aar",
+        "abb",
+        "abbau",
+        "abdeckung",
+        "abend"
+      ],
+      "learned_surfaces": 26871,
+      "lowercase_words": 14628,
+      "titlecase_duplicates": 4737
+    },
+    "bnd_wpd_extcaps": {
+      "allcaps_duplicates": 56,
+      "coded_tokens": 12593,
+      "examples": [
+        "aar",
+        "abbau",
+        "abdeckung",
+        "abend",
+        "abends"
+      ],
+      "learned_surfaces": 26883,
+      "lowercase_words": 14647,
+      "titlecase_duplicates": 4751
+    },
+    "plain": {
+      "allcaps_duplicates": 199,
+      "coded_tokens": 0,
+      "examples": [
+        "aar",
+        "abbau",
+        "abdeckung",
+        "aben",
+        "abend"
+      ],
+      "learned_surfaces": 28361,
+      "lowercase_words": 15864,
+      "titlecase_duplicates": 4936
+    }
+  },
+  "lang": "de",
+  "min_length": 3,
+  "trainer": "bpe"
+}
