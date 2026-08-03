@@ -17,8 +17,12 @@ paying so that no cell is ever trained twice. This also survives the container l
 working tree mid-run, which is the normal case for long builds here -- on restart the
 committed cells are simply skipped.
 
-    # one language
+    # one language, BPE (the default)
     uv run python marker_experiments/downstream/train_multilang.py --lang en
+
+    # both trainers, and the 1 GB size control against the FineWiki grid
+    uv run python marker_experiments/downstream/train_multilang.py \\
+        --lang en --trainers bpe,mingram --corpus-size 1gb
 
     # the whole grid, in the order the corpora are cheapest to reuse
     uv run python marker_experiments/downstream/train_multilang.py --lang en,de,fi,ru,ar,ko
@@ -72,6 +76,9 @@ BRANCH = "claude/fineweb-space-neighbors-k10ufw"
 DEFAULT_ARMS = "plain,bnd_w,bnd_wp,bnd_wpd,bnd_wpd_caps"
 DEFAULT_LANGS = "en,de,fi,ru,ar,ko"
 TOTAL_VOCAB = 34_685
+# The registry knows fineweb_<lang>_1gb and fineweb_<lang>_5gb. 1gb exists as a
+# wiki-vs-web size control against the 1 GB FineWiki grid.
+CORPUS_SIZES = ("1gb", "5gb")
 
 app = cyclopts.App()
 
@@ -134,6 +141,7 @@ def main(
     lang: str = "en",
     arms: str = DEFAULT_ARMS,
     trainers: str = "bpe",
+    corpus_size: str = "5gb",
     total_vocab: int = TOTAL_VOCAB,
     workers: int = 0,
     overshoot: float = 1.15,
@@ -147,6 +155,10 @@ def main(
         arms: Comma-separated arms. `plain` is the SCRIPT-v3 baseline; the rest are
             boundary variants.
         trainers: Comma-separated trainers: bpe, mingram, or both.
+        corpus_size: 1gb or 5gb. 1gb is the size control against the 1 GB FineWiki grid.
+            Note it does NOT reuse the 5gb scan: the sampled-text cache is keyed on sample
+            size, because a different size selects different documents, so each size pays
+            its own pass over the source.
         total_vocab: Matched total vocabulary. Every cell ends at exactly this size.
         workers: Trainer and corpus-build worker processes. 0 means one per core.
         overshoot: MinGram BPE-init overshoot factor (ignored for bpe).
@@ -154,6 +166,8 @@ def main(
             skipped, so a language with no slice still trains.
         commit: Commit and push each finished cell. Turn off for a local dry run.
     """
+    if corpus_size not in CORPUS_SIZES:
+        raise SystemExit(f"corpus_size must be one of {CORPUS_SIZES}, got {corpus_size!r}")
     os.makedirs(TOKENIZERS, exist_ok=True)
     n_workers = workers or (os.cpu_count() or 4)
     langs = [x.strip() for x in lang.split(",") if x.strip()]
@@ -166,11 +180,12 @@ def main(
         for arm in arm_list          # arm outer, trainer inner: both trainers of an arm
         for tr in trainer_list       # share one pretokenized corpus, which is not cached
     ]                                # across a working-tree wipe.
-    log(f"{len(todo)} cell(s), vocab {total_vocab:,}, {n_workers} workers")
+    log(f"{len(todo)} cell(s), fineweb {corpus_size}, vocab {total_vocab:,}, "
+        f"{n_workers} workers, trainer(s) {'+'.join(trainer_list)}")
 
     done = skipped = 0
     for lg, arm, tr in todo:
-        corpus = f"fineweb_{lg}_5gb"
+        corpus = f"fineweb_{lg}_{corpus_size}"
         key = f"{corpus}_{arm}_{tr}_v{total_vocab}"
         path = os.path.join(TOKENIZERS, f"{key}.json.gz")
         if os.path.exists(path):
