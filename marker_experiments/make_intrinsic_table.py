@@ -328,13 +328,13 @@ def main(
         lines, means = mean_body(cells, langs, trainers, arms)
         columns = [TRAINER_LABEL[tr] for tr in trainers]
         # A third column per trainer: how many languages went into that row's mean.
-        subheads = [r"{\footnotesize train}", r"{\footnotesize eval}", r"{\footnotesize $n$}"]
+        subheads = ["train", "eval", "$n$"]
         anchor = (r"\plainscheme{} is the mean absolute baseline in characters per token, "
                   r"every other cell the mean percentage change against it, ")
     else:
         lines, means = body(cells, langs, trainers, arms)
         columns = [LANG_LABEL[lg] for lg in langs] + ["Mean"]
-        subheads = [r"{\footnotesize train}", r"{\footnotesize eval}"]
+        subheads = ["train", "eval"]
         anchor = (r"\plainscheme{} is absolute characters per token on each corpus, every "
                   r"other cell the percentage change against it within the same block, ")
     width = len(subheads)
