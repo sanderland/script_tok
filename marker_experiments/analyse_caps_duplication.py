@@ -270,6 +270,87 @@ def fragments(
               + (", ".join(f"{t}({len(t)})" for t in longest) or "none"))
 
 
+def render(pt, ids):
+    """One token as readable text, with its markers and codes visible.
+
+    `|` is a boundary marker, `^` a title-case code, `^^` a caps-lock code. Without them
+    the interesting part is invisible: two schemes can spell a word with the same letters
+    and differ entirely in where the codes and markers fall.
+    """
+    marker = getattr(pt, "marker_token_id", None)
+    shift, caps = getattr(pt, "shift_token_id", None), getattr(pt, "caps_token_id", None)
+    out, run = "", []
+    for i in ids:
+        if i in (marker, shift, caps):
+            if run:
+                out += pt.try_decode_strict(run) or "?"
+                run = []
+            out += {marker: "|", shift: "^", caps: "^^"}[i]
+        else:
+            run.append(i)
+    if run:
+        out += pt.try_decode_strict(run) or "?"
+    return out
+
+
+def spelling(tokenizer, word):
+    pt = tokenizer.pretokenizer
+    ids = tokenizer.encode(word)
+    pieces = [render(pt, list(tokenizer.tokens[i].atomic_tokens)) for i in ids]
+    return len(ids), " · ".join(pieces)
+
+
+@app.command
+def spelled(
+    lang: str = "de",
+    corpus: str = "fineweb_{lang}_5gb_quick",
+    vocab: int = 34_685,
+    baseline: str = "plain",
+    variants: str = "bnd_wpd_caps,bnd_wpd_extcaps",
+    trainers: str = "bpe,mingram",
+    examples: int = 6,
+) -> None:
+    """The longest ALLCAPS entries the baseline has and no caps variant does, and how the
+    variants spell them instead.
+
+    These are the words the codes bought a slot back on. What that slot cost is visible
+    only in the spelling: whether the variant still has one entry for the word and adds a
+    code, or has to assemble it from pieces.
+
+    Args:
+        lang: Language code.
+        corpus: Corpus name pattern, `{lang}` substituted.
+        vocab: Matched total vocabulary in the tokenizer filenames.
+        baseline: Arm whose ALLCAPS entries are the starting set.
+        variants: Comma-separated arms that may have dropped them.
+        trainers: Comma-separated trainers, each compared separately.
+        examples: How many words to show per trainer.
+    """
+    def load(arm, trainer):
+        path = os.path.join(TOKENIZERS, f"{corpus.format(lang=lang)}_{arm}_{trainer}_v{vocab}.json.gz")
+        return load_tokenizer(path) if os.path.exists(path) else None
+
+    def allcaps(tok):
+        return {t for t, _ in surfaces(tok) if t.isupper() and t.isalpha() and len(t) > 1}
+
+    variant_arms = [v.strip() for v in variants.split(",") if v.strip()]
+    for trainer in [t.strip() for t in trainers.split(",") if t.strip()]:
+        base = load(baseline, trainer)
+        loaded = {arm: load(arm, trainer) for arm in variant_arms}
+        if base is None or any(t is None for t in loaded.values()):
+            print(f"\n[skip] {trainer}: not every arm is trained yet")
+            continue
+        only = allcaps(base) - set().union(*(allcaps(t) for t in loaded.values()))
+        print(f"\n{lang}/{trainer}: {len(only)} ALLCAPS entries in {baseline} that no variant has\n")
+        for word in sorted(only, key=lambda w: (-len(w), w))[:examples]:
+            n, spelled_base = spelling(base, word)
+            print(f"  {word} ({len(word)} chars)")
+            print(f"    {baseline:<18} {n}  {spelled_base}")
+            for arm, tok in loaded.items():
+                n, text = spelling(tok, word)
+                print(f"    {arm:<18} {n}  {text}")
+
+
 @app.default
 def main(
     lang: str = "de",
