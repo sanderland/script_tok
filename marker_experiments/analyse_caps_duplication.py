@@ -186,6 +186,90 @@ def collapsed(
             print(f"{w.upper():<16}" + "".join(f"{word_cost(t, w.upper()):>18}" for t in loaded.values()))
 
 
+def span_kinds(tokenizer):
+    """Split learned tokens into whole spans and fragments, with their surfaces.
+
+    The markers make this exact rather than heuristic: a token that covers a complete
+    boundary span opens and closes with one, so after the case codes are set aside the
+    first and last atomic tokens are both the marker. Anything else is a piece that only
+    means something with more text either side. `plain` has no markers and cannot be
+    classified this way, which is why it is not compared here.
+    """
+    pt = tokenizer.pretokenizer
+    marker = getattr(pt, "marker_token_id", None)
+    shift, caps = getattr(pt, "shift_token_id", None), getattr(pt, "caps_token_id", None)
+    if marker is None:
+        return None
+
+    whole, fragment = [], []
+    for token in tokenizer.tokens.values():
+        ids = [i for i in token.atomic_tokens if i not in (shift, caps)]
+        if len(list(token.atomic_tokens)) == 1 or not ids:
+            continue
+        code = "shift" if shift in token.atomic_tokens else ("caps" if caps in token.atomic_tokens else None)
+        core = [i for i in ids if i != marker]
+        text = pt.try_decode_strict(core) if core else None
+        if text is None:
+            continue
+        text = text[1:] if text.startswith(" ") else text
+        if code == "shift":
+            text = text[:1].upper() + text[1:]
+        elif code == "caps":
+            text = text.upper()
+        (whole if len(ids) > 1 and ids[0] == marker and ids[-1] == marker else fragment).append(text)
+    return whole, fragment
+
+
+@app.command
+def fragments(
+    lang: str = "de",
+    corpus: str = "fineweb_{lang}_5gb_quick",
+    vocab: int = 34_685,
+    arms: str = "bnd_wpd,bnd_wpd_caps,bnd_wpd_extcaps",
+    trainers: str = "bpe,mingram",
+    examples: int = 6,
+) -> None:
+    """Whole spans versus fragments per arm and trainer, and the ALLCAPS split within them.
+
+    BPE builds a vocabulary by merging outward from characters, so a frequent long word
+    leaves its prefixes behind as entries in their own right. MinGram selects a vocabulary
+    against an objective instead, so a piece has to earn its slot. This checks whether that
+    difference is what puts ALLCAPS fragments like `OSTENLOS` in the vocabulary.
+
+    Args:
+        lang: Language code.
+        corpus: Corpus name pattern, `{lang}` substituted.
+        vocab: Matched total vocabulary in the tokenizer filenames.
+        arms: Comma-separated boundary arms. `plain` cannot be classified and is rejected.
+        trainers: Comma-separated trainers to compare.
+        examples: How many longest ALLCAPS fragments to show.
+    """
+    print(f"\n{lang}, learned tokens by span coverage\n")
+    print(f"{'arm':<18}{'trainer':<10}{'whole':>9}{'fragment':>10}{'frag %':>9}"
+          f"{'CAPS whole':>12}{'CAPS frag':>11}")
+    shown = {}
+    for arm in [a.strip() for a in arms.split(",") if a.strip()]:
+        for trainer in [t.strip() for t in trainers.split(",") if t.strip()]:
+            path = os.path.join(TOKENIZERS, f"{corpus.format(lang=lang)}_{arm}_{trainer}_v{vocab}.json.gz")
+            if not os.path.exists(path):
+                print(f"{arm:<18}{trainer:<10}  not trained yet")
+                continue
+            kinds = span_kinds(load_tokenizer(path))
+            if kinds is None:
+                raise SystemExit(f"{arm} has no markers; only boundary arms can be classified")
+            whole, frag = kinds
+            caps_w = [t for t in whole if t.isupper() and t.isalpha() and len(t) > 1]
+            caps_f = [t for t in frag if t.isupper() and t.isalpha() and len(t) > 1]
+            shown[(arm, trainer)] = caps_f
+            print(f"{arm:<18}{trainer:<10}{len(whole):>9,}{len(frag):>10,}"
+                  f"{100 * len(frag) / (len(whole) + len(frag)):>8.1f}%{len(caps_w):>12,}{len(caps_f):>11,}")
+
+    for (arm, trainer), caps_f in shown.items():
+        longest = sorted(set(caps_f), key=len, reverse=True)[:examples]
+        print(f"\n{arm}/{trainer} longest ALLCAPS fragments: "
+              + (", ".join(f"{t}({len(t)})" for t in longest) or "none"))
+
+
 @app.default
 def main(
     lang: str = "de",
