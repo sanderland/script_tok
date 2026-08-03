@@ -1,15 +1,21 @@
 #!/usr/bin/env python3
-r"""Generate a wide intrinsic-compression table from one grid's evaluation numbers.
+r"""Generate the intrinsic-compression table from one grid's measurements.
 
-One column group per trainer present in the data, each with its own \texttt{plain}
-baseline followed by its variants. A language is one row, so reading across a group gives
-that trainer's whole story and comparing groups answers the question two trainers are
-there to answer -- does the variant ordering survive a change of trainer?
+A scheme is a row, grouped into a block per trainer, and a language is a column pair --
+its training corpus and its held-out evaluation corpus. Transposed relative to the older
+layout, which put a language on a row: with two trainers and five schemes the grid is
+taller than it is wide, and the transposed form has room for both corpora per language
+rather than only the evaluation one.
+
+Nothing is dropped for being incomplete. A cell the grid has not reached is `--`, so a
+trainer that has only started still shows the languages it has, and the table fills in
+place as the grid runs. This is a snapshot of a running experiment, not a finished one.
 
 Two source formats, because the grids they come from are not the same experiment:
 
     marker_experiments/*_result.json           FineWiki grids, keys `<lang>_<arm>_<trainer>`,
-                                               matched *additional* vocabulary (32,768)
+                                               matched *additional* vocabulary (32,768),
+                                               no training-corpus token counts
     paper/generated/eval_goldfish.json         FineWeb 5 GB grid evaluated on held-out
                                                Goldfish, keys `fineweb_<lang>_5gb[_quick]_
                                                <arm>_<trainer>_v<vocab>`, matched *total*
@@ -19,21 +25,32 @@ The format is detected from the keys. The FineWeb grid holds two corpora -- the 
 sample and the `_quick` read-until-full sample -- so it yields one table each, selected
 with `--corpus`.
 
-What is shown is read from the file, not assumed, because these grids fill in cell by cell
-over days on several machines:
+Both corpus columns are a percentage change against the same trainer's `plain`, and both
+are signed so that positive means better compression. On the evaluation corpus that is
+the change in characters per token directly; on the training corpus, where the character
+count is not recorded but is identical across arms of one language, it is the equivalent
+change derived from the token counts.
 
-  * A language appears only if it has \texttt{plain} and every core variant for every
-    trainer shown, so a table never puts one language's numbers beside another's blank.
-  * A trainer earns a column group only if it covers exactly the languages shown.
-  * An optional arm (the \texttt{\_caps} and \texttt{\_extcaps} forms) earns a column only
-    if every language shown has it. Columns therefore appear as the grid fills, and a
-    half-trained arm never silently drops rows.
+Emitted as a `table*` body: thirteen columns do not fit a single ACL column.
 
-Emitted as a `table*` body: nine columns do not fit a single ACL column.
+Needs `booktabs` and the paper's boundary macros. `\bndx` is the external-caps form, which
+the bracket notation can carry for free -- the case marker sits outside the brackets
+exactly as it sits outside the boundary markers:
 
-Needs `booktabs` and the paper's `\bnd` macro:
-
-    \newcommand{\bnd}[1]{\texttt{bnd\_#1}}
+    \colorlet{bndcol}{OliveGreen!75!black}
+    \makeatletter
+    \newcommand{\bnd@key}[1]{\@ifundefined{bnd@#1}{??#1??}{\@nameuse{bnd@#1}}}
+    \@namedef{bnd@w}{w}
+    \@namedef{bnd@wp}{w,p}
+    \@namedef{bnd@wpd}{w,p,d}
+    \@namedef{bnd@wpdcaps}{w,p,d,\textuparrow}
+    % prose
+    \newcommand{\bnd}[1]{\textcolor{bndcol}{{boundary[\bnd@key{#1}]}}}
+    % tables
+    \newcommand{\bnds}[1]{\textcolor{bndcol}{{[\bnd@key{#1}]}}}
+    \newcommand{\bndsx}[1]{\textcolor{bndcol}{{[\bnd@key{#1}]\textuparrow}}}
+    \makeatother
+    \newcommand{\plainscheme}{\textcolor{bndcol}{plain}}
 
     uv run python marker_experiments/make_intrinsic_table.py
     uv run python marker_experiments/make_intrinsic_table.py --corpus quick
@@ -51,27 +68,35 @@ LANG_LABEL = {"en": "English", "de": "German", "fi": "Finnish",
               "ru": "Russian", "ar": "Arabic", "ko": "Korean"}
 LANG_ORDER = ["en", "de", "fi", "ru", "ar", "ko"]
 
-# The three boundary scopes every grid trains. A language without all of them is dropped.
-CORE_ARMS = ["bnd_w", "bnd_wp", "bnd_wpd"]
-# Case-handling forms, each shown next to the scope it modifies, and each only once every
-# language shown has it. `_extcaps` is the canonical case form outside the markers,
-# `_caps` the same thing inside them -- the placement ablation.
+# Every arm the grid trains, in display order: each boundary scope followed by its
+# case-handling forms. `_extcaps` puts the canonical case form outside the markers,
+# `_caps` inside them -- the placement ablation.
 ARM_ORDER = ["bnd_w", "bnd_w_extcaps", "bnd_wp", "bnd_wp_extcaps",
              "bnd_wpd", "bnd_wpd_extcaps", "bnd_wpd_caps"]
-ARM_LABEL = {arm: r"\bnd{" + arm.removeprefix("bnd_").replace("_", r"\_") + "}" for arm in ARM_ORDER}
+ARM_LABEL = {
+    "bnd_w": r"\bnds{w}",
+    "bnd_wp": r"\bnds{wp}",
+    "bnd_wpd": r"\bnds{wpd}",
+    "bnd_wpd_caps": r"\bnds{wpdcaps}",
+    "bnd_w_extcaps": r"\bndsx{w}",
+    "bnd_wp_extcaps": r"\bndsx{wp}",
+    "bnd_wpd_extcaps": r"\bndsx{wpd}",
+}
+PLAIN_LABEL = r"\plainscheme"
 KNOWN_TRAINERS = ["bpe", "mingram"]
 TRAINER_LABEL = {"bpe": "BPE", "mingram": "MinGram"}
+MISSING = "--"
 
 app = cyclopts.App()
 
 
 def read_cells(data, corpus):
-    """(lang, arm, trainer) -> chars/token, for one corpus variant.
+    """(lang, arm, trainer) -> measurement, for one corpus variant.
 
     Handles both source formats. The FineWiki grids have one corpus per file and their
     keys carry no corpus at all, so `corpus` only selects among the FineWeb ones.
     """
-    cells, meta = {}, {}
+    cells = {}
     for key, info in data.items():
         if key.startswith("_"):                        # `_note`, `_common`, ... metadata
             continue
@@ -89,36 +114,83 @@ def read_cells(data, corpus):
             arm, _, trainer = rest.rpartition("_")
         if trainer not in KNOWN_TRAINERS or lang not in LANG_LABEL:
             continue
-        cells[(lang, arm, trainer)] = info["eval_chars_per_token"]
-        meta[(lang, arm, trainer)] = info
-    return cells, meta
+        cells[(lang, arm, trainer)] = info
+    return cells
 
 
 def select(cells):
-    """Which languages, trainers and arms the table can show without gaps.
+    """Languages, trainers and schemes to show: everything the file has, in a fixed order.
 
-    Trainers are taken greedily: the one covering the most languages sets the row set, and
-    another trainer joins only if it covers exactly those languages. A trainer half way
-    through the grid would otherwise cost every language it has not reached yet.
+    Incompleteness costs an entry, never a row or a column -- a trainer one language into
+    the grid still earns its block, and the rest of that block is `--` until it fills.
     """
-    def complete(lang, trainer, arms):
-        return all((lang, arm, trainer) in cells for arm in ["plain", *arms])
-
-    trainers, langs = [], []
-    for candidate in KNOWN_TRAINERS:
-        covered = [lg for lg in LANG_ORDER if complete(lg, candidate, CORE_ARMS)]
-        if len(covered) > len(langs):
-            trainers, langs = [candidate], covered
-        elif covered and covered == langs:
-            trainers.append(candidate)
-    arms = [
-        arm for arm in ARM_ORDER
-        if all((lg, arm, tr) in cells for lg in langs for tr in trainers)
-    ]
+    langs = [lg for lg in LANG_ORDER if any(c[0] == lg for c in cells)]
+    trainers = [tr for tr in KNOWN_TRAINERS if any(c[2] == tr for c in cells)]
+    arms = [arm for arm in ARM_ORDER if any(c[1] == arm for c in cells)]
     return langs, trainers, arms
 
 
-def roundtrip_sentence(meta, langs, trainers, arms):
+def deltas(cells, lang, arm, trainer):
+    """(training, evaluation) percentage change against `plain`, positive = better.
+
+    The training corpus records tokens rather than characters per token, but every arm of
+    a language trains on the same text, so the character count cancels and the change in
+    characters per token is exactly the inverse change in tokens.
+    """
+    base, cell = cells.get((lang, "plain", trainer)), cells.get((lang, arm, trainer))
+    if base is None or cell is None:
+        return None, None
+    train = None
+    if "train_tokens" in base and "train_tokens" in cell:
+        train = 100 * (base["train_tokens"] / cell["train_tokens"] - 1)
+    ev = 100 * (cell["eval_chars_per_token"] / base["eval_chars_per_token"] - 1)
+    return train, ev
+
+
+def fmt(value):
+    return MISSING if value is None else (
+        f"$\\mathbf{{{value:+.2f}}}$" if value > 0 else f"${value:+.2f}$")
+
+
+def body(cells, langs, trainers, arms):
+    """One block per trainer: the absolute `plain` anchors, then a row per variant."""
+    lines, means = [], {}
+    for i, tr in enumerate(trainers):
+        # The mean covers the languages complete for the whole block, so every row in it
+        # averages the same set and the rows stay comparable. Below two languages there is
+        # nothing to average: the column would silently repeat a language already shown.
+        block = [lg for lg in langs
+                 if all((lg, arm, tr) in cells for arm in ["plain", *arms])]
+        block = block if len(block) > 1 else []
+        means[tr] = block
+        if i:
+            lines.append(r"\midrule")
+        lines.append(rf"\multicolumn{{{1 + 2 * (len(langs) + 1)}}}{{l}}"
+                     rf"{{\emph{{{TRAINER_LABEL[tr]}}}}} \\")
+
+        anchors = []
+        for lg in langs:
+            base = cells.get((lg, "plain", tr))
+            anchors.append(MISSING if base is None or "train_tokens" not in base
+                           else f"{base['train_tokens'] / 1e9:.3f}")
+            anchors.append(MISSING if base is None else f"{base['eval_chars_per_token']:.4f}")
+        lines.append(f"{PLAIN_LABEL} & " + " & ".join([*anchors, MISSING, MISSING]) + r" \\")
+
+        for arm in arms:
+            row, totals = [], ([], [])
+            for lg in langs:
+                train, ev = deltas(cells, lg, arm, tr)
+                row += [fmt(train), fmt(ev)]
+                if lg in block:
+                    for acc, value in zip(totals, (train, ev)):
+                        if value is not None:
+                            acc.append(value)
+            row += [fmt(sum(a) / len(a)) if a else MISSING for a in totals]
+            lines.append(f"{ARM_LABEL[arm]} & " + " & ".join(row) + r" \\")
+    return lines, means
+
+
+def roundtrip_sentence(cells, langs, trainers, arms):
     """Report what was measured rather than assert zero.
 
     The FineWiki slices did round-trip cleanly, but a slice drawn from a different corpus
@@ -128,56 +200,27 @@ def roundtrip_sentence(meta, langs, trainers, arms):
     script encoding rather than an effect of the markers, so the two are separated: only
     the amount by which a variant exceeds its baseline is the markers' doing.
     """
-    shown = [(lg, arm, tr) for lg in langs for tr in trainers for arm in ["plain", *arms]]
-    if not max(meta[c]["roundtrip_failures"] for c in shown):
+    shown = [(lg, arm, tr) for lg in langs for tr in trainers for arm in ["plain", *arms]
+             if (lg, arm, tr) in cells]
+    if not max(cells[c]["roundtrip_failures"] for c in shown):
         return rf"No roundtrip failures in any of the {len(shown)} cells."
-    shares = []
+    shares, over = [], 0
     for lg in langs:
-        base = max(meta[(lg, "plain", tr)]["roundtrip_failures"] for tr in trainers)
-        if base:
-            docs = meta[(lg, "plain", trainers[0])]["eval_docs"]
-            shares.append(f"{LANG_LABEL[lg]} {100 * base / docs:.2f}\\%")
-    over = max(meta[c]["roundtrip_failures"] - meta[(c[0], "plain", c[2])]["roundtrip_failures"]
-               for c in shown)
+        bases = [cells[(lg, "plain", tr)] for tr in trainers if (lg, "plain", tr) in cells]
+        worst = max(b["roundtrip_failures"] for b in bases)
+        if worst:
+            shares.append(f"{LANG_LABEL[lg]} {100 * worst / bases[0]['eval_docs']:.2f}\\%")
+    for lg, arm, tr in shown:
+        base = cells.get((lg, "plain", tr))
+        if base is not None:
+            over = max(over, cells[(lg, arm, tr)]["roundtrip_failures"] - base["roundtrip_failures"])
     return (
-        r"The \texttt{plain} baseline itself fails to round-trip part of this slice ("
-        + ", ".join(shares) + r" of documents), which is the base script encoding's "
-        r"handling of that text rather than an effect of the markers; "
+        r"The \plainscheme{} baseline itself fails to round-trip part of the evaluation "
+        r"slice (" + ", ".join(shares) + r" of documents), which is the base script "
+        r"encoding's handling of that text rather than an effect of the markers; "
         + (r"no variant fails on more documents than its own baseline does."
-           if over <= 0 else
-           rf"the worst variant adds {over} failures over its own baseline.")
+           if over <= 0 else rf"the worst variant adds {over} failures over its own baseline.")
     )
-
-
-def main_body(cells, langs, trainers, arms):
-    lines = []
-    deltas = {(tr, arm): [] for tr in trainers for arm in arms}
-    mingram_gain = []
-    for lang in langs:
-        base = {tr: cells[(lang, "plain", tr)] for tr in trainers}
-        row = []
-        for tr in trainers:                      # trainer outer: one contiguous half each
-            row.append(f"{base[tr]:.4f}")        # that half's own plain baseline
-            for arm in arms:
-                # Relative to the baseline in the SAME half. The question is whether the
-                # variant ordering survives the trainer, not how the trainers compare;
-                # the two absolute baselines keep that second comparison recoverable.
-                d = 100 * (cells[(lang, arm, tr)] - base[tr]) / base[tr]
-                deltas[(tr, arm)].append(d)
-                row.append(f"$\\mathbf{{{d:+.2f}}}$" if d > 0 else f"${d:+.2f}$")
-        if {"bpe", "mingram"} <= set(trainers):
-            mingram_gain.append(100 * (base["mingram"] - base["bpe"]) / base["bpe"])
-        lines.append(f"{LANG_LABEL[lang]} & " + " & ".join(row) + r" \\")
-
-    lines.append(r"\midrule")
-    mean = []
-    for tr in trainers:
-        mean.append("")                          # absolute baselines are not averaged
-        for arm in arms:
-            m = sum(deltas[(tr, arm)]) / len(deltas[(tr, arm)])
-            mean.append(f"$\\mathbf{{{m:+.2f}}}$" if m > 0 else f"${m:+.2f}$")
-    lines.append("Mean & " + " & ".join(mean) + r" \\")
-    return lines, mingram_gain
 
 
 @app.default
@@ -188,7 +231,7 @@ def main(
     setting: str | None = None,
     label: str | None = None,
 ) -> None:
-    """Write the wide compression table for one grid.
+    """Write the compression table for one grid.
 
     Args:
         results: A grid result JSON or `eval_goldfish.json`.
@@ -196,80 +239,70 @@ def main(
             `table_intrinsic[_quick].tex` beside the other generated artifacts.
         corpus: `full` or `quick`, for sources holding both. `quick` is the
             read-until-full sample -- useful for iterating, not for reported results.
-        setting: How the corpus and vocabulary are described in the caption. Defaults to
+        setting: How the corpora and vocabulary are described in the caption. Defaults to
             the FineWeb grid's description.
-        label: LaTeX label. Defaults to `tab:intrinsic[_quick]`.
+        label: LaTeX label. Defaults to `tab:intrinsic[-quick]`.
     """
     if corpus not in ("full", "quick"):
         raise SystemExit(f"--corpus must be full or quick, not {corpus!r}")
     with open(results) as f:
         data = json.load(f)
-    cells, meta = read_cells(data, corpus)
+    cells = read_cells(data, corpus)
     langs, trainers, arms = select(cells)
-    if not trainers:
-        raise SystemExit(f"no trainer in {results} ({corpus}) covers a language completely")
-    body, mingram_gain = main_body(cells, langs, trainers, arms)
+    if not langs:
+        raise SystemExit(f"no usable cells in {results} ({corpus} corpus)")
+    lines, means = body(cells, langs, trainers, arms)
 
     out = out or os.path.join(GENERATED, f"table_intrinsic{'_quick' if corpus == 'quick' else ''}.tex")
     label = label or f"tab:intrinsic{'-quick' if corpus == 'quick' else ''}"
     setting = setting or (
-        "5\\,GB of FineWeb per language"
+        "trained on 5\\,GB of FineWeb per language"
         + (" (the \\texttt{quick} read-until-full sample, which is not uniform over the "
            "source)" if corpus == "quick" else "")
-        + ", evaluated on held-out Goldfish, 34{,}685 matched total vocabulary"
+        + ", 34{,}685 matched total vocabulary, evaluated on held-out Goldfish"
     )
 
-    # One group per trainer, each spanning its baseline plus its variants.
-    width = 1 + len(arms)
+    columns = [*langs, None]                            # trailing Mean pair
     header = [
-        r"\begin{tabular}{l" + (" " + "r" * width) * len(trainers) + "}",
+        r"\begin{tabular}{l" + " rr" * len(columns) + "}",
         r"\toprule",
-        "".join(rf"& \multicolumn{{{width}}}{{c}}{{{TRAINER_LABEL[t]}}} " for t in trainers)
-        + r"\\",
-        " ".join(
-            rf"\cmidrule(lr){{{2 + i * width}-{1 + (i + 1) * width}}}"
-            for i in range(len(trainers))
-        ),
-        "Language & "
-        + " & ".join(
-            cell for _ in trainers
-            for cell in ["\\texttt{plain}", *(ARM_LABEL[a] for a in arms)]
-        )
+        "Scheme "
+        + "".join(rf"& \multicolumn{{2}}{{c}}{{{LANG_LABEL[c] if c else 'Mean'}}} "
+                  for c in columns) + r"\\",
+        " ".join(rf"\cmidrule(lr){{{2 + 2 * i}-{3 + 2 * i}}}" for i in range(len(columns))),
+        " & " + " & ".join([r"{\footnotesize train}", r"{\footnotesize eval}"] * len(columns))
         + r" \\",
-        r" & " + " & ".join(
-            cell for _ in trainers
-            for cell in ["{\\footnotesize ch/tok}", *([r"{\footnotesize \%}"] * len(arms))]
-        ) + r" \\",
         r"\midrule",
     ]
-    gains = ", ".join(
-        f"{LANG_LABEL[lang]} ${g:+.2f}\\%$" for lang, g in zip(langs, mingram_gain)
-    )
     ordered = all(
-        cells[(lg, a, tr)] < cells[(lg, b, tr)]
-        for lg in langs for tr in trainers
-        for a, b in zip(CORE_ARMS, CORE_ARMS[1:])
+        (d := [deltas(cells, lg, arm, tr)[1] for arm in ["bnd_w", "bnd_wp", "bnd_wpd"]])
+        and None not in d and d == sorted(d)
+        for lg in langs for tr in trainers if (lg, "plain", tr) in cells
+    )
+    covered = (
+        r"Means cover the languages complete in that block ("
+        + "; ".join(f"{TRAINER_LABEL[tr]} " + ", ".join(LANG_LABEL[lg] for lg in block)
+                    for tr, block in means.items() if block)
+        + r"). " if any(means.values()) else
+        r"No block is complete across enough languages to average yet. "
     )
     caption = (
-        r"\caption{Compression, " + setting + r". "
-        r"Baseline is \texttt{plain} in characters per token; each variant is the "
-        r"percentage change against "
-        + (r"\emph{its own trainer's} baseline, so the columns ask whether the variant "
-           r"ordering survives a change of trainer rather than how the trainers compare. "
-           if len(trainers) > 1 else r"that baseline. ")
-        + (r"\bnd{w} $<$ \bnd{wp} $<$ \bnd{wpd} in every cell. " if ordered else "")
-        + (r"MinGram compresses the baseline better than BPE in every language ("
-           + gains + r"). " if len(trainers) > 1 and all(g > 0 for g in mingram_gain) else "")
-        + roundtrip_sentence(meta, langs, trainers, arms)
+        r"\caption{Compression, " + setting + r". The \plainscheme{} row is absolute: "
+        r"training-corpus tokens in billions, and evaluation characters per token. Every "
+        r"other cell is the percentage change against the \plainscheme{} row of its own "
+        r"block, signed so that positive is better compression on either corpus. "
+        + (r"\bnds{w} $<$ \bnds{wp} $<$ \bnds{wpd} in every cell. " if ordered else "")
+        + r"Cells the grid has not reached are " + MISSING + r". " + covered
+        + roundtrip_sentence(cells, langs, trainers, arms)
         + r"}"
     )
     tex = "\n".join([
         "% Generated by marker_experiments/make_intrinsic_table.py. Do not edit.",
-        r"% Requires booktabs and \newcommand{\bnd}[1]{\texttt{bnd\_#1}}.",
+        r"% Requires booktabs and the paper's \bnds, \bndsx and \plainscheme macros.",
         f"% source: {os.path.relpath(results, os.path.dirname(HERE))} ({corpus} corpus)",
         r"\centering",
         r"\small",
-        *header, *body,
+        *header, *lines,
         r"\bottomrule",
         r"\end{tabular}",
         caption,
@@ -279,13 +312,12 @@ def main(
     os.makedirs(os.path.dirname(out), exist_ok=True)
     with open(out, "w") as f:
         f.write(tex)
+    total = len(langs) * len(trainers) * (1 + len(arms))
+    filled = sum(1 for lg in langs for tr in trainers for arm in ["plain", *arms]
+                 if (lg, arm, tr) in cells)
     print(f"[tex] {out}")
-    print(f"[tex] {len(langs)} language(s): {', '.join(langs)}"
-          f"  trainer(s): {', '.join(trainers)}  arm(s): plain, {', '.join(arms)}")
-    dropped = sorted({(lg, tr) for lg, _, tr in cells if lg not in langs or tr not in trainers})
-    if dropped:
-        print("[tex] incomplete, not shown: "
-              + ", ".join(f"{lg}/{tr}" for lg, tr in dropped))
+    print(f"[tex] {filled}/{total} cells: {len(langs)} language(s), "
+          f"trainer(s) {', '.join(trainers)}, scheme(s) plain, {', '.join(arms)}")
 
 
 if __name__ == "__main__":

@@ -122,6 +122,20 @@ def slice_hash(docs: list[str]) -> str:
     return h.hexdigest()[:16]
 
 
+def train_tokens(tokenizer) -> int:
+    """Tokens the tokenizer's own training corpus takes, read from the saved model.
+
+    Not measured here, and it does not need to be: both trainers already record it.
+    MinGram writes `total_tokens` into its metadata, and BPE maintains a per-token
+    `current_count` -- decremented for both constituents and set for the new token on
+    every merge -- so at the end of training the counts sum to exactly the corpus token
+    count under the final vocabulary. Re-deriving either would cost a pass over a 5 GB
+    corpus per arm.
+    """
+    total = tokenizer.metadata.get("total_tokens")
+    return total if total is not None else sum(t.current_count for t in tokenizer.tokens.values())
+
+
 def evaluate(args) -> tuple[str, dict]:
     key, path, lang = args
     tokenizer = load_tokenizer(path)
@@ -134,6 +148,7 @@ def evaluate(args) -> tuple[str, dict]:
         if tokenizer.decode(ids) != doc:
             fails += 1
     return key, {
+        "train_tokens": train_tokens(tokenizer),
         "eval_corpus": f"goldfish:{GOLDFISH_FILE[lang]}",
         "eval_docs": len(docs),
         "eval_chars": chars,
