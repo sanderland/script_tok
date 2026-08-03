@@ -77,10 +77,18 @@ BRANCH = "claude/fineweb-space-neighbors-k10ufw"
 
 # The four pretokenizers of the compression grid plus the caps variant the downstream runs
 # use, so one grid covers both. Ordered so the cheapest cells finish first.
-# bnd_wpd_caps is kept alongside bnd_wpd_extcaps as an ablation: the two differ only in
-# whether the caps code sits inside or outside the span's markers, which decides whether
-# the lowercase entry can be reused at all. Likely dropped once that is measured.
-DEFAULT_ARMS = "plain,bnd_w,bnd_wp,bnd_wpd,bnd_wpd_caps,bnd_wpd_extcaps"
+# Each boundary variant is paired with its extcaps form, so the cost of a canonical case
+# form can be read off at every scope rather than only at the full one. Only bnd_wpd_caps
+# carries the inside-the-markers placement, as the ablation that shows why the placement
+# matters -- the other two would add nothing, since the finding does not depend on scope,
+# and it is likely dropped once measured.
+DEFAULT_ARMS = (
+    "plain,"
+    "bnd_w,bnd_w_extcaps,"
+    "bnd_wp,bnd_wp_extcaps,"
+    "bnd_wpd,bnd_wpd_extcaps,"
+    "bnd_wpd_caps"
+)
 # Both trainers by default: the grid is the intrinsic comparison as well as the source of
 # downstream tokenizers, and a BPE-only grid cannot answer whether the variant ordering
 # survives a change of trainer. Cells are ordered arm-major, so an arm's two trainers run
