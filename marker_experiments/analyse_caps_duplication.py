@@ -98,6 +98,94 @@ def count_pairs(tokenizer, min_length):
     }
 
 
+def word_cost(tokenizer, word, carrier=("Das ", " ist gut.")):
+    """Tokens the word costs inside a carrier phrase, space included.
+
+    Measured as a difference rather than by encoding the word alone, because the boundary
+    schemes elide the space between adjacent spans: a bare word is not the input any arm
+    is built for, and the leading-space entry `plain` would use never gets hit.
+    """
+    with_word = len(tokenizer.encode(carrier[0] + word + carrier[1]))
+    without = len(tokenizer.encode(carrier[0].rstrip() + carrier[1]))
+    return with_word - without
+
+
+def allcaps_pairs(tokenizer, min_length):
+    seen = {text for text, _ in surfaces(tokenizer)}
+    return {t for t in seen
+            if t.islower() and t.isalpha() and len(t) >= min_length and t.upper() in seen}
+
+
+@app.command
+def collapsed(
+    lang: str = "de",
+    trainer: str = "bpe",
+    corpus: str = "fineweb_{lang}_5gb_quick",
+    vocab: int = 34_685,
+    min_length: int = 3,
+    baseline: str = "plain",
+    variants: str = "bnd_wpd_caps,bnd_wpd_extcaps",
+    reference: str = "bnd_wpd",
+    examples: int = 8,
+) -> None:
+    """What the case codes collapsed, and what those words cost once collapsed.
+
+    The baseline spends two entries on a word it also has in ALLCAPS. Where a caps variant
+    no longer does, that slot came back -- but the ALLCAPS form still has to be spelled,
+    and this reports what it now costs in tokens. Also lists the longest surviving ALLCAPS
+    surface per arm, which is where a scheme is still paying for a whole word.
+
+    Args:
+        lang: Language code.
+        trainer: `bpe` or `mingram`.
+        corpus: Corpus name pattern, `{lang}` substituted.
+        vocab: Matched total vocabulary in the tokenizer filenames.
+        min_length: Shortest surface to count, in characters.
+        baseline: Arm whose ALLCAPS pairs are the starting set.
+        variants: Comma-separated arms that may have collapsed them.
+        reference: Arm costed alongside but excluded from the collapse set -- the same
+            boundary scheme without caps codes, so the codes' share of any cost change is
+            separable from the markers'.
+        examples: How many longest-ALLCAPS surfaces to show per arm.
+    """
+    variant_arms = [v.strip() for v in variants.split(",") if v.strip()]
+    arms = [baseline, *([reference] if reference else []), *variant_arms]
+    loaded = {}
+    for arm in arms:
+        path = os.path.join(TOKENIZERS, f"{corpus.format(lang=lang)}_{arm}_{trainer}_v{vocab}.json.gz")
+        if not os.path.exists(path):
+            print(f"[skip] {arm}: not trained yet")
+            continue
+        loaded[arm] = load_tokenizer(path)
+    if baseline not in loaded:
+        raise SystemExit(f"{baseline} not available")
+
+    pairs = {arm: allcaps_pairs(tok, min_length) for arm, tok in loaded.items()}
+    collapsing = [a for a in variant_arms if a in pairs]
+    survivors = set().union(*(pairs[a] for a in collapsing)) if collapsing else set()
+    gone = sorted(pairs[baseline] - survivors)
+    print(f"\n{lang}/{trainer}: {len(pairs[baseline])} ALLCAPS pairs in {baseline}, "
+          f"{len(gone)} collapsed by every variant, {len(pairs[baseline]) - len(gone)} surviving somewhere\n")
+
+    print(f"{'arm':<18}{'ALLCAPS cost':>14}{'lowercase cost':>16}{'pairs left':>12}")
+    for arm, tok in loaded.items():
+        up = [word_cost(tok, w.upper()) for w in gone]
+        low = [word_cost(tok, w) for w in gone]
+        print(f"{arm:<18}{sum(up) / len(up):>14.2f}{sum(low) / len(low):>16.2f}{len(pairs[arm]):>12,}")
+
+    for arm, tok in loaded.items():
+        longest = sorted({t for t, _ in surfaces(tok) if t.isupper() and t.isalpha() and len(t) > 1},
+                         key=len, reverse=True)[:examples]
+        print(f"\n{arm} longest ALLCAPS: " + ", ".join(f"{t}({len(t)})" for t in longest))
+
+    sample = gone[:examples]
+    if sample:
+        print(f"\ncost of the ALLCAPS form, {examples} collapsed words:")
+        print(f"{'word':<16}" + "".join(f"{a:>18}" for a in loaded))
+        for w in sample:
+            print(f"{w.upper():<16}" + "".join(f"{word_cost(t, w.upper()):>18}" for t in loaded.values()))
+
+
 @app.default
 def main(
     lang: str = "de",
