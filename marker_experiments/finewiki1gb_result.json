@@ -586,5 +586,26 @@
     "space_dup_vocab_frac": 0.00023202529075669247,
     "marker_variant_extra_slots": 166,
     "whitespace_only_vocab_entries": 26
+  },
+  "de_plain_mingram": {
+    "lang": "de",
+    "pretokenizer": "plain",
+    "method": "mingram",
+    "additional_vocab_size": 32768,
+    "vocab_size": 34477,
+    "train_seconds": 1537,
+    "train_chars": 2003480936,
+    "unique_chunks": 3685274,
+    "eval_docs": 500,
+    "eval_chars": 1404827,
+    "eval_tokens": 335088,
+    "eval_chars_per_token": 4.192412142481975,
+    "roundtrip_failures": 0,
+    "tokenizer_file": "marker_experiments/tokenizers/de_plain_mingram_32k.json.gz",
+    "distinct_alpha_words_with_own_token": 27901,
+    "space_dup_pairs": 3232,
+    "space_dup_vocab_frac": 0.1874873103808336,
+    "marker_variant_extra_slots": 0,
+    "whitespace_only_vocab_entries": 22
   }
 }
