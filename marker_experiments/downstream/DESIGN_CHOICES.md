@@ -289,6 +289,136 @@ CORE column was driven by a hardcoded arm list rather than by the data; `run_arm
 called `train_matched.py` without `--manifest-path`; and the Triton compile cache defaulted
 to a home-directory path shared by all 12 nodes.
 
+## Experiments beyond the README's scope
+
+The README describes one English downstream comparison. Three things were added.
+
+### Robustness checks on the downstream result
+
+Six seeds for `bnd_wpd` rather than three, and a 32-shard single-epoch rerun of `plain` and
+`bnd_wpd`. The first tests whether three seeds is enough (the mean moves 0.10 standard
+deviations, so it is). The second tests whether the result depends on training 3.4 to 3.6
+passes over the same 2 GB, which suppresses the mechanism better compression is supposed to
+exploit (the gap holds, +0.00532 to +0.00497). Both are reported in the appendix, generated
+from the TSVs by `make_tex_tables.py`.
+
+The 32-shard runs used their own `NANOCHAT_BASE` and `OUT`. The loader consumes every shard
+except the last, so adding shards to the shared directory would silently have changed what
+an 8-shard run trains on.
+
+### The unified multilingual grid
+
+`train_multilang.py`, written by the project owner, trains one grid that the compression
+tables and the downstream tables can both read: 5 arms per language, FineWeb 5 GB, total
+vocabulary 34,685. Until now the compression grids used FineWiki 1 GB at fixed
+`additional_vocab_size=32768` while the downstream arms used FineWeb 5 GB at fixed total
+vocabulary, so the two sets of numbers in the paper were not about the same tokenizers.
+
+Its concurrency safety is unique filenames per cell, which protects several machines each
+with its own clone but not several jobs sharing one checkout, as on a cluster. Every cell
+here therefore ran with `--no-commit` and one commit collects the results. `commit_cell`
+also pushes to `origin`, where this account has no write access, so the in-job push would
+have failed in any case; `--no-commit` sidesteps that rather than fixing it, and the fix is
+not part of this branch.
+
+21 cells were trained: `de`, `fi`, `ru`, `ar` at 5 arms each, plus the last English cell
+`bnd_wp`. Jobs 2989992-95 on four nodes, five or six cells concurrently per node at 46
+workers each, all COMPLETED with `fail=0` in 2h54m to 3h20m. Each cell was invoked as
+
+    train_multilang.py --lang <lang> --arms <arm> --trainers bpe --workers 46 --no-commit
+
+`--trainers bpe` is passed explicitly. The script's default has since become both trainers,
+so a rerun without that flag would not reproduce these cells.
+
+With the four English arms already present this makes 25: 5 languages by 5 arms, every one
+at total vocabulary 34,685 with 0 round-trip failures, checked from the manifest fragments
+rather than asserted.
+
+Korean was trained by the project owner separately and is not part of this run.
+
+### MinGram downstream
+
+The downstream comparison was BPE only. `plain` and `bnd_wpd` were repeated with the MinGram
+trainer to test whether the conclusion is specific to greedy merge training. Two arms rather
+than four, because `plain` against `bnd_wpd` is the comparison that carries the claim:
+`bnd_wpd` is the arm whose gain cannot come from spending more forward passes per byte.
+
+It reproduces. Validation bits per true byte, seeds 0 to 2, mean and sample standard
+deviation, with the BPE runs restricted to the same three seeds:
+
+| trainer | plain | bnd_wpd |
+|---|---|---|
+| bpe | 0.885315 (0.000312) | 0.879999 (0.000487) |
+| mingram | 0.883694 (0.000808) | 0.880507 (0.000625) |
+
+Paired by seed, `plain` minus `bnd_wpd`, positive meaning `bnd_wpd` is lower: BPE +0.005317
+with SE 0.000319, t(2) = 16.7; MinGram +0.003187 with SE 0.000209, t(2) = 15.2. The
+direction holds under MinGram and the size is 60% of the BPE difference. Both sweeps are
+paired the same way, one training-data-order permutation per seed shared across arms.
+
+Jobs 2990349 and 2990350, four runs and two runs on one node each, COMPLETED in 2h01m35s
+and 1h57m59s. The rows are in `paper/generated/results_mingram.tsv`, kept out of
+`results.tsv` because `arm` is the grouping key everywhere downstream and does not carry the
+trainer, so one file holding both would average a BPE and a MinGram tokenizer into a single
+mean per arm. `collect_results.py` now refuses a log directory that mixes trainers.
+
+CORE was scored for `plain` only, as in the BPE sweep. `plain` MinGram CORE is 0.1461,
+0.1340 and 0.1388 against 0.1364, 0.1407 and 0.1380 for `plain` BPE. CORE resolves no
+direction at this seed count in either sweep.
+
+MinGram does not take an existing vocabulary. It trains its own BPE at
+`additional_vocab_size * overshoot_factor` and prunes down with EM, so these are full
+retrains rather than a transformation of the BPE tokenizers. The pretokenized corpus is
+reused, since it keys on the pretokenizer hash and MinGram uses the same pretokenizer for a
+given arm.
+
+`mingram_preflight.py` must pass before any GPU time. It checks the vocabulary is exactly
+34,685 (MinGram prunes down to a target, so stopping early is a real failure mode that BPE
+does not have), round-trip on the held-out slice, chars/token within 8% of the BPE tokenizer
+for the same arm, that only BOS carries zero bytes, and the CORE prefix property. That last
+one is measured rather than inherited: `run_arms.sh`'s `CORE_SAFE_ARMS` default was measured
+on BPE tokenizers, and MinGram segments with a dynamic program instead of greedy merge
+replay, so an arm CORE-safe under BPE need not be under MinGram. The preflight is itself
+validated against the BPE tokenizers, whose answers are known: `plain` 0/180 aborts and
+`bnd_wpd` 142/180, matching the earlier measurement.
+
+## Scheduling on this account
+
+There are no CPU-only nodes on a0229. Every node carries 4 GPUs and a node-hour bills as 4
+GPU-hours whether or not a GPU is touched, so a layout that looks like full use of a node can
+be pure waste. Tokenizer training here is entirely CPU.
+
+The first multilingual grid layout ran one cell per node across 26 nodes, spending 104
+GPU-hours per wall-clock hour to run no GPU work. `cluster/pack_cells.sbatch` now runs
+several cells concurrently on one node at `(288-8)/N` workers each, which cut that to 4
+nodes.
+
+Packing is not automatically cheaper. If the work scaled perfectly with cores, N cells on one
+node would take N times as long and cost identical node-hours. It pays here only because a
+single cell cannot saturate 288 cores: corpus building alternates parallel encode with a
+serial merge in the parent, measured at 91% of one core with every worker idle.
+
+### The downstream LM runs are GPU-bound
+
+`cluster/run_one.sbatch` gave a whole node to each downstream run, on the reasoning that
+`script_bpe.encode` is pure Python and so wall-clock is set by how many cores one run gets.
+The completed BPE runs measure otherwise. `plain` and `bnd_wpd` both run 2553 steps; mean
+per-step time is 1406 ms and 1774 ms, mean `bf16_mfu` is 34.4% and 27.5%, and per-step time
+rises and falls with MFU. No line in either log reports a dataloader stall. The 30-minute
+wall-clock difference between the two arms is the eval configuration, not the data path:
+`plain` is scored on CORE and bits-per-byte and spends 53.7 minutes on the 22 CORE tasks,
+`bnd_wpd` is scored on bits-per-byte alone and spends 3.0 minutes.
+
+`cluster/pack_runs.sbatch` therefore runs up to 4 downstream runs on one node, one GPU each
+through `CUDA_VISIBLE_DEVICES`, splitting the cores through a new `ENCODE_WORKERS` variable
+that becomes `run_downstream_eval.py --encode-workers`. Left unset that flag defaults to
+`cpu_count - 1`, which four co-resident runs would turn into 1148 worker processes on 288
+cores.
+
+Whether 70 workers per run still supply tokens fast enough to leave per-step time unchanged
+is not measured. The per-step `dt` line makes it visible within minutes of a job starting;
+the solo figures to compare against are 1406 ms for `plain` and 1774 ms for `bnd_wpd`.
+
 ## Constants introduced
 
 - `script_bpe/utils.py`: `WORKER_JOIN_TIMEOUT_S = 60`. Seconds to wait for workers to exit
