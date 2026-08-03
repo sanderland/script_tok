@@ -23,7 +23,10 @@ SEEDS=${SEEDS:-0}
 # against bnd_wp 311/512, bnd_wpd 399/512, bnd_wpd_caps 399/512. Any arm not listed here
 # is scored on bpb alone, because base_eval raises on the first violation and the run then
 # reports nothing at all, bpb included.
-CORE_SAFE_ARMS=${CORE_SAFE_ARMS:-plain bnd_w}
+# `-` and not `:-`: a sweep whose every arm fails the prefix property sets this to the
+# empty string, and `:-` would silently substitute the default and score those arms on
+# CORE anyway. Unset still means the default.
+CORE_SAFE_ARMS=${CORE_SAFE_ARMS-plain bnd_w}
 TRAINER=${TRAINER:-bpe}
 CORPUS=${CORPUS:-fineweb_en_5gb}
 VOCAB=${VOCAB:-34685}
@@ -32,6 +35,11 @@ GPUS=${GPUS:-1}
 NUM_SHARDS=${NUM_SHARDS:-8}
 TRAIN_WORKERS=${TRAIN_WORKERS:-$(nproc)}
 SMOKE=${SMOKE:-0}
+# On-the-fly encode processes per run. run_downstream_eval defaults this to
+# (cpu_count - gpus) / gpus, which claims the whole node for one run: correct for one run
+# per node, ~3x oversubscribed when three runs share a node on separate GPUs. Set it when
+# packing. Encoding is a pure function of the text, so this changes speed only.
+ENCODE_WORKERS=${ENCODE_WORKERS:-}
 # Appended to every run tag. Set it when a run differs from the default configuration in a
 # way the tag would otherwise hide, e.g. TAG_SUFFIX=_n32 for a 32-shard data regime, so the
 # two do not share a log, a checkpoint directory or a row in the TSV.
@@ -93,6 +101,8 @@ for arm in "${ARM_LIST[@]}"; do
     echo "-- $tag -> $log (eval: $eval_modes)"
     smoke_flag=()
     [[ "$SMOKE" == "1" ]] && smoke_flag=(--smoke)
+    encode_flag=()
+    [[ -n "$ENCODE_WORKERS" ]] && encode_flag=(--encode-workers "$ENCODE_WORKERS")
     uv run python paper_utils/hybrid/downstream/run_downstream_eval.py \
         --tokenizer-path "$tok" \
         --tokenizer-class "$DOTTED" \
@@ -101,18 +111,24 @@ for arm in "${ARM_LIST[@]}"; do
         --num-shards "$NUM_SHARDS" \
         --base-dir "$NANOCHAT_BASE" \
         --eval-modes "$eval_modes" \
-        "${smoke_flag[@]}" 2>&1 | tee "$log"
+        "${encode_flag[@]}" "${smoke_flag[@]}" 2>&1 | tee "$log"
   done
 done
 
 echo "== collecting"
-# Two destinations on purpose: $OUT keeps the run's own record next to its logs, and the
-# paper artifact directory holds the copy the table and figure generators read.
-GENERATED="marker_experiments/paper/generated"
-mkdir -p "$GENERATED"
+# Skipped for a sweep whose TSV covers one arm only: these paper artifacts are tracked
+# and carry the main BPE results, and a partial TSV would overwrite them.
+# Always collected: the sweep's own TSV is its record.
 uv run python marker_experiments/downstream/collect_results.py --logs-dir "$OUT/logs" --out "$OUT/results.tsv"
-cp "$OUT/results.tsv" "$GENERATED/results.tsv"
-# Non-fatal: both also need manifest.json and text_stats.json, which a sweep that only ran
-# the LM leg has not produced. A missing table is not a reason to fail a finished sweep.
-uv run python marker_experiments/downstream/make_tex_tables.py || echo "  (tables skipped)"
-uv run python marker_experiments/downstream/make_figures.py || echo "  (figures skipped)"
+
+if [[ "${SKIP_PAPER_ARTIFACTS:-0}" != "1" ]]; then
+  # Two destinations on purpose: $OUT keeps the run's own record next to its logs, and the
+  # paper artifact directory holds the copy the table and figure generators read.
+  GENERATED="marker_experiments/paper/generated"
+  mkdir -p "$GENERATED"
+  cp "$OUT/results.tsv" "$GENERATED/results.tsv"
+  # Non-fatal: both also need manifest.json and text_stats.json, which a sweep that only ran
+  # the LM leg has not produced. A missing table is not a reason to fail a finished sweep.
+  uv run python marker_experiments/downstream/make_tex_tables.py || echo "  (tables skipped)"
+  uv run python marker_experiments/downstream/make_figures.py || echo "  (figures skipped)"
+fi
