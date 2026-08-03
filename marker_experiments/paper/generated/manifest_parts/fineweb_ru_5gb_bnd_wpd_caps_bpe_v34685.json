@@ -1,0 +1,19 @@
+{
+  "fineweb_ru_5gb_bnd_wpd_caps_bpe_v34685": {
+    "additional_vocab_size": 32972,
+    "arm": "bnd_wpd_caps",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_ru_5gb",
+    "eval_chars": 1894911,
+    "eval_chars_per_token": 3.4959071059724707,
+    "eval_slice": "marker_experiments/eval_texts/ru.json",
+    "eval_tokens": 542037,
+    "lang": "ru",
+    "overshoot_factor": null,
+    "path": "downstream/tokenizers/fineweb_ru_5gb_bnd_wpd_caps_bpe_v34685.json.gz",
+    "roundtrip_failures": 0,
+    "total_vocab": 34685,
+    "train_seconds": 236,
+    "trainer": "bpe"
+  }
+}

@@ -121,6 +121,16 @@ def main(logs_dir: str, out: str = "results.tsv") -> None:
     if not rows:
         raise SystemExit(f"no finished runs in {logs_dir} ({len(skipped)} incomplete)")
 
+    # One TSV, one trainer. `arm` is the grouping key everywhere downstream, and it does not
+    # carry the trainer, so a file holding both would silently average a BPE and a MinGram
+    # tokenizer into one mean and one standard deviation per arm.
+    trainers = {r.get("trainer") for r in rows} - {None, ""}
+    if len(trainers) > 1:
+        raise SystemExit(
+            f"{logs_dir} mixes trainers {sorted(trainers)}. Collect each into its own TSV; "
+            f"`arm` does not distinguish them and the means would pool."
+        )
+
     lead = ["method", "arm", "variant", "trainer", "seed", "val_bpb_true", "train_bpb_true",
             "val_bpb", "train_bpb", "byte_factor", "core",
             "depth", "vocab_size", "tokenizer_id", "log"]
