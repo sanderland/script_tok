@@ -1,0 +1,26 @@
+{
+  "fineweb_de_5gb_quick_bnd_wpd_bpe_v34685": {
+    "arm": "bnd_wpd",
+    "dropped": 0,
+    "lang": "de",
+    "morphalign": 0.35835048082965265,
+    "trainer": "bpe",
+    "words": 16009
+  },
+  "fineweb_de_5gb_quick_bnd_wpd_extcaps_bpe_v34685": {
+    "arm": "bnd_wpd_extcaps",
+    "dropped": 0,
+    "lang": "de",
+    "morphalign": 0.35818139225417417,
+    "trainer": "bpe",
+    "words": 16009
+  },
+  "fineweb_de_5gb_quick_plain_bpe_v34685": {
+    "arm": "plain",
+    "dropped": 0,
+    "lang": "de",
+    "morphalign": 0.6928639437991644,
+    "trainer": "bpe",
+    "words": 16009
+  }
+}
