@@ -144,6 +144,17 @@ class BoundaryScriptPretokenizer(ScriptPretokenizer, config_type=BoundaryScriptP
         # whose text is all digits.
         self.digit_token_ids = {tid for tid, txt in self.atomic_tokens.items() if txt.isdigit()}
 
+    def _place_caps_code(self, out, code_id):
+        """Put the code inside the span: <|><^>the<|>.
+
+        Returns (span runs, chunks to emit before the span). This layout keeps the code
+        in the same chunk as the word, so `<|><^>the<|>` is a different chunk from
+        `<|>the<|>` and the trainer learns a separate token for it -- see
+        ExtCapsBoundaryScriptPretokenizer for the layout that actually shares.
+        """
+        out[0] = [CodeCharEnc(code_id)] + out[0]
+        return out, []
+
     def bpe_merge_allowed(self, a, b) -> bool:
         # No learned token may span an elided-space point. Without this, BPE learns tokens
         # like '<|>the<|><|>' that swallow the dangling half of the next span's opening
@@ -329,8 +340,10 @@ class BoundaryScriptPretokenizer(ScriptPretokenizer, config_type=BoundaryScriptP
                 # can carry a marker -- 10 digits under SPLIT, 1110 under RTL3.
                 digits = "".join(c for run in runs for c, _ in run)
                 out = [self.encode_digits([g]) for g in group_digits(digits, self.config.digit_handling)]
+                pre_chunks = []
             else:
                 out = [[e for _, e in run] for run in runs]
+                pre_chunks: list = []
                 if kind == self.WORD and self.config.caps_codes:
                     text = "".join(c for run in runs for c, _ in run)
                     form = self._caps_form(text)
@@ -342,8 +355,9 @@ class BoundaryScriptPretokenizer(ScriptPretokenizer, config_type=BoundaryScriptP
                         low_runs = [list(g) for _, g in itertools.groupby(low_pairs, key=lambda x: x[1].script_id)]
                         out = [[e for _, e in r] for r in low_runs]
                         code_id = self.shift_token_id if code == "shift" else self.caps_token_id
-                        out[0] = [CodeCharEnc(code_id)] + out[0]
+                        out, pre_chunks = self._place_caps_code(out, code_id)
             if kind not in marked:
+                chunks.extend(pre_chunks)
                 chunks.extend(out)
                 continue
             if kind == self.WORD:
@@ -356,12 +370,117 @@ class BoundaryScriptPretokenizer(ScriptPretokenizer, config_type=BoundaryScriptP
                 out[0] = [marker] + list(out[0])
             if right:
                 out[-1] = list(out[-1]) + [marker]
+            chunks.extend(pre_chunks)
             chunks.extend(out)
         return chunks
 
     def split_encoded(self, encoding: Sequence[CharEncT]) -> list[Sequence[CharEncT]]:
         # All chunking already happened in split_unencoded_and_encode.
         return [encoding]
+
+
+class ExtCapsBoundaryScriptPretokenizerConfig(BoundaryScriptPretokenizerConfig):
+    cls: str = "ExtCapsBoundaryScriptPretokenizer"
+
+
+class ExtCapsBoundaryScriptPretokenizer(
+    BoundaryScriptPretokenizer, config_type=ExtCapsBoundaryScriptPretokenizerConfig
+):
+    """Caps codes OUTSIDE the span, as their own chunk: `<^>` `<|>the<|>`.
+
+    The default layout puts the code inside the delimited span, `<|><^>the<|>`, which is
+    a different chunk from `<|>the<|>`. The trainer therefore learns a separate token for
+    the title-case form and the case duplication survives -- measured on the 250M English
+    cell, 4,837 of 21,819 alphabetic entries were the same word in two or three cased
+    forms. The scheme cost nothing and bought nothing because it did nothing.
+
+    Here the code is its own chunk, so no merge can ever join it to the word, and the
+    span is byte-identical to the lowercase one. `The` is then exactly `the` plus one
+    code token, which is what sharing an entry means:
+
+        the   ->  [<|>the<|>]
+        The   ->  [<^>] [<|>the<|>]
+
+    Space elision still applies across the code. Two delimited spans separated only by
+    caps codes had a space between them, so decode reads `<|> <^> <|>` as one elided
+    space with the code applying to the span that follows.
+    """
+
+    def _place_caps_code(self, out, code_id):
+        return out, [[CodeCharEnc(code_id)]]
+
+    def decode(self, tokenization, errors="replace") -> str:
+        decoded = ""
+        pending = None
+        buf = ""
+        i = 0
+        n = len(tokenization)
+        codes = {self.shift_token_id, self.caps_token_id} - {None}
+
+        def emit(text):
+            nonlocal decoded, buf
+            if pending is None:
+                decoded += text
+            else:
+                buf += text
+
+        def flush():
+            nonlocal decoded, pending, buf
+            if pending is None:
+                return
+            decoded += (buf[:1].upper() + buf[1:]) if pending == "shift" else buf.upper()
+            pending, buf = None, ""
+
+        def kind(tid):
+            return "shift" if tid == self.shift_token_id else "caps"
+
+        while i < n:
+            tok = tokenization[i]
+            if tok in codes:
+                flush()
+                pending, buf = kind(tok), ""
+                i += 1
+                continue
+            if tok == self.marker_token_id:
+                # A non-empty buffer means this marker closes a coded span. An empty one
+                # means it opens the span the preceding code applies to, so it must not
+                # flush -- that is the whole difference from the inside-the-span layout.
+                if buf:
+                    flush()
+                j = i + 1
+                between = []
+                while j < n and tokenization[j] in codes:
+                    between.append(tokenization[j])
+                    j += 1
+                if j < n and tokenization[j] == self.marker_token_id:
+                    decoded += " "  # two markers, codes between them or not, == one space
+                    i = j + 1
+                    if between:
+                        pending, buf = kind(between[-1]), ""
+                    continue
+                i += 1
+                continue
+            if tok in self.digit_token_ids:
+                emit(self.atomic_tokens[tok])
+                i += 1
+                continue
+            ix_tok = tokenization[i + 1] if i + 1 < n else None
+            if (tok, ix_tok) in self.detokenize_map:
+                emit(self.detokenize_map[(tok, ix_tok)])
+                i += 2
+            else:
+                if errors == "backslashreplace":
+                    emit(self.atomic_tokens[tok])
+                elif errors == "replace":
+                    emit("\ufffd")
+                elif errors == "strict":
+                    raise ValueError(f"Invalid tokenization: ({tok}, {ix_tok})")
+                else:
+                    raise ValueError(f"Unknown error handling mode: {errors}")
+                i += 1
+        flush()
+        return decoded
+
 
 
 # Named variants used by the experiments. All are ScriptEncodingV3 with
@@ -377,7 +496,10 @@ BOUNDARY_VARIANTS = {
 # Kept in a separate table because the grids iterate BOUNDARY_VARIANTS to enumerate cells.
 CAPS_VARIANTS = {f"{name}_caps": targets for name, targets in BOUNDARY_VARIANTS.items()}
 
-ALL_VARIANTS = {**BOUNDARY_VARIANTS, **CAPS_VARIANTS}
+# Same boundary targets, caps codes placed outside the span so the word token is shared.
+EXTCAPS_VARIANTS = {f"{name}_extcaps": targets for name, targets in BOUNDARY_VARIANTS.items()}
+
+ALL_VARIANTS = {**BOUNDARY_VARIANTS, **CAPS_VARIANTS, **EXTCAPS_VARIANTS}
 
 
 def get_boundary_pretokenizer(name: str, **overrides) -> BoundaryScriptPretokenizer:
@@ -386,11 +508,14 @@ def get_boundary_pretokenizer(name: str, **overrides) -> BoundaryScriptPretokeni
 
     if name not in ALL_VARIANTS:
         raise ValueError(f"unknown boundary variant {name!r}; have {sorted(ALL_VARIANTS)}")
-    return BoundaryScriptPretokenizer(
-        BoundaryScriptPretokenizerConfig(
+    external = name in EXTCAPS_VARIANTS
+    cls = ExtCapsBoundaryScriptPretokenizer if external else BoundaryScriptPretokenizer
+    cfg = ExtCapsBoundaryScriptPretokenizerConfig if external else BoundaryScriptPretokenizerConfig
+    return cls(
+        cfg(
             script_config=ScriptEncodingV3,
             boundary_targets=ALL_VARIANTS[name],
-            caps_codes=name in CAPS_VARIANTS,
+            caps_codes=external or name in CAPS_VARIANTS,
             **overrides,
         )
     )
