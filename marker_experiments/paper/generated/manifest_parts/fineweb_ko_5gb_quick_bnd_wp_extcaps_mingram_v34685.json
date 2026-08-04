@@ -1,0 +1,14 @@
+{
+  "fineweb_ko_5gb_quick_bnd_wp_extcaps_mingram_v34685": {
+    "additional_vocab_size": 32972,
+    "arm": "bnd_wp_extcaps",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_ko_5gb_quick",
+    "lang": "ko",
+    "overshoot_factor": 1.15,
+    "path": "downstream/tokenizers/fineweb_ko_5gb_quick_bnd_wp_extcaps_mingram_v34685.json.gz",
+    "total_vocab": 34685,
+    "train_seconds": 2244,
+    "trainer": "mingram"
+  }
+}
