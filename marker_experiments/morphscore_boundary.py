@@ -41,7 +41,7 @@ import numpy as np
 from script_bpe.analysis.morphscore import MorphScore
 from script_bpe.tokenizers.load import load_tokenizer
 
-from marker_experiments.morphalign import segment
+from marker_experiments.morphalign import segment, segment_in_context
 
 # Registers the boundary pretokenizers, without which the tokenizers do not load.
 import marker_experiments.downstream.boundary_tokenizer  # noqa: F401
@@ -58,7 +58,7 @@ ARMS = ["plain", "bnd_w", "bnd_wp", "bnd_wpd", "bnd_wpd_caps", "bnd_wpd_extcaps"
 app = cyclopts.App()
 
 
-def score_arm(tokenizer, dataset, scorer):
+def score_arm(tokenizer, dataset, scorer, segmenter=segment):
     """Mean recall and precision over the dataset, plus what share of words went unsplit."""
     recall, precision, single, dropped = [], [], 0, 0
     for _, row in dataset.iterrows():
@@ -74,7 +74,7 @@ def score_arm(tokenizer, dataset, scorer):
             continue
         morphemes = [p for p in parts if isinstance(p, str) and p]
 
-        tokens = segment(tokenizer, wordform)
+        tokens = segmenter(tokenizer, wordform)
         if tokens is None:
             dropped += 1
             continue
@@ -99,6 +99,7 @@ def main(
     trainers: str = "bpe,mingram",
     corpus: str = "fineweb_{lang}_5gb_quick",
     vocab: int = 34_685,
+    in_context: bool = False,
     out: str = os.path.join(GENERATED, "morphscore.json"),
 ) -> None:
     """Score each arm both ways: whole words excluded, and whole words credited.
@@ -109,8 +110,12 @@ def main(
         trainers: Comma-separated trainers.
         corpus: Corpus name pattern, `{lang}` substituted.
         vocab: Matched total vocabulary in the tokenizer filenames.
+        in_context: Segment the word inside a carrier phrase rather than on its own, so a
+            leading-space vocabulary is actually reachable. Without it the baseline is
+            scored on splits it never makes in running text.
         out: JSON of scores, keyed by tokenizer name.
     """
+    segmenter = segment_in_context if in_context else segment
     scores = json.load(open(out)) if os.path.exists(out) else {}
     for lang in [x.strip() for x in langs.split(",") if x.strip()]:
         # One filtered dataset per language, shared by every arm, so all arms are scored on
@@ -128,8 +133,8 @@ def main(
                 if not os.path.exists(path):
                     continue
                 tokenizer = load_tokenizer(path)
-                a = score_arm(tokenizer, dataset, excl)
-                b = score_arm(tokenizer, dataset, incl)
+                a = score_arm(tokenizer, dataset, excl, segmenter)
+                b = score_arm(tokenizer, dataset, incl, segmenter)
                 scores[key] = {"lang": lang, "arm": arm, "trainer": trainer,
                                "exclude_single_tok": a, "credit_single_tok": b}
                 print(f"  {arm:<18}{trainer:<9}{a['recall']:>8.4f}{a['precision']:>8.4f}"

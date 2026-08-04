@@ -1,0 +1,542 @@
+{
+  "fineweb_ar_5gb_quick_bnd_w_bpe_v34685": {
+    "arm": "bnd_w",
+    "freq_weighted_rate": 0.977845362389834,
+    "lang": "ar",
+    "mean_tokens": 1.0793,
+    "single_token_rate": 0.9251,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_ar_5gb_quick_bnd_w_mingram_v34685": {
+    "arm": "bnd_w",
+    "freq_weighted_rate": 0.9801585720652104,
+    "lang": "ar",
+    "mean_tokens": 1.0707,
+    "single_token_rate": 0.9347,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_ar_5gb_quick_bnd_wp_bpe_v34685": {
+    "arm": "bnd_wp",
+    "freq_weighted_rate": 0.977726373118325,
+    "lang": "ar",
+    "mean_tokens": 1.0802,
+    "single_token_rate": 0.9241,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_ar_5gb_quick_bnd_wp_mingram_v34685": {
+    "arm": "bnd_wp",
+    "freq_weighted_rate": 0.9800652601225921,
+    "lang": "ar",
+    "mean_tokens": 1.0714,
+    "single_token_rate": 0.934,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_ar_5gb_quick_bnd_wpd_bpe_v34685": {
+    "arm": "bnd_wpd",
+    "freq_weighted_rate": 0.9828775894229523,
+    "lang": "ar",
+    "mean_tokens": 1.0789,
+    "single_token_rate": 0.9233,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_ar_5gb_quick_bnd_wpd_caps_bpe_v34685": {
+    "arm": "bnd_wpd_caps",
+    "freq_weighted_rate": 0.9845370860705389,
+    "lang": "ar",
+    "mean_tokens": 1.0714,
+    "single_token_rate": 0.9307,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_ar_5gb_quick_bnd_wpd_caps_mingram_v34685": {
+    "arm": "bnd_wpd_caps",
+    "freq_weighted_rate": 0.9866231705068612,
+    "lang": "ar",
+    "mean_tokens": 1.0635,
+    "single_token_rate": 0.9395,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_ar_5gb_quick_bnd_wpd_extcaps_bpe_v34685": {
+    "arm": "bnd_wpd_extcaps",
+    "freq_weighted_rate": 0.9845370860705389,
+    "lang": "ar",
+    "mean_tokens": 1.0714,
+    "single_token_rate": 0.9307,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_ar_5gb_quick_bnd_wpd_extcaps_mingram_v34685": {
+    "arm": "bnd_wpd_extcaps",
+    "freq_weighted_rate": 0.9866231705068612,
+    "lang": "ar",
+    "mean_tokens": 1.0635,
+    "single_token_rate": 0.9395,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_ar_5gb_quick_bnd_wpd_mingram_v34685": {
+    "arm": "bnd_wpd",
+    "freq_weighted_rate": 0.9851648570547071,
+    "lang": "ar",
+    "mean_tokens": 1.0702,
+    "single_token_rate": 0.933,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_ar_5gb_quick_plain_bpe_v34685": {
+    "arm": "plain",
+    "freq_weighted_rate": 0.9812842714580738,
+    "lang": "ar",
+    "mean_tokens": 1.0619,
+    "single_token_rate": 0.9395,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_ar_5gb_quick_plain_mingram_v34685": {
+    "arm": "plain",
+    "freq_weighted_rate": 0.9834864333038662,
+    "lang": "ar",
+    "mean_tokens": 1.0512,
+    "single_token_rate": 0.9504,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_de_5gb_quick_bnd_w_bpe_v34685": {
+    "arm": "bnd_w",
+    "freq_weighted_rate": 0.8569564862121402,
+    "lang": "de",
+    "mean_tokens": 1.6539,
+    "single_token_rate": 0.4509,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_de_5gb_quick_bnd_w_mingram_v34685": {
+    "arm": "bnd_w",
+    "freq_weighted_rate": 0.866811824416002,
+    "lang": "de",
+    "mean_tokens": 1.6162,
+    "single_token_rate": 0.4822,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_de_5gb_quick_bnd_wp_bpe_v34685": {
+    "arm": "bnd_wp",
+    "freq_weighted_rate": 0.8564155394045605,
+    "lang": "de",
+    "mean_tokens": 1.6553,
+    "single_token_rate": 0.45,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_de_5gb_quick_bnd_wp_mingram_v34685": {
+    "arm": "bnd_wp",
+    "freq_weighted_rate": 0.8664760979795647,
+    "lang": "de",
+    "mean_tokens": 1.6187,
+    "single_token_rate": 0.4805,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_de_5gb_quick_bnd_wpd_bpe_v34685": {
+    "arm": "bnd_wpd",
+    "freq_weighted_rate": 0.8637697097064786,
+    "lang": "de",
+    "mean_tokens": 1.6573,
+    "single_token_rate": 0.4475,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_de_5gb_quick_bnd_wpd_caps_bpe_v34685": {
+    "arm": "bnd_wpd_caps",
+    "freq_weighted_rate": 0.864359438600657,
+    "lang": "de",
+    "mean_tokens": 1.6484,
+    "single_token_rate": 0.4509,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_de_5gb_quick_bnd_wpd_caps_mingram_v34685": {
+    "arm": "bnd_wpd_caps",
+    "freq_weighted_rate": 0.8747314932319289,
+    "lang": "de",
+    "mean_tokens": 1.6106,
+    "single_token_rate": 0.4826,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_de_5gb_quick_bnd_wpd_extcaps_bpe_v34685": {
+    "arm": "bnd_wpd_extcaps",
+    "freq_weighted_rate": 0.8650130043117461,
+    "lang": "de",
+    "mean_tokens": 1.6472,
+    "single_token_rate": 0.4511,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_de_5gb_quick_bnd_wpd_extcaps_mingram_v34685": {
+    "arm": "bnd_wpd_extcaps",
+    "freq_weighted_rate": 0.8763914289861946,
+    "lang": "de",
+    "mean_tokens": 1.6041,
+    "single_token_rate": 0.4862,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_de_5gb_quick_bnd_wpd_mingram_v34685": {
+    "arm": "bnd_wpd",
+    "freq_weighted_rate": 0.8739065773176555,
+    "lang": "de",
+    "mean_tokens": 1.619,
+    "single_token_rate": 0.4792,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_de_5gb_quick_plain_bpe_v34685": {
+    "arm": "plain",
+    "freq_weighted_rate": 0.884066128182567,
+    "lang": "de",
+    "mean_tokens": 1.5539,
+    "single_token_rate": 0.5144,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_de_5gb_quick_plain_mingram_v34685": {
+    "arm": "plain",
+    "freq_weighted_rate": 0.8905890988566902,
+    "lang": "de",
+    "mean_tokens": 1.5284,
+    "single_token_rate": 0.5412,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_en_5gb_quick_bnd_w_bpe_v34685": {
+    "arm": "bnd_w",
+    "freq_weighted_rate": 0.9478573870018433,
+    "lang": "en",
+    "mean_tokens": 1.2138,
+    "single_token_rate": 0.8374,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_en_5gb_quick_bnd_w_mingram_v34685": {
+    "arm": "bnd_w",
+    "freq_weighted_rate": 0.9498749282852839,
+    "lang": "en",
+    "mean_tokens": 1.2139,
+    "single_token_rate": 0.8506,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_en_5gb_quick_bnd_wp_bpe_v34685": {
+    "arm": "bnd_wp",
+    "freq_weighted_rate": 0.9477372785212562,
+    "lang": "en",
+    "mean_tokens": 1.2144,
+    "single_token_rate": 0.8368,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_en_5gb_quick_bnd_wp_mingram_v34685": {
+    "arm": "bnd_wp",
+    "freq_weighted_rate": 0.9497597517954455,
+    "lang": "en",
+    "mean_tokens": 1.2151,
+    "single_token_rate": 0.8495,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_en_5gb_quick_bnd_wpd_bpe_v34685": {
+    "arm": "bnd_wpd",
+    "freq_weighted_rate": 0.9536241339223395,
+    "lang": "en",
+    "mean_tokens": 1.2123,
+    "single_token_rate": 0.8366,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_en_5gb_quick_bnd_wpd_caps_bpe_v34685": {
+    "arm": "bnd_wpd_caps",
+    "freq_weighted_rate": 0.9539353403069153,
+    "lang": "en",
+    "mean_tokens": 1.2079,
+    "single_token_rate": 0.8384,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_en_5gb_quick_bnd_wpd_caps_mingram_v34685": {
+    "arm": "bnd_wpd_caps",
+    "freq_weighted_rate": 0.9559528815903559,
+    "lang": "en",
+    "mean_tokens": 1.2082,
+    "single_token_rate": 0.8516,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_en_5gb_quick_bnd_wpd_extcaps_bpe_v34685": {
+    "arm": "bnd_wpd_extcaps",
+    "freq_weighted_rate": 0.9542727799726004,
+    "lang": "en",
+    "mean_tokens": 1.2062,
+    "single_token_rate": 0.8389,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_en_5gb_quick_bnd_wpd_extcaps_mingram_v34685": {
+    "arm": "bnd_wpd_extcaps",
+    "freq_weighted_rate": 0.9564730169223967,
+    "lang": "en",
+    "mean_tokens": 1.2044,
+    "single_token_rate": 0.8541,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_en_5gb_quick_bnd_wpd_mingram_v34685": {
+    "arm": "bnd_wpd",
+    "freq_weighted_rate": 0.9556934053168914,
+    "lang": "en",
+    "mean_tokens": 1.2119,
+    "single_token_rate": 0.8499,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_en_5gb_quick_plain_bpe_v34685": {
+    "arm": "plain",
+    "freq_weighted_rate": 0.9508408062291801,
+    "lang": "en",
+    "mean_tokens": 1.1851,
+    "single_token_rate": 0.8535,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_en_5gb_quick_plain_mingram_v34685": {
+    "arm": "plain",
+    "freq_weighted_rate": 0.952134650399518,
+    "lang": "en",
+    "mean_tokens": 1.186,
+    "single_token_rate": 0.8613,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_fi_5gb_quick_bnd_w_bpe_v34685": {
+    "arm": "bnd_w",
+    "freq_weighted_rate": 0.9152420697908242,
+    "lang": "fi",
+    "mean_tokens": 1.3261,
+    "single_token_rate": 0.7001,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_fi_5gb_quick_bnd_w_mingram_v34685": {
+    "arm": "bnd_w",
+    "freq_weighted_rate": 0.9249488357308764,
+    "lang": "fi",
+    "mean_tokens": 1.286,
+    "single_token_rate": 0.7397,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_fi_5gb_quick_bnd_wp_bpe_v34685": {
+    "arm": "bnd_wp",
+    "freq_weighted_rate": 0.914642981487929,
+    "lang": "fi",
+    "mean_tokens": 1.3288,
+    "single_token_rate": 0.6975,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_fi_5gb_quick_bnd_wp_mingram_v34685": {
+    "arm": "bnd_wp",
+    "freq_weighted_rate": 0.9247028970525745,
+    "lang": "fi",
+    "mean_tokens": 1.2866,
+    "single_token_rate": 0.7388,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_fi_5gb_quick_bnd_wpd_bpe_v34685": {
+    "arm": "bnd_wpd",
+    "freq_weighted_rate": 0.9236109885832463,
+    "lang": "fi",
+    "mean_tokens": 1.3314,
+    "single_token_rate": 0.6934,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_fi_5gb_quick_bnd_wpd_caps_bpe_v34685": {
+    "arm": "bnd_wpd_caps",
+    "freq_weighted_rate": 0.9229949297034257,
+    "lang": "fi",
+    "mean_tokens": 1.3356,
+    "single_token_rate": 0.6909,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_fi_5gb_quick_bnd_wpd_caps_mingram_v34685": {
+    "arm": "bnd_wpd_caps",
+    "freq_weighted_rate": 0.9357705416375125,
+    "lang": "fi",
+    "mean_tokens": 1.2824,
+    "single_token_rate": 0.7431,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_fi_5gb_quick_bnd_wpd_extcaps_bpe_v34685": {
+    "arm": "bnd_wpd_extcaps",
+    "freq_weighted_rate": 0.923430642531633,
+    "lang": "fi",
+    "mean_tokens": 1.3331,
+    "single_token_rate": 0.6925,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_fi_5gb_quick_bnd_wpd_extcaps_mingram_v34685": {
+    "arm": "bnd_wpd_extcaps",
+    "freq_weighted_rate": 0.9378036436906156,
+    "lang": "fi",
+    "mean_tokens": 1.2709,
+    "single_token_rate": 0.7518,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_fi_5gb_quick_bnd_wpd_mingram_v34685": {
+    "arm": "bnd_wpd",
+    "freq_weighted_rate": 0.9338956969485961,
+    "lang": "fi",
+    "mean_tokens": 1.2879,
+    "single_token_rate": 0.7361,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_fi_5gb_quick_plain_bpe_v34685": {
+    "arm": "plain",
+    "freq_weighted_rate": 0.9277096522850007,
+    "lang": "fi",
+    "mean_tokens": 1.2731,
+    "single_token_rate": 0.7467,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_fi_5gb_quick_plain_mingram_v34685": {
+    "arm": "plain",
+    "freq_weighted_rate": 0.9392244581032148,
+    "lang": "fi",
+    "mean_tokens": 1.2189,
+    "single_token_rate": 0.796,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_ru_5gb_quick_bnd_w_bpe_v34685": {
+    "arm": "bnd_w",
+    "freq_weighted_rate": 0.9251956686757942,
+    "lang": "ru",
+    "mean_tokens": 1.2876,
+    "single_token_rate": 0.7518,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_ru_5gb_quick_bnd_w_mingram_v34685": {
+    "arm": "bnd_w",
+    "freq_weighted_rate": 0.9314407141154445,
+    "lang": "ru",
+    "mean_tokens": 1.2614,
+    "single_token_rate": 0.7782,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_ru_5gb_quick_bnd_wp_bpe_v34685": {
+    "arm": "bnd_wp",
+    "freq_weighted_rate": 0.924994759540932,
+    "lang": "ru",
+    "mean_tokens": 1.2887,
+    "single_token_rate": 0.7508,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_ru_5gb_quick_bnd_wp_mingram_v34685": {
+    "arm": "bnd_wp",
+    "freq_weighted_rate": 0.9311053681455732,
+    "lang": "ru",
+    "mean_tokens": 1.2628,
+    "single_token_rate": 0.7769,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_ru_5gb_quick_bnd_wpd_bpe_v34685": {
+    "arm": "bnd_wpd",
+    "freq_weighted_rate": 0.9365551878265724,
+    "lang": "ru",
+    "mean_tokens": 1.2898,
+    "single_token_rate": 0.7486,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_ru_5gb_quick_bnd_wpd_caps_bpe_v34685": {
+    "arm": "bnd_wpd_caps",
+    "freq_weighted_rate": 0.9373096348641298,
+    "lang": "ru",
+    "mean_tokens": 1.2847,
+    "single_token_rate": 0.7514,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_ru_5gb_quick_bnd_wpd_caps_mingram_v34685": {
+    "arm": "bnd_wpd_caps",
+    "freq_weighted_rate": 0.943425669778963,
+    "lang": "ru",
+    "mean_tokens": 1.2606,
+    "single_token_rate": 0.7774,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_ru_5gb_quick_bnd_wpd_extcaps_bpe_v34685": {
+    "arm": "bnd_wpd_extcaps",
+    "freq_weighted_rate": 0.9373681033564497,
+    "lang": "ru",
+    "mean_tokens": 1.284,
+    "single_token_rate": 0.7516,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_ru_5gb_quick_bnd_wpd_extcaps_mingram_v34685": {
+    "arm": "bnd_wpd_extcaps",
+    "freq_weighted_rate": 0.9466145359237742,
+    "lang": "ru",
+    "mean_tokens": 1.2456,
+    "single_token_rate": 0.7911,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_ru_5gb_quick_bnd_wpd_mingram_v34685": {
+    "arm": "bnd_wpd",
+    "freq_weighted_rate": 0.9429336797996215,
+    "lang": "ru",
+    "mean_tokens": 1.2636,
+    "single_token_rate": 0.7753,
+    "top": 10000,
+    "trainer": "mingram"
+  },
+  "fineweb_ru_5gb_quick_plain_bpe_v34685": {
+    "arm": "plain",
+    "freq_weighted_rate": 0.9317276980957288,
+    "lang": "ru",
+    "mean_tokens": 1.2543,
+    "single_token_rate": 0.7793,
+    "top": 10000,
+    "trainer": "bpe"
+  },
+  "fineweb_ru_5gb_quick_plain_mingram_v34685": {
+    "arm": "plain",
+    "freq_weighted_rate": 0.9370387398935651,
+    "lang": "ru",
+    "mean_tokens": 1.2314,
+    "single_token_rate": 0.8014,
+    "top": 10000,
+    "trainer": "mingram"
+  }
+}
