@@ -1,0 +1,14 @@
+{
+  "fineweb_ru_5gb_quick_bnd_wpd_caps_mingram_v34685": {
+    "additional_vocab_size": 32972,
+    "arm": "bnd_wpd_caps",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_ru_5gb_quick",
+    "lang": "ru",
+    "overshoot_factor": 1.15,
+    "path": "downstream/tokenizers/fineweb_ru_5gb_quick_bnd_wpd_caps_mingram_v34685.json.gz",
+    "total_vocab": 34685,
+    "train_seconds": 415,
+    "trainer": "mingram"
+  }
+}
