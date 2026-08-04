@@ -5,18 +5,23 @@
 \small
 \begin{tabular}{l rr}
 \toprule
-Scheme & \multicolumn{2}{c}{bpb/byte $\downarrow$} \\
+Scheme & \multicolumn{2}{c}{bits per byte $\downarrow$} \\
 \cmidrule(lr){2-3}
  & BPE & MinGram \\
 \midrule
 \plainscheme & 0.8853 {\footnotesize $\pm$ 0.0003} & 0.8837 {\footnotesize $\pm$ 0.0008} \\
 \bnds{w} & \textbf{0.8768} {\footnotesize $\pm$ 0.0008} & -- \\
-\bnds{wpd} & 0.8799 {\footnotesize $\pm$ 0.0007} & \textbf{0.8805} {\footnotesize $\pm$ 0.0006} \\
+\bnds{wpd} & 0.8800 {\footnotesize $\pm$ 0.0005} & \textbf{0.8805} {\footnotesize $\pm$ 0.0006} \\
 \bnds{wpdcaps} & \underline{0.8793} {\footnotesize $\pm$ 0.0005} & -- \\
 \bnds{wpdcapsin} & 0.8795 {\footnotesize $\pm$ 0.0007} & -- \\
 \bottomrule
 \end{tabular}
-\caption{Language-modelling quality after nanochat depth-12 pretraining on ClimbMix, for vocabulary-matched tokenizers trained on fineweb\_en\_5gb. bpb/byte is validation loss summed over the true UTF-8 length of the evaluation text, so it is comparable across schemes that tokenize the same text into different numbers of tokens. Every figure is absolute, and $\pm$ is a scheme's own sample standard deviation over 3 runs per scheme, except \bnds{wpd} under BPE with 6. \textbf{Bold} is best in a column and \underline{underline} runner-up. Every scheme improves on \plainscheme{} at $p<0.01$, by a two-sided paired $t$-test over the 3 seeds both ran: one data permutation per seed is shared across schemes, so differencing at equal seed cancels it and leaves a spread several times tighter than the $\pm$ above. -- is a configuration that was not pretrained. Compression for these same tokenizers is in Table~\ref{tab:intrinsic-main}.}
+\caption{Downstream evaluation results.
+Bits per byte on held-out ClimbMix after nanochat depth-12 pretraining, with standard deviation over 3 runs per scheme.
+Every scheme beats \plainscheme{} at $p<0.01$, two-sided paired $t$-test over the 3
+shared seeds. -- is a configuration that was not pretrained.
+\textbf{Bold} is best in a column and \underline{underline} runner-up.
+}
 \label{tab:downstream-main}
 
 % Not in the table. Put in the text if the argument needs it:

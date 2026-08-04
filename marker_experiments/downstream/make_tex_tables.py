@@ -184,9 +184,15 @@ def _lm_column(by_arm, schemes):
     reads as a typo. Lower bits-per-byte is better, so the rank is ascending, and plain is
     ranked with the rest because every figure in the column is absolute and comparable.
     """
+    # Restricted to the seeds plain also ran, so every cell rests on the same seeds and the
+    # caption can state one run count for the whole table. bnd_wpd has six BPE runs; the
+    # three beyond plain's are the appendix seed check, not extra precision here, and
+    # averaging them in would leave one cell quietly resting on a different sample.
+    base_seeds = {int(r["seed"]) for r in by_arm.get("plain", [])}
     stats_by_arm = {}
     for arm in schemes:
-        val, sd, n = _mean_sd(by_arm.get(arm, []), "val_bpb_true")
+        rows = [r for r in by_arm.get(arm, []) if int(r["seed"]) in base_seeds]
+        val, sd, n = _mean_sd(rows, "val_bpb_true")
         if val is not None:
             stats_by_arm[arm] = (val, sd, n)
     places = sorted({round(v, 4) for v, _, _ in stats_by_arm.values()})
@@ -408,8 +414,9 @@ def main_table(
             if arm != "plain" and delta is not None and dn > 1:
                 note += f", paired vs plain {delta:+.4f} +- {dsd:.4f}"
             core[f"{TRAINER_LABEL[t]} {arm}"] = note
-    # The usual run count, and every cell that departs from it named rather than folded
-    # into a range: "3 to 6 runs" would leave the reader unable to tell which cell is which.
+    # One count for the whole table now that every cell is on plain's seeds. Named
+    # individually rather than folded into a range if that ever stops being true, since
+    # "3 to 6 runs" would leave the reader unable to tell which cell is which.
     usual = max(own_ns, key=lambda k: len(own_ns[k]))
     odd = [f"{name} with {n}" for n, names in sorted(own_ns.items()) if n != usual
            for name in names]
@@ -430,26 +437,21 @@ def main_table(
         r"\small",
         r"\begin{tabular}{l rr}",
         r"\toprule",
-        r"Scheme & \multicolumn{2}{c}{bpb/byte $\downarrow$} \\",
+        r"Scheme & \multicolumn{2}{c}{bits per byte $\downarrow$} \\",
         r"\cmidrule(lr){2-3}",
         r" & BPE & MinGram \\",
         r"\midrule",
         *rows,
         r"\bottomrule",
         r"\end{tabular}",
-        r"\caption{Language-modelling quality after nanochat depth-12 pretraining on "
-        rf"ClimbMix, for vocabulary-matched tokenizers trained on {_tex_escape(corpus)}. "
-        r"bpb/byte is validation loss summed over the true UTF-8 length of the evaluation "
-        r"text, so it is comparable across schemes that tokenize the same text into "
-        r"different numbers of tokens. Every figure is absolute, and $\pm$ is a scheme's "
-        rf"own sample standard deviation over {runs_note}. \textbf{{Bold}} is best in a "
-        r"column and \underline{underline} runner-up. Every scheme improves on "
-        rf"\plainscheme{{}} at $p<{threshold:g}$, by a two-sided paired $t$-test over the "
-        rf"{n_note} seeds both ran: one data permutation per seed is shared across "
-        r"schemes, so differencing at equal seed cancels it and leaves a spread several "
-        rf"times tighter than the $\pm$ above. {MISSING} is a configuration that was not "
-        r"pretrained. Compression for these same tokenizers is in "
-        r"Table~\ref{tab:intrinsic-main}.}",
+        r"\caption{Downstream evaluation results.",
+        r"Bits per byte on held-out ClimbMix after nanochat depth-12 pretraining, with "
+        rf"standard deviation over {runs_note}.",
+        rf"Every scheme beats \plainscheme{{}} at $p<{threshold:g}$, two-sided paired "
+        rf"$t$-test over the {n_note}",
+        rf"shared seeds. {MISSING} is a configuration that was not pretrained.",
+        r"\textbf{Bold} is best in a column and \underline{underline} runner-up.",
+        r"}",
         r"\label{tab:downstream-main}",
         "",
         "% Not in the table. Put in the text if the argument needs it:",
