@@ -1,0 +1,19 @@
+{
+  "fineweb_fi_5gb_bnd_wpd_mingram_v34685": {
+    "additional_vocab_size": 32974,
+    "arm": "bnd_wpd",
+    "atomic_vocab": 1711,
+    "corpus": "fineweb_fi_5gb",
+    "eval_chars": 983997,
+    "eval_chars_per_token": 3.584453478460429,
+    "eval_slice": "marker_experiments/eval_texts/fi.json",
+    "eval_tokens": 274518,
+    "lang": "fi",
+    "overshoot_factor": 1.15,
+    "path": "downstream/tokenizers/fineweb_fi_5gb_bnd_wpd_mingram_v34685.json.gz",
+    "roundtrip_failures": 0,
+    "total_vocab": 34685,
+    "train_seconds": 1795,
+    "trainer": "mingram"
+  }
+}
