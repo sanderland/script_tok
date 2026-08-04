@@ -1,0 +1,19 @@
+{
+  "fineweb_de_5gb_bnd_w_mingram_v34685": {
+    "additional_vocab_size": 32974,
+    "arm": "bnd_w",
+    "atomic_vocab": 1711,
+    "corpus": "fineweb_de_5gb",
+    "eval_chars": 1404827,
+    "eval_chars_per_token": 3.4056329560413188,
+    "eval_slice": "marker_experiments/eval_texts/de.json",
+    "eval_tokens": 412501,
+    "lang": "de",
+    "overshoot_factor": 1.15,
+    "path": "downstream/tokenizers/fineweb_de_5gb_bnd_w_mingram_v34685.json.gz",
+    "roundtrip_failures": 0,
+    "total_vocab": 34685,
+    "train_seconds": 1262,
+    "trainer": "mingram"
+  }
+}
