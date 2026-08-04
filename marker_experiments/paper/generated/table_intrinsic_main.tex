@@ -3,20 +3,20 @@
 % source: marker_experiments/paper/generated/eval_goldfish.json (quick corpus)
 \centering
 \small
-\begin{tabular}{l rrrr rrrr}
+\begin{tabular}{l rrrrr rrrrr}
 \toprule
-Scheme & \multicolumn{4}{c}{BPE} & \multicolumn{4}{c}{MinGram} \\
-\cmidrule(lr){2-5} \cmidrule(lr){6-9}
- & \multicolumn{2}{c}{Compression} & \multicolumn{2}{c}{Morphology} & \multicolumn{2}{c}{Compression} & \multicolumn{2}{c}{Morphology} \\
-\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9}
- & train & eval & MorphAlign & MorphScore & train & eval & MorphAlign & MorphScore \\
+Scheme & \multicolumn{5}{c}{BPE} & \multicolumn{5}{c}{MinGram} \\
+\cmidrule(lr){2-6} \cmidrule(lr){7-11}
+ & \multicolumn{2}{c}{Compression} & \multicolumn{1}{c}{MorphAlign} & \multicolumn{2}{c}{MorphScore} & \multicolumn{2}{c}{Compression} & \multicolumn{1}{c}{MorphAlign} & \multicolumn{2}{c}{MorphScore} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-4} \cmidrule(lr){5-6} \cmidrule(lr){7-8} \cmidrule(lr){9-9} \cmidrule(lr){10-11}
+ & train & eval &  & all & split & train & eval &  & all & split \\
 \midrule
-\plainscheme & \textbf{4.04} & \textbf{4.10} & \textbf{0.78}\,(\underline{0.64}) & 0.19\,(\textbf{0.70}) & \textbf{4.11} & \textbf{4.17} & \textbf{0.89}\,(\underline{0.78}) & 0.32\,(\textbf{0.81}) \\
-\bnds{w} & $-8.70$ & $-9.30$ & 0.544 & 0.657 & $-9.19$ & $-9.85$ & 0.608 & 0.691 \\
-\bnds{wp} & $-1.82$ & $-2.19$ & 0.545 & 0.655 & $-2.26$ & $-2.70$ & 0.607 & 0.690 \\
-\bnds{wpd} & $\underline{-0.09}$ & $\underline{-0.47}$ & 0.550 & 0.654 & $\underline{-0.52}$ & $-0.96$ & 0.609 & 0.689 \\
-\bnds{wpdcaps} & $-0.40$ & $-0.73$ & 0.538 & \underline{0.659} & $-0.53$ & $\underline{-0.92}$ & 0.608 & \underline{0.709} \\
+\plainscheme & \textbf{4.04} & \textbf{4.10} & \textbf{0.78}\,(\underline{0.64}) & 0.19\,(\textbf{0.70}) & \underline{0.11}\,(\textbf{0.13}) & \textbf{4.11} & \textbf{4.17} & \textbf{0.89}\,(\underline{0.78}) & 0.32\,(\textbf{0.81}) & \underline{0.25}\,(\textbf{0.38}) \\
+\bnds{w} & $-8.70$ & $-9.30$ & 0.544 & 0.657 & 0.05 & $-9.19$ & $-9.85$ & 0.608 & 0.691 & 0.06 \\
+\bnds{wp} & $-1.82$ & $-2.19$ & 0.545 & 0.655 & 0.05 & $-2.26$ & $-2.70$ & 0.607 & 0.690 & 0.06 \\
+\bnds{wpd} & $\underline{-0.09}$ & $\underline{-0.47}$ & 0.550 & 0.654 & 0.05 & $\underline{-0.52}$ & $-0.96$ & 0.609 & 0.689 & 0.06 \\
+\bnds{wpdcaps} & $-0.40$ & $-0.73$ & 0.538 & \underline{0.659} & 0.05 & $-0.53$ & $\underline{-0.92}$ & 0.608 & \underline{0.709} & 0.06 \\
 \bottomrule
 \end{tabular}
-\caption{Intrinsic evaluation results. \plainscheme{} compression is characters per token averaged over the six languages, every other compression cell the percentage change against it, higher is better. MorphAlign is over English, German and Finnish and MorphScore over English, higher better. For \plainscheme{}, the same metrics are also shown with segmentations derived from space-prefixed strings, which significantly affects scores. \textbf{Bold} is best in a column and \underline{underline} runner-up, counting \plainscheme{} as zero in the compression columns. Per-language numbers in \Cref{app:allthetokenizers}.}
+\caption{Intrinsic evaluation results. \plainscheme{} compression is characters per token averaged over the six languages, every other compression cell the percentage change against it, higher is better. MorphAlign is over English, German and Finnish and MorphScore over English, higher better. MorphScore is given under both of its settings for words the tokenizer left whole: \emph{all} scores them as correct, \emph{split} drops them and scores only the words that were split. For \plainscheme{}, every metric is also shown with segmentations derived from space-prefixed strings, which significantly affects scores. \textbf{Bold} is best in a column and \underline{underline} runner-up, counting \plainscheme{} as zero in the compression columns. Per-language numbers in \Cref{app:allthetokenizers}.}
 \label{tab:intrinsic-main}

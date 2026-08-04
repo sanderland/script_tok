@@ -296,16 +296,28 @@ def morphalign_statistic(record):
     return record["morphalign"]
 
 
-def morphscore_statistic(record):
-    """MorphScore F$_1$ with whole words credited rather than dropped.
+def morphscore_statistic(record, field="credit_single_tok"):
+    """MorphScore F$_1$ under one of the metric's two settings for unsplit words.
 
     The harmonic mean of the two macro means, which is how `morphscore.py` forms its own
     `macro_f1`. Recall alone would reward a scheme for splitting everywhere, and the
     marker schemes split less than the baseline, not more.
+
+    `credit_single_tok` scores every gold word, giving a word the tokenizer kept whole a
+    point; `exclude_single_tok` drops those words and scores only the ones it split. The
+    switch decides the sign of this table's morphology comparison, because the first
+    setting is dominated by how often a word is one token -- across the 118 measured cells
+    it tracks the single-token share at r = 0.95 -- and keeping words whole is exactly what
+    a boundary marker buys. Both are therefore reported rather than one being chosen.
     """
-    d = record["credit_single_tok"]
+    d = record[field]
     r, p = d["recall"], d["precision"]
     return 2 * r * p / (r + p) if r + p else 0.0
+
+
+def morphscore_split_statistic(record):
+    """MorphScore over the words the tokenizer actually split."""
+    return morphscore_statistic(record, "exclude_single_tok")
 
 
 def morph_cell(scores, langs, arm, trainer, digits=3):
@@ -372,8 +384,13 @@ def mean_body(cells, langs, trainers, arms, align_langs, score_langs):
     has but which gives the rest of the column its scale; its morphology cells are real
     scores on the same footing as every other row, and are ranked with them.
     """
-    aligned = morph_scores(MORPHALIGN, morphalign_statistic)
-    morphed = morph_scores(MORPHSCORE, morphscore_statistic)
+    # Two decimals on the split column, three on the others. It runs an order of magnitude
+    # lower than they do, on the minority of words a marker scheme splits at all -- a
+    # thousand-odd English words -- and a third decimal there is smaller than the shift from
+    # one word leaving the scored set, which is all that separates its two probes.
+    sources = [(morph_scores(MORPHALIGN, morphalign_statistic), align_langs, 3),
+               (morph_scores(MORPHSCORE, morphscore_statistic), score_langs, 3),
+               (morph_scores(MORPHSCORE, morphscore_split_statistic), score_langs, 2)]
 
     rows = []
     anchors = []
@@ -388,8 +405,7 @@ def mean_body(cells, langs, trainers, arms, align_langs, score_langs):
                 row_mean([chars_per_token(b, corpus) for b in bases])[0], digits=2, rank=0.0))
         # Two decimals on this row alone: it is the only one carrying a second figure, and
         # a third digit on both halves makes it much the widest cell in the table.
-        anchors += [morph_cell(src, lgs, "plain", tr, digits=2)
-                    for src, lgs in ((aligned, align_langs), (morphed, score_langs))]
+        anchors += [morph_cell(src, lgs, "plain", tr, digits=2) for src, lgs, _ in sources]
     rows.append((PLAIN_LABEL, anchors))
 
     for arm in arms:
@@ -397,8 +413,7 @@ def mean_body(cells, langs, trainers, arms, align_langs, score_langs):
         for tr in trainers:
             pairs = [deltas(cells, lg, arm, tr) for lg in langs]
             row += [delta_cell(row_mean([p[i] for p in pairs])[0]) for i in (0, 1)]
-            row += [morph_cell(src, lgs, arm, tr)
-                    for src, lgs in ((aligned, align_langs), (morphed, score_langs))]
+            row += [morph_cell(src, lgs, arm, tr, digits) for src, lgs, digits in sources]
         rows.append((ARM_LABEL[arm], row))
     return [(None, rows)]
 
@@ -505,10 +520,11 @@ def main(
     if layout == "mean":
         blocks = mean_body(cells, langs, trainers, arms, align_langs, score_langs)
         columns = [TRAINER_LABEL[tr] for tr in trainers]
-        # A middle header tier, because `train` and `eval` alone name the corpus and not
-        # the quantity -- and beside two morphology metrics that is the ambiguous half.
-        groups = [("Compression", 2), ("Morphology", 2)]
-        subheads = ["train", "eval", "MorphAlign", "MorphScore"]
+        # A middle header tier naming the metric, because `train` and `eval` alone name the
+        # corpus and not the quantity, and because MorphScore's two settings have to read as
+        # one metric measured twice rather than as two metrics.
+        groups = [("Compression", 2), ("MorphAlign", 1), ("MorphScore", 2)]
+        subheads = ["train", "eval", "", "all", "split"]
         anchor = (r"\plainscheme{} compression is characters per token" + coverage
                   + r", every other compression cell the percentage change against it, ")
     else:
@@ -562,9 +578,11 @@ def main(
 
     morph_note = (
         rf"MorphAlign is over {listed(align_langs)} and MorphScore over "
-        rf"{listed(score_langs)}, higher better. For \plainscheme{{}}, the same metrics "
-        r"are also shown with segmentations derived from space-prefixed strings, which "
-        r"significantly affects scores. "
+        rf"{listed(score_langs)}, higher better. MorphScore is given under both of its "
+        r"settings for words the tokenizer left whole: \emph{all} scores them as correct, "
+        r"\emph{split} drops them and scores only the words that were split. For "
+        r"\plainscheme{}, every metric is also shown with segmentations derived from "
+        r"space-prefixed strings, which significantly affects scores. "
     )
     caption = (
         r"\caption{" + (r"Intrinsic evaluation results. " if layout == "mean"
