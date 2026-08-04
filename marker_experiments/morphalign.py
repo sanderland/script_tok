@@ -176,13 +176,14 @@ def segment_in_context(tokenizer, word, carrier=("the ", " to")):
     return [p for p in out if p]
 
 
-def write_segmented(tokenizer, gold_path, out_path):
+def write_segmented(tokenizer, gold_path, out_path, segmenter=None):
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    segmenter = segmenter or segment
     kept = dropped = 0
     with open(gold_path, encoding="utf-8") as f_in, open(out_path, "w", encoding="utf-8") as f_out:
         for line in f_in:
             word, tag, _segments = line.rstrip("\n").split("\t")
-            pieces = segment(tokenizer, word)
+            pieces = segmenter(tokenizer, word)
             if pieces is None:
                 dropped += 1
                 continue
@@ -209,6 +210,7 @@ def main(
     trainers: str = "bpe,mingram",
     corpus: str = "fineweb_{lang}_5gb_quick",
     vocab: int = 34_685,
+    in_context: bool = False,
     out: str = os.path.join(GENERATED, "morphalign.json"),
     force: bool = False,
 ) -> None:
@@ -220,9 +222,15 @@ def main(
         trainers: Comma-separated trainers.
         corpus: Corpus name pattern, `{lang}` substituted.
         vocab: Matched total vocabulary in the tokenizer filenames.
-        out: JSON of scores, keyed by tokenizer name.
+        in_context: Segment each gold word inside a carrier phrase instead of on its own.
+            Without it a leading-space vocabulary cannot match, so the baseline is scored
+            on splits it never makes in running text -- see segment_in_context.
+        out: JSON of scores, keyed by tokenizer name, with `@ctx` appended in this mode so
+            both probes live in one file.
         force: Re-score cells already present.
     """
+    segmenter = segment_in_context if in_context else segment
+    suffix = "@ctx" if in_context else ""
     align = _align_module()
     scores = json.load(open(out)) if os.path.exists(out) else {}
 
@@ -230,17 +238,18 @@ def main(
         gold_path = os.path.join(MORPH_TOK_EVAL, "data", "morpho", GOLD[lang])
         for arm in [x.strip() for x in arms.split(",") if x.strip()]:
             for trainer in [x.strip() for x in trainers.split(",") if x.strip()]:
-                key = f"{corpus.format(lang=lang)}_{arm}_{trainer}_v{vocab}"
-                path = os.path.join(TOKENIZERS, f"{key}.json.gz")
+                name = f"{corpus.format(lang=lang)}_{arm}_{trainer}_v{vocab}"
+                key = name + suffix
+                path = os.path.join(TOKENIZERS, f"{name}.json.gz")
                 if not os.path.exists(path) or (key in scores and not force):
                     continue
-                seg_path = os.path.join(SEGMENTED, f"{key}.tsv")
-                kept, dropped = write_segmented(load_tokenizer(path), gold_path, seg_path)
+                seg_path = os.path.join(SEGMENTED, f"{key.replace('@', '_')}.tsv")
+                kept, dropped = write_segmented(load_tokenizer(path), gold_path, seg_path, segmenter)
                 subset = gold_subset(gold_path, seg_path, seg_path.replace(".tsv", ".gold.tsv"))
                 results, _ = align.evaluate_segmentations(
                     subset, seg_path, THRESHOLDS, ITERATIONS, MODEL, skip_gold_train=True)
                 scores[key] = {
-                    "lang": lang, "arm": arm, "trainer": trainer,
+                    "lang": lang, "arm": arm, "trainer": trainer, "in_context": in_context,
                     "morphalign": float(results[METRIC]) * SCALE,
                     "words": kept, "dropped": dropped,
                 }

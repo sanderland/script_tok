@@ -39,6 +39,15 @@
     "trainer": "bpe",
     "words": 16009
   },
+  "fineweb_de_5gb_quick_bnd_wpd_bpe_v34685@ctx": {
+    "arm": "bnd_wpd",
+    "dropped": 0,
+    "in_context": true,
+    "lang": "de",
+    "morphalign": 0.35835048082965265,
+    "trainer": "bpe",
+    "words": 16009
+  },
   "fineweb_de_5gb_quick_bnd_wpd_caps_bpe_v34685": {
     "arm": "bnd_wpd_caps",
     "dropped": 0,
@@ -63,6 +72,15 @@
     "trainer": "bpe",
     "words": 16009
   },
+  "fineweb_de_5gb_quick_bnd_wpd_extcaps_bpe_v34685@ctx": {
+    "arm": "bnd_wpd_extcaps",
+    "dropped": 25,
+    "in_context": true,
+    "lang": "de",
+    "morphalign": 0.3585538437648632,
+    "trainer": "bpe",
+    "words": 15984
+  },
   "fineweb_de_5gb_quick_bnd_wpd_extcaps_mingram_v34685": {
     "arm": "bnd_wpd_extcaps",
     "dropped": 0,
@@ -71,9 +89,27 @@
     "trainer": "mingram",
     "words": 16009
   },
+  "fineweb_de_5gb_quick_bnd_wpd_extcaps_mingram_v34685@ctx": {
+    "arm": "bnd_wpd_extcaps",
+    "dropped": 243,
+    "in_context": true,
+    "lang": "de",
+    "morphalign": 0.49140183761582407,
+    "trainer": "mingram",
+    "words": 15766
+  },
   "fineweb_de_5gb_quick_bnd_wpd_mingram_v34685": {
     "arm": "bnd_wpd",
     "dropped": 0,
+    "lang": "de",
+    "morphalign": 0.48094737643660407,
+    "trainer": "mingram",
+    "words": 16009
+  },
+  "fineweb_de_5gb_quick_bnd_wpd_mingram_v34685@ctx": {
+    "arm": "bnd_wpd",
+    "dropped": 0,
+    "in_context": true,
     "lang": "de",
     "morphalign": 0.48094737643660407,
     "trainer": "mingram",
@@ -87,11 +123,29 @@
     "trainer": "bpe",
     "words": 16009
   },
+  "fineweb_de_5gb_quick_plain_bpe_v34685@ctx": {
+    "arm": "plain",
+    "dropped": 0,
+    "in_context": true,
+    "lang": "de",
+    "morphalign": 0.42068327138875566,
+    "trainer": "bpe",
+    "words": 16009
+  },
   "fineweb_de_5gb_quick_plain_mingram_v34685": {
     "arm": "plain",
     "dropped": 0,
     "lang": "de",
     "morphalign": 0.8866564415630881,
+    "trainer": "mingram",
+    "words": 16009
+  },
+  "fineweb_de_5gb_quick_plain_mingram_v34685@ctx": {
+    "arm": "plain",
+    "dropped": 0,
+    "in_context": true,
+    "lang": "de",
+    "morphalign": 0.5655749174084473,
     "trainer": "mingram",
     "words": 16009
   },
@@ -135,6 +189,15 @@
     "trainer": "bpe",
     "words": 27427
   },
+  "fineweb_en_5gb_quick_bnd_wpd_bpe_v34685@ctx": {
+    "arm": "bnd_wpd",
+    "dropped": 0,
+    "in_context": true,
+    "lang": "en",
+    "morphalign": 0.21189539116474942,
+    "trainer": "bpe",
+    "words": 27427
+  },
   "fineweb_en_5gb_quick_bnd_wpd_caps_bpe_v34685": {
     "arm": "bnd_wpd_caps",
     "dropped": 16,
@@ -159,6 +222,15 @@
     "trainer": "bpe",
     "words": 27411
   },
+  "fineweb_en_5gb_quick_bnd_wpd_extcaps_bpe_v34685@ctx": {
+    "arm": "bnd_wpd_extcaps",
+    "dropped": 17,
+    "in_context": true,
+    "lang": "en",
+    "morphalign": 0.214713119128061,
+    "trainer": "bpe",
+    "words": 27410
+  },
   "fineweb_en_5gb_quick_bnd_wpd_extcaps_mingram_v34685": {
     "arm": "bnd_wpd_extcaps",
     "dropped": 16,
@@ -167,9 +239,27 @@
     "trainer": "mingram",
     "words": 27411
   },
+  "fineweb_en_5gb_quick_bnd_wpd_extcaps_mingram_v34685@ctx": {
+    "arm": "bnd_wpd_extcaps",
+    "dropped": 23,
+    "in_context": true,
+    "lang": "en",
+    "morphalign": 0.23137563793425986,
+    "trainer": "mingram",
+    "words": 27404
+  },
   "fineweb_en_5gb_quick_bnd_wpd_mingram_v34685": {
     "arm": "bnd_wpd",
     "dropped": 0,
+    "lang": "en",
+    "morphalign": 0.2307595672591266,
+    "trainer": "mingram",
+    "words": 27427
+  },
+  "fineweb_en_5gb_quick_bnd_wpd_mingram_v34685@ctx": {
+    "arm": "bnd_wpd",
+    "dropped": 0,
+    "in_context": true,
     "lang": "en",
     "morphalign": 0.2307595672591266,
     "trainer": "mingram",
@@ -183,11 +273,29 @@
     "trainer": "bpe",
     "words": 27427
   },
+  "fineweb_en_5gb_quick_plain_bpe_v34685@ctx": {
+    "arm": "plain",
+    "dropped": 0,
+    "in_context": true,
+    "lang": "en",
+    "morphalign": 0.2818211539702701,
+    "trainer": "bpe",
+    "words": 27427
+  },
   "fineweb_en_5gb_quick_plain_mingram_v34685": {
     "arm": "plain",
     "dropped": 0,
     "lang": "en",
     "morphalign": 0.5677393640739298,
+    "trainer": "mingram",
+    "words": 27427
+  },
+  "fineweb_en_5gb_quick_plain_mingram_v34685@ctx": {
+    "arm": "plain",
+    "dropped": 0,
+    "in_context": true,
+    "lang": "en",
+    "morphalign": 0.4084610165996568,
     "trainer": "mingram",
     "words": 27427
   },
@@ -231,6 +339,15 @@
     "trainer": "bpe",
     "words": 13929
   },
+  "fineweb_fi_5gb_quick_bnd_wpd_bpe_v34685@ctx": {
+    "arm": "bnd_wpd",
+    "dropped": 0,
+    "in_context": true,
+    "lang": "fi",
+    "morphalign": 1.079205793144664,
+    "trainer": "bpe",
+    "words": 13929
+  },
   "fineweb_fi_5gb_quick_bnd_wpd_caps_bpe_v34685": {
     "arm": "bnd_wpd_caps",
     "dropped": 4,
@@ -255,9 +372,27 @@
     "trainer": "bpe",
     "words": 13925
   },
+  "fineweb_fi_5gb_quick_bnd_wpd_extcaps_bpe_v34685@ctx": {
+    "arm": "bnd_wpd_extcaps",
+    "dropped": 4,
+    "in_context": true,
+    "lang": "fi",
+    "morphalign": 1.0407660349470276,
+    "trainer": "bpe",
+    "words": 13925
+  },
   "fineweb_fi_5gb_quick_bnd_wpd_extcaps_mingram_v34685": {
     "arm": "bnd_wpd_extcaps",
     "dropped": 4,
+    "lang": "fi",
+    "morphalign": 1.1048591078429668,
+    "trainer": "mingram",
+    "words": 13925
+  },
+  "fineweb_fi_5gb_quick_bnd_wpd_extcaps_mingram_v34685@ctx": {
+    "arm": "bnd_wpd_extcaps",
+    "dropped": 4,
+    "in_context": true,
     "lang": "fi",
     "morphalign": 1.1048591078429668,
     "trainer": "mingram",
@@ -271,6 +406,15 @@
     "trainer": "mingram",
     "words": 13929
   },
+  "fineweb_fi_5gb_quick_bnd_wpd_mingram_v34685@ctx": {
+    "arm": "bnd_wpd",
+    "dropped": 0,
+    "in_context": true,
+    "lang": "fi",
+    "morphalign": 1.1159043421146357,
+    "trainer": "mingram",
+    "words": 13929
+  },
   "fineweb_fi_5gb_quick_plain_bpe_v34685": {
     "arm": "plain",
     "dropped": 0,
@@ -279,11 +423,29 @@
     "trainer": "bpe",
     "words": 13929
   },
+  "fineweb_fi_5gb_quick_plain_bpe_v34685@ctx": {
+    "arm": "plain",
+    "dropped": 0,
+    "in_context": true,
+    "lang": "fi",
+    "morphalign": 1.2310397929440333,
+    "trainer": "bpe",
+    "words": 13929
+  },
   "fineweb_fi_5gb_quick_plain_mingram_v34685": {
     "arm": "plain",
     "dropped": 0,
     "lang": "fi",
     "morphalign": 1.2227443149701818,
+    "trainer": "mingram",
+    "words": 13929
+  },
+  "fineweb_fi_5gb_quick_plain_mingram_v34685@ctx": {
+    "arm": "plain",
+    "dropped": 0,
+    "in_context": true,
+    "lang": "fi",
+    "morphalign": 1.3650921342541427,
     "trainer": "mingram",
     "words": 13929
   }
