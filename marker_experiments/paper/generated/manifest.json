@@ -308,6 +308,30 @@
     "train_seconds": 460,
     "trainer": "mingram"
   },
+  "fineweb_ar_5gb_quick_bnd_wpd_extcapsfix_bpe_v34685": {
+    "additional_vocab_size": 32972,
+    "arm": "bnd_wpd_extcapsfix",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_ar_5gb_quick",
+    "lang": "ar",
+    "overshoot_factor": null,
+    "path": "downstream/tokenizers/fineweb_ar_5gb_quick_bnd_wpd_extcapsfix_bpe_v34685.json.gz",
+    "total_vocab": 34685,
+    "train_seconds": 135,
+    "trainer": "bpe"
+  },
+  "fineweb_ar_5gb_quick_bnd_wpd_extcapsfix_mingram_v34685": {
+    "additional_vocab_size": 32972,
+    "arm": "bnd_wpd_extcapsfix",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_ar_5gb_quick",
+    "lang": "ar",
+    "overshoot_factor": 1.15,
+    "path": "downstream/tokenizers/fineweb_ar_5gb_quick_bnd_wpd_extcapsfix_mingram_v34685.json.gz",
+    "total_vocab": 34685,
+    "train_seconds": 456,
+    "trainer": "mingram"
+  },
   "fineweb_ar_5gb_quick_bnd_wpd_mingram_v34685": {
     "additional_vocab_size": 32974,
     "arm": "bnd_wpd",
@@ -653,6 +677,30 @@
     "train_seconds": 927,
     "trainer": "mingram"
   },
+  "fineweb_de_5gb_quick_bnd_wpd_extcapsfix_bpe_v34685": {
+    "additional_vocab_size": 32972,
+    "arm": "bnd_wpd_extcapsfix",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_de_5gb_quick",
+    "lang": "de",
+    "overshoot_factor": null,
+    "path": "downstream/tokenizers/fineweb_de_5gb_quick_bnd_wpd_extcapsfix_bpe_v34685.json.gz",
+    "total_vocab": 34685,
+    "train_seconds": 303,
+    "trainer": "bpe"
+  },
+  "fineweb_de_5gb_quick_bnd_wpd_extcapsfix_mingram_v34685": {
+    "additional_vocab_size": 32972,
+    "arm": "bnd_wpd_extcapsfix",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_de_5gb_quick",
+    "lang": "de",
+    "overshoot_factor": 1.15,
+    "path": "downstream/tokenizers/fineweb_de_5gb_quick_bnd_wpd_extcapsfix_mingram_v34685.json.gz",
+    "total_vocab": 34685,
+    "train_seconds": 984,
+    "trainer": "mingram"
+  },
   "fineweb_de_5gb_quick_bnd_wpd_mingram_v34685": {
     "additional_vocab_size": 32974,
     "arm": "bnd_wpd",
@@ -785,6 +833,23 @@
     "train_seconds": 517,
     "trainer": "bpe"
   },
+  "fineweb_en_5gb_bnd_wpd_caps_mingram_v34685": {
+    "additional_vocab_size": 32972,
+    "arm": "bnd_wpd_caps",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_en_5gb",
+    "eval_chars": 3602925,
+    "eval_chars_per_token": 3.776001819393731,
+    "eval_slice": "marker_experiments/eval_texts/en.json",
+    "eval_tokens": 954164,
+    "lang": "en",
+    "overshoot_factor": 1.15,
+    "path": "downstream/tokenizers/fineweb_en_5gb_bnd_wpd_caps_mingram_v34685.json.gz",
+    "roundtrip_failures": 0,
+    "total_vocab": 34685,
+    "train_seconds": 867,
+    "trainer": "mingram"
+  },
   "fineweb_en_5gb_bnd_wpd_extcaps_bpe_v34685": {
     "additional_vocab_size": 32972,
     "arm": "bnd_wpd_extcaps",
@@ -801,6 +866,23 @@
     "total_vocab": 34685,
     "train_seconds": 153,
     "trainer": "bpe"
+  },
+  "fineweb_en_5gb_bnd_wpd_extcaps_mingram_v34685": {
+    "additional_vocab_size": 32972,
+    "arm": "bnd_wpd_extcaps",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_en_5gb",
+    "eval_chars": 3602925,
+    "eval_chars_per_token": 3.7854081717348205,
+    "eval_slice": "marker_experiments/eval_texts/en.json",
+    "eval_tokens": 951793,
+    "lang": "en",
+    "overshoot_factor": 1.15,
+    "path": "downstream/tokenizers/fineweb_en_5gb_bnd_wpd_extcaps_mingram_v34685.json.gz",
+    "roundtrip_failures": 0,
+    "total_vocab": 34685,
+    "train_seconds": 876,
+    "trainer": "mingram"
   },
   "fineweb_en_5gb_bnd_wpd_mingram_v34685": {
     "additional_vocab_size": 32974,
@@ -1005,6 +1087,30 @@
     "path": "downstream/tokenizers/fineweb_en_5gb_quick_bnd_wpd_extcaps_mingram_v34685.json.gz",
     "total_vocab": 34685,
     "train_seconds": 318,
+    "trainer": "mingram"
+  },
+  "fineweb_en_5gb_quick_bnd_wpd_extcapsfix_bpe_v34685": {
+    "additional_vocab_size": 32972,
+    "arm": "bnd_wpd_extcapsfix",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_en_5gb_quick",
+    "lang": "en",
+    "overshoot_factor": null,
+    "path": "downstream/tokenizers/fineweb_en_5gb_quick_bnd_wpd_extcapsfix_bpe_v34685.json.gz",
+    "total_vocab": 34685,
+    "train_seconds": 80,
+    "trainer": "bpe"
+  },
+  "fineweb_en_5gb_quick_bnd_wpd_extcapsfix_mingram_v34685": {
+    "additional_vocab_size": 32972,
+    "arm": "bnd_wpd_extcapsfix",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_en_5gb_quick",
+    "lang": "en",
+    "overshoot_factor": 1.15,
+    "path": "downstream/tokenizers/fineweb_en_5gb_quick_bnd_wpd_extcapsfix_mingram_v34685.json.gz",
+    "total_vocab": 34685,
+    "train_seconds": 284,
     "trainer": "mingram"
   },
   "fineweb_en_5gb_quick_bnd_wpd_mingram_v34685": {
@@ -1352,6 +1458,30 @@
     "train_seconds": 1692,
     "trainer": "mingram"
   },
+  "fineweb_fi_5gb_quick_bnd_wpd_extcapsfix_bpe_v34685": {
+    "additional_vocab_size": 32972,
+    "arm": "bnd_wpd_extcapsfix",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_fi_5gb_quick",
+    "lang": "fi",
+    "overshoot_factor": null,
+    "path": "downstream/tokenizers/fineweb_fi_5gb_quick_bnd_wpd_extcapsfix_bpe_v34685.json.gz",
+    "total_vocab": 34685,
+    "train_seconds": 504,
+    "trainer": "bpe"
+  },
+  "fineweb_fi_5gb_quick_bnd_wpd_extcapsfix_mingram_v34685": {
+    "additional_vocab_size": 32972,
+    "arm": "bnd_wpd_extcapsfix",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_fi_5gb_quick",
+    "lang": "fi",
+    "overshoot_factor": 1.15,
+    "path": "downstream/tokenizers/fineweb_fi_5gb_quick_bnd_wpd_extcapsfix_mingram_v34685.json.gz",
+    "total_vocab": 34685,
+    "train_seconds": 1422,
+    "trainer": "mingram"
+  },
   "fineweb_fi_5gb_quick_bnd_wpd_mingram_v34685": {
     "additional_vocab_size": 32974,
     "arm": "bnd_wpd",
@@ -1662,6 +1792,30 @@
     "path": "downstream/tokenizers/fineweb_ko_5gb_quick_bnd_wpd_extcaps_mingram_v34685.json.gz",
     "total_vocab": 34685,
     "train_seconds": 1498,
+    "trainer": "mingram"
+  },
+  "fineweb_ko_5gb_quick_bnd_wpd_extcapsfix_bpe_v34685": {
+    "additional_vocab_size": 32972,
+    "arm": "bnd_wpd_extcapsfix",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_ko_5gb_quick",
+    "lang": "ko",
+    "overshoot_factor": null,
+    "path": "downstream/tokenizers/fineweb_ko_5gb_quick_bnd_wpd_extcapsfix_bpe_v34685.json.gz",
+    "total_vocab": 34685,
+    "train_seconds": 400,
+    "trainer": "bpe"
+  },
+  "fineweb_ko_5gb_quick_bnd_wpd_extcapsfix_mingram_v34685": {
+    "additional_vocab_size": 32972,
+    "arm": "bnd_wpd_extcapsfix",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_ko_5gb_quick",
+    "lang": "ko",
+    "overshoot_factor": 1.15,
+    "path": "downstream/tokenizers/fineweb_ko_5gb_quick_bnd_wpd_extcapsfix_mingram_v34685.json.gz",
+    "total_vocab": 34685,
+    "train_seconds": 1504,
     "trainer": "mingram"
   },
   "fineweb_ko_5gb_quick_bnd_wpd_mingram_v34685": {
@@ -2007,6 +2161,30 @@
     "path": "downstream/tokenizers/fineweb_ru_5gb_quick_bnd_wpd_extcaps_mingram_v34685.json.gz",
     "total_vocab": 34685,
     "train_seconds": 395,
+    "trainer": "mingram"
+  },
+  "fineweb_ru_5gb_quick_bnd_wpd_extcapsfix_bpe_v34685": {
+    "additional_vocab_size": 32972,
+    "arm": "bnd_wpd_extcapsfix",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_ru_5gb_quick",
+    "lang": "ru",
+    "overshoot_factor": null,
+    "path": "downstream/tokenizers/fineweb_ru_5gb_quick_bnd_wpd_extcapsfix_bpe_v34685.json.gz",
+    "total_vocab": 34685,
+    "train_seconds": 168,
+    "trainer": "bpe"
+  },
+  "fineweb_ru_5gb_quick_bnd_wpd_extcapsfix_mingram_v34685": {
+    "additional_vocab_size": 32972,
+    "arm": "bnd_wpd_extcapsfix",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_ru_5gb_quick",
+    "lang": "ru",
+    "overshoot_factor": 1.15,
+    "path": "downstream/tokenizers/fineweb_ru_5gb_quick_bnd_wpd_extcapsfix_mingram_v34685.json.gz",
+    "total_vocab": 34685,
+    "train_seconds": 522,
     "trainer": "mingram"
   },
   "fineweb_ru_5gb_quick_bnd_wpd_mingram_v34685": {

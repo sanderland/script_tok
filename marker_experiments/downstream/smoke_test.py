@@ -97,18 +97,26 @@ def fresh_process_load(path, dotted):
 
 @app.default
 def main(tokenizer_dir: str = DEFAULT_DIR, pattern: str = "en_",
-         require_matched_vocab: bool = False) -> None:
+         corpus: str = "", require_matched_vocab: bool = False) -> None:
     """Check the tokenizer-side downstream path for every matching tokenizer.
 
     Args:
         tokenizer_dir: Directory of .json.gz tokenizers to check.
         pattern: Only check files containing this substring.
+        corpus: Only check files for this corpus, matched as a filename prefix. Needed
+            because `pattern` is one substring and a filename is
+            {corpus}_{arm}_{trainer}_v{vocab}, so no single substring selects one
+            corpus and one trainer at once. --require-matched-vocab asserts that the
+            arms being compared share a total vocabulary, and that comparison is within
+            one corpus and trainer; without this filter the assertion also demands that
+            unrelated corpora agree, and one cell short of its target anywhere in the
+            directory aborts every run.
     """
     ScriptBPETokenizerAdapter, write_token_bytes = _import_adapter()
     paths = sorted(
         os.path.join(tokenizer_dir, f)
         for f in os.listdir(tokenizer_dir)
-        if f.endswith(".json.gz") and pattern in f
+        if f.endswith(".json.gz") and pattern in f and f.startswith(corpus)
     )
     if not paths:
         raise SystemExit(f"no tokenizers matching {pattern!r} in {tokenizer_dir}")
