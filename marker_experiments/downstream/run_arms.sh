@@ -71,7 +71,7 @@ echo "== step 2/3: tokenizer-side checks (must be clean before burning GPU hours
 # because each job is handed a per-arm manifest and so only ever sees one arm. This is the
 # one step in a job that loads every matched tokenizer at once.
 uv run python marker_experiments/downstream/smoke_test.py \
-    --tokenizer-dir "$TOK_DIR" --pattern "_${TRAINER}_v${VOCAB}" \
+    --tokenizer-dir "$TOK_DIR" --pattern "_${TRAINER}_v${VOCAB}" --corpus "${CORPUS}_" \
     --require-matched-vocab
 
 echo "== step 3/3: downstream runs"

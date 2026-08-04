@@ -10,9 +10,8 @@ Scheme & \multicolumn{2}{c}{bits per byte $\downarrow$} \\
  & BPE & MinGram \\
 \midrule
 \plainscheme & 0.8853 {\footnotesize $\pm$ 0.0003} & 0.8837 {\footnotesize $\pm$ 0.0008} \\
-\bnds{w} & \textbf{0.8768} {\footnotesize $\pm$ 0.0008} & -- \\
-\bnds{wpd} & 0.8800 {\footnotesize $\pm$ 0.0005} & \textbf{0.8805} {\footnotesize $\pm$ 0.0006} \\
-\bnds{wpdcaps} & \underline{0.8793} {\footnotesize $\pm$ 0.0005} & -- \\
+\bnds{w} & \textbf{0.8768} {\footnotesize $\pm$ 0.0008} & \textbf{0.8763} {\footnotesize $\pm$ 0.0003} \\
+\bnds{wpd} & \underline{0.8800} {\footnotesize $\pm$ 0.0005} & \underline{0.8805} {\footnotesize $\pm$ 0.0006} \\
 \bottomrule
 \end{tabular}
 \caption{Downstream evaluation results.
@@ -29,6 +28,7 @@ shared seeds. -- is a configuration that was not pretrained.
 %   CORE, depth 12, n/a wherever a scheme breaks the prefix property its tasks assume:
 %     BPE bnd_w: 0.1411 +- 0.0058 (n=3), paired vs plain +0.0027 +- 0.0072
 %     BPE plain: 0.1384 +- 0.0022 (n=3)
+%     MinGram bnd_w: 0.1442 +- 0.0088 (n=3), paired vs plain +0.0046 +- 0.0128
 %     MinGram plain: 0.1396 +- 0.0061 (n=3)
 %   raw bpb (nanochat's own figure) divides by summed token byte length and is not
 %     comparable across these tokenizers; see the appendix tables.
