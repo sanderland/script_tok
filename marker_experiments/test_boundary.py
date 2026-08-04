@@ -430,3 +430,24 @@ def test_caps_preserves_no_triple_marker(text):
     m = pt.marker_token_id
     for i in range(len(ids) - 2):
         assert not (ids[i] == m and ids[i + 1] == m and ids[i + 2] == m), text
+
+
+def code_count(pt, text):
+    return sum(1 for i in flat(pt, text) if i in (pt.shift_token_id, pt.caps_token_id))
+
+
+@pytest.mark.parametrize("text", ["العربية نص", "한국어 텍스트", "עברית טקסט", "हिन्दी पाठ"])
+def test_extcapsfix_leaves_uncased_scripts_alone(text):
+    """`str.islower()` is False for text with no cased character, so `_extcaps` reads every
+    Arabic, Hangul, Hebrew or Devanagari span as title case and codes it. `_extcapsfix`
+    tests `istitle() or isupper()` first, which those spans fail."""
+    old, new = get_boundary_pretokenizer("bnd_wpd_extcaps"), get_boundary_pretokenizer("bnd_wpd_extcapsfix")
+    assert code_count(old, text) > 0
+    assert code_count(new, text) == 0
+    assert new.decode(flat(new, text)) == text
+
+
+@pytest.mark.parametrize("text", ["The cat", "ASH and ash", "SolidGoldMagikarp", "İstanbul", "A b", "Ярославль ТАСС"])
+def test_extcapsfix_matches_extcaps_on_cased_scripts(text):
+    old, new = get_boundary_pretokenizer("bnd_wpd_extcaps"), get_boundary_pretokenizer("bnd_wpd_extcapsfix")
+    assert flat(old, text) == flat(new, text)

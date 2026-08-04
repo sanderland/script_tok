@@ -83,8 +83,11 @@ LANG_ORDER = ["en", "de", "fi", "ru", "ar", "ko"]
 # case-handling form. `_extcaps` puts the canonical case form outside the markers and is
 # the form that stays, so it gets the plain `caps` notation; `bnd_wpd_caps` puts it inside
 # them, exists only as the placement ablation, and is marked `in` until it is dropped.
-ARM_ORDER = ["bnd_w", "bnd_w_extcaps", "bnd_wp", "bnd_wp_extcaps",
-             "bnd_wpd", "bnd_wpd_extcaps", "bnd_wpd_caps"]
+# `_extcapsfix` is `_extcaps` with the case test the scheme is supposed to apply; the two
+# agree on cased scripts and differ on Arabic and Korean, where `_extcaps` codes every span.
+ARM_ORDER = ["bnd_w", "bnd_w_extcaps", "bnd_w_extcapsfix",
+             "bnd_wp", "bnd_wp_extcaps", "bnd_wp_extcapsfix",
+             "bnd_wpd", "bnd_wpd_extcaps", "bnd_wpd_extcapsfix", "bnd_wpd_caps"]
 ARM_LABEL = {
     "bnd_w": r"\bnds{w}",
     "bnd_wp": r"\bnds{wp}",
@@ -92,6 +95,9 @@ ARM_LABEL = {
     "bnd_w_extcaps": r"\bnds{wcaps}",
     "bnd_wp_extcaps": r"\bnds{wpcaps}",
     "bnd_wpd_extcaps": r"\bnds{wpdcaps}",
+    "bnd_w_extcapsfix": r"\bnds{wcapsfix}",
+    "bnd_wp_extcapsfix": r"\bnds{wpcapsfix}",
+    "bnd_wpd_extcapsfix": r"\bnds{wpdcapsfix}",
     "bnd_wpd_caps": r"\bnds{wpdcapsin}",
 }
 # What the main table argues: the three boundary scopes, and case handling once. The other
@@ -467,7 +473,11 @@ def main(
     setting = setting or (
         "trained on 5\\,GB of FineWeb per language"
         + (" (\\texttt{quick} non-uniform sample)" if corpus == "quick" else "")
-        + ", 34{,}685 matched total vocabulary, evaluated on held-out Goldfish"
+        # The grid matches the *total* at 34,685, which leaves the learned counts differing
+        # by at most three (32,975 for plain, 32,974 with a marker, 32,972 with the case
+        # codes) as the atomic alphabet grows. That is roundoff, so the caption says the
+        # round number the paper says.
+        + ", 32k matched learned tokens, evaluated on held-out Goldfish"
     )
 
     morphs = [x.strip() for x in morph_langs.split(",") if x.strip()]

@@ -498,6 +498,38 @@ class ExtCapsBoundaryScriptPretokenizer(
 
 
 
+class ExtCapsFixBoundaryScriptPretokenizerConfig(ExtCapsBoundaryScriptPretokenizerConfig):
+    cls: str = "ExtCapsFixBoundaryScriptPretokenizer"
+
+
+class ExtCapsFixBoundaryScriptPretokenizer(
+    ExtCapsBoundaryScriptPretokenizer, config_type=ExtCapsFixBoundaryScriptPretokenizerConfig
+):
+    """`_extcaps` with the case test the scheme is supposed to apply: title or upper case.
+
+    `str.islower()` needs a cased character to be True, so the inherited test lets uncased
+    scripts straight through: lower-casing Arabic or Hangul is a no-op, the round trip
+    therefore succeeds, and a `<^>` lands in front of every word span in those languages.
+    On the Goldfish slices that is 33,183 of 33,579 Arabic word spans and 46,137 of 46,657
+    Korean ones, against 6,072 of 34,707 for English, which is real title case. Decoding
+    applies `capitalize()`, another no-op on uncased text, so every round trip still
+    passes and nothing about it fails loudly. What it costs is tokens: Arabic spends 2.3%
+    more of them under `bnd_wpd_extcaps` than under `bnd_wpd`, and that is the whole of
+    the Arabic case-code regression in the compression tables.
+
+    Testing `istitle() or isupper()` first leaves cased scripts untouched -- the two tests
+    agree on every word span of the English, German, Finnish and Russian slices -- and
+    drops the uncased ones to the Latin words those documents happen to contain, 260 for
+    Arabic and 855 for Korean.
+    """
+
+    @staticmethod
+    def _caps_form(text: str):
+        if not text or not (text.istitle() or text.isupper()):
+            return None
+        return BoundaryScriptPretokenizer._caps_form(text)
+
+
 # Named variants used by the experiments. All are ScriptEncodingV3 with
 # enforce_char_boundaries=True; they differ only in which units get a boundary.
 BOUNDARY_VARIANTS = {
@@ -514,7 +546,10 @@ CAPS_VARIANTS = {f"{name}_caps": targets for name, targets in BOUNDARY_VARIANTS.
 # Same boundary targets, caps codes placed outside the span so the word token is shared.
 EXTCAPS_VARIANTS = {f"{name}_extcaps": targets for name, targets in BOUNDARY_VARIANTS.items()}
 
-ALL_VARIANTS = {**BOUNDARY_VARIANTS, **CAPS_VARIANTS, **EXTCAPS_VARIANTS}
+# Same placement, but the case test rejects uncased scripts instead of coding every span.
+EXTCAPSFIX_VARIANTS = {f"{name}_extcapsfix": targets for name, targets in BOUNDARY_VARIANTS.items()}
+
+ALL_VARIANTS = {**BOUNDARY_VARIANTS, **CAPS_VARIANTS, **EXTCAPS_VARIANTS, **EXTCAPSFIX_VARIANTS}
 
 
 def get_boundary_pretokenizer(name: str, **overrides) -> BoundaryScriptPretokenizer:
@@ -523,9 +558,14 @@ def get_boundary_pretokenizer(name: str, **overrides) -> BoundaryScriptPretokeni
 
     if name not in ALL_VARIANTS:
         raise ValueError(f"unknown boundary variant {name!r}; have {sorted(ALL_VARIANTS)}")
-    external = name in EXTCAPS_VARIANTS
-    cls = ExtCapsBoundaryScriptPretokenizer if external else BoundaryScriptPretokenizer
-    cfg = ExtCapsBoundaryScriptPretokenizerConfig if external else BoundaryScriptPretokenizerConfig
+    fixed = name in EXTCAPSFIX_VARIANTS
+    external = fixed or name in EXTCAPS_VARIANTS
+    if fixed:
+        cls, cfg = ExtCapsFixBoundaryScriptPretokenizer, ExtCapsFixBoundaryScriptPretokenizerConfig
+    elif external:
+        cls, cfg = ExtCapsBoundaryScriptPretokenizer, ExtCapsBoundaryScriptPretokenizerConfig
+    else:
+        cls, cfg = BoundaryScriptPretokenizer, BoundaryScriptPretokenizerConfig
     return cls(
         cfg(
             script_config=ScriptEncodingV3,
