@@ -827,6 +827,18 @@
     "train_corpus": "fineweb_fi_5gb_quick",
     "train_tokens": 1166513198
   },
+  "fineweb_fi_5gb_quick_bnd_w_extcaps_mingram_v34685": {
+    "eval_chars": 8013043,
+    "eval_chars_per_token": 4.703878551004199,
+    "eval_corpus": "goldfish:fin_latn.txt",
+    "eval_docs": 29307,
+    "eval_tokens": 1703497,
+    "roundtrip_failures": 0,
+    "slice_hash": "1df047431ded0222",
+    "train_chars": 5000002676,
+    "train_corpus": "fineweb_fi_5gb_quick",
+    "train_tokens": 1138457942
+  },
   "fineweb_fi_5gb_quick_bnd_w_mingram_v34685": {
     "eval_chars": 8013043,
     "eval_chars_per_token": 4.662136821606878,
@@ -1102,6 +1114,18 @@
     "train_chars": 5000001608,
     "train_corpus": "fineweb_ko_5gb_quick",
     "train_tokens": 2384543810
+  },
+  "fineweb_ko_5gb_quick_bnd_w_extcaps_mingram_v34685": {
+    "eval_chars": 7923744,
+    "eval_chars_per_token": 2.0925361861477234,
+    "eval_corpus": "goldfish:kor_hang.txt",
+    "eval_docs": 37636,
+    "eval_tokens": 3786670,
+    "roundtrip_failures": 0,
+    "slice_hash": "cda3548bef457716",
+    "train_chars": 5000001608,
+    "train_corpus": "fineweb_ko_5gb_quick",
+    "train_tokens": 2376793692
   },
   "fineweb_ko_5gb_quick_bnd_w_mingram_v34685": {
     "eval_chars": 7923744,
