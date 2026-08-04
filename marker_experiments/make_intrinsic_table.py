@@ -305,13 +305,14 @@ def morphscore_statistic(record):
 
 
 def morph_cell(scores, langs, arm, trainer, digits=3):
-    """One morphology cell: the in-context score, trailed by the bare one where they part.
+    """One morphology cell: the metric as published, trailed by the in-context variant.
 
-    The bare probe segments each gold word on its own, which a leading-space vocabulary
-    cannot match -- `plain` comes back as `lead|s` for a word it emits whole in running
-    text, and is credited for a split it never makes. The marker schemes delimit a span the
-    same way either side, so the two probes agree for them and the cell shows one number;
-    where they disagree the bare figure follows in parentheses and is not ranked.
+    The headline figure segments each gold word on its own, which is how both metrics are
+    computed everywhere they have been reported. That makes it the number that compares to
+    the literature, so it is the one shown and the one ranked. Segmenting inside a carrier
+    phrase is ours; it follows in parentheses where it differs, which is only for
+    \\plainscheme -- the marker schemes delimit a span the same way either side, so the two
+    agree for them and the cell shows one number.
     """
     def mean(in_context):
         got = [scores[(lg, arm, trainer, in_context)] for lg in langs
@@ -319,11 +320,11 @@ def morph_cell(scores, langs, arm, trainer, digits=3):
         return sum(got) / len(got) if got else None
 
     bare, ctx = mean(False), mean(True)
-    if ctx is None:
+    if bare is None:
         return MISSING_CELL
-    shown = f"{ctx:.{digits}f}"
-    post = "" if bare is None or f"{bare:.{digits}f}" == shown else rf"\,({bare:.{digits}f})"
-    return cell(shown, round(ctx, digits), post=post)
+    shown = f"{bare:.{digits}f}"
+    post = "" if ctx is None or f"{ctx:.{digits}f}" == shown else rf"\,({ctx:.{digits}f})"
+    return cell(shown, round(bare, digits), post=post)
 
 
 def body(cells, langs, trainers, arms):
@@ -553,9 +554,8 @@ def main(
 
     morph_note = (
         rf"MorphAlign is over {listed(align_langs)} and MorphScore over "
-        rf"{listed(score_langs)}, higher better. Each word is segmented inside a carrier "
-        r"phrase; parenthesised is both metrics' own default of segmenting it alone, "
-        r"which no leading-space vocabulary can match. "
+        rf"{listed(score_langs)}, higher better; parenthesised is the same score with the "
+        r"word in context rather than in isolation. "
     )
     caption = (
         r"\caption{Compression, " + setting + coverage + r". " + anchor
