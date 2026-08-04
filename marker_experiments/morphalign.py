@@ -181,7 +181,7 @@ def main(
                     "morphalign": float(results[METRIC]) * SCALE,
                     "words": kept, "dropped": dropped,
                 }
-                print(f"{key:<52} MorphAlign={scores[key]['morphalign']:6.2f} "
+                print(f"{key:<52} MorphAlign={scores[key]['morphalign']:7.4f} "
                       f"({kept:,} words, {dropped} dropped)", flush=True)
                 with open(out, "w") as f:
                     json.dump(scores, f, indent=2, sort_keys=True)
