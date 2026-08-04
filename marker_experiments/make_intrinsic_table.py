@@ -164,29 +164,32 @@ def deltas(cells, lang, arm, trainer):
 
 # A rendered cell, kept apart from its own emphasis: which cells are bold or underlined is
 # a property of the column they sit in, so it cannot be decided while the cell is built.
-# `rank` is what the column sorts on (None keeps the cell out of the ranking), and `post`
-# trails the ranked figure with anything that is not ranked and so is never marked up. It
-# trails rather than leads so the emphasis always falls on the first number in the cell:
-# bold on the second of two reads as marking the smaller one.
-Cell = namedtuple("Cell", "emph rank post math")
+# A cell is one or more parts, each a (text, rank) pair; the first is the cell's own
+# figure and any further part is a parenthesised alternative measurement of the same thing.
+# Every part with a rank competes in the column on equal terms -- a parenthesised figure
+# that beats the column takes the bold, since that is the finding rather than a footnote
+# to it. `rank` of None keeps a part out of the ranking without hiding it.
+Cell = namedtuple("Cell", "parts math")
 
 
-def cell(emph, rank=None, post="", math=False):
-    return Cell(emph, rank, post, math)
+def cell(text, rank=None, extra=None, math=False):
+    return Cell(((text, rank),) + ((extra,) if extra else ()), math)
 
 
 MISSING_CELL = cell(MISSING)
 
 
-def render(c, mark):
-    """One cell as LaTeX. `mark` is `best`, `second` or None."""
-    text = c.emph
-    if mark == "best":
-        text = rf"\{'mathbf' if c.math else 'textbf'}{{{text}}}"
-    elif mark == "second":
-        text = rf"\underline{{{text}}}"
-    text += c.post
-    return f"${text}$" if c.math else text
+def render(c, marks):
+    """One cell as LaTeX. Each mark is `best`, `second` or None, one per part."""
+    out = []
+    for i, ((text, _), mark) in enumerate(zip(c.parts, marks)):
+        if mark == "best":
+            text = rf"\{'mathbf' if c.math else 'textbf'}{{{text}}}"
+        elif mark == "second":
+            text = rf"\underline{{{text}}}"
+        out.append(text if i == 0 else rf"\,({text})")
+    joined = "".join(out)
+    return f"${joined}$" if c.math else joined
 
 
 def emphasise(rows):
@@ -201,14 +204,15 @@ def emphasise(rows):
     That is deliberate -- promoting the third-best would claim a separation the numbers do
     not have.
     """
-    marks = [[None] * len(cells) for _, cells in rows]
+    marks = [[[None] * len(c.parts) for c in cells] for _, cells in rows]
     for col in range(max((len(cells) for _, cells in rows), default=0)):
-        ranked = [(cells[col].rank, i) for i, (_, cells) in enumerate(rows)
-                  if col < len(cells) and cells[col].rank is not None]
-        best = sorted({r for r, _ in ranked}, reverse=True)[:2]
-        for value, i in ranked:
+        ranked = [(part[1], i, j)
+                  for i, (_, cells) in enumerate(rows) if col < len(cells)
+                  for j, part in enumerate(cells[col].parts) if part[1] is not None]
+        best = sorted({r for r, _, _ in ranked}, reverse=True)[:2]
+        for value, i, j in ranked:
             if value in best:
-                marks[i][col] = "best" if value == best[0] else "second"
+                marks[i][col][j] = "best" if value == best[0] else "second"
     return [(label, [render(c, m) for c, m in zip(cells, row_marks)])
             for (label, cells), row_marks in zip(rows, marks)]
 
@@ -323,8 +327,10 @@ def morph_cell(scores, langs, arm, trainer, digits=3):
     if bare is None:
         return MISSING_CELL
     shown = f"{bare:.{digits}f}"
-    post = "" if ctx is None or f"{ctx:.{digits}f}" == shown else rf"\,({ctx:.{digits}f})"
-    return cell(shown, round(bare, digits), post=post)
+    if ctx is None or f"{ctx:.{digits}f}" == shown:
+        return cell(shown, round(bare, digits))
+    return cell(shown, round(bare, digits),
+                extra=(f"{ctx:.{digits}f}", round(ctx, digits)))
 
 
 def body(cells, langs, trainers, arms):
@@ -485,6 +491,15 @@ def main(
         + ", 32k matched learned tokens, evaluated on held-out Goldfish"
     )
 
+    # What a mean is over, stated only when it is the same everywhere -- a caption is not
+    # the place to narrate which cells a running grid has not filled yet, and a table with
+    # a ragged mean should not be the one that goes in the paper.
+    complete = all((lg, arm, tr) in cells
+                   for lg in langs for tr in trainers for arm in ["plain", *arms])
+    spelled = {4: "four", 5: "five", 6: "six"}.get(len(langs), str(len(langs)))
+    coverage = (rf" averaged over the {spelled} languages"
+                if complete and layout == "mean" else "")
+
     split = lambda v: [x.strip() for x in v.split(",") if x.strip()]  # noqa: E731
     align_langs, score_langs = split(morphalign_langs), split(morphscore_langs)
     if layout == "mean":
@@ -494,8 +509,8 @@ def main(
         # the quantity -- and beside two morphology metrics that is the ambiguous half.
         groups = [("Compression", 2), ("Morphology", 2)]
         subheads = ["train", "eval", "MorphAlign", "MorphScore"]
-        anchor = (r"\plainscheme{} is characters per token, every other compression cell "
-                  r"the percentage change against it, ")
+        anchor = (r"\plainscheme{} compression is characters per token" + coverage
+                  + r", every other compression cell the percentage change against it, ")
     else:
         blocks = body(cells, langs, trainers, arms)
         columns = [LANG_LABEL[lg] for lg in langs] + ["Mean"]
@@ -541,29 +556,25 @@ def main(
     # Only a variant that loses a round trip its own baseline keeps is this table's
     # business, and it never has. The shared counts are the encoding, not the markers.
     lossy = excess_roundtrip_failures(cells, langs, trainers, arms)
-    # What a mean is over, stated only when it is the same everywhere -- a caption is not
-    # the place to narrate which cells a running grid has not filled yet, and a table with
-    # a ragged mean should not be the one that goes in the paper.
-    complete = all((lg, arm, tr) in cells
-                   for lg in langs for tr in trainers for arm in ["plain", *arms])
-    coverage = (rf", averaged over all {len(langs)} languages"
-                if complete and layout == "mean" else "")
     def listed(names):
         labels = [LANG_LABEL[lg] for lg in names]
         return labels[0] if len(labels) == 1 else ", ".join(labels[:-1]) + f" and {labels[-1]}"
 
     morph_note = (
         rf"MorphAlign is over {listed(align_langs)} and MorphScore over "
-        rf"{listed(score_langs)}, higher better; parenthesised is the same score with the "
-        r"word in context rather than in isolation. "
+        rf"{listed(score_langs)}, higher better. For \plainscheme{{}}, the same metrics "
+        r"are also shown with segmentations derived from space-prefixed strings, which "
+        r"significantly affects scores. "
     )
     caption = (
-        r"\caption{Compression, " + setting + coverage + r". " + anchor
-        + r"positive meaning better compression. "
+        r"\caption{" + (r"Intrinsic evaluation results. " if layout == "mean"
+                        else r"Compression, " + setting + r". ") + anchor
+        + r"higher is better. "
         + (morph_note if layout == "mean" else "")
         + r"\textbf{Bold} is best in a column and \underline{underline} runner-up, "
-        r"counting \plainscheme{} as zero. "
-        + (rf"Per-language numbers in Table~\ref{{{detail}}}. " if layout == "mean" else "")
+        r"counting \plainscheme{} as zero in the compression columns. "
+        + (r"Per-language numbers in \Cref{app:allthetokenizers}. "
+           if layout == "mean" else "")
         + (rf"{lossy} documents fail to round-trip under a variant but not under its "
            rf"baseline. " if lossy > 0 else "")
     ).rstrip() + r"}"
