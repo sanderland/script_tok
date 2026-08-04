@@ -7,9 +7,63 @@
     "trainer": "bpe",
     "words": 16009
   },
+  "fineweb_de_5gb_quick_bnd_w_bpe_v34685@ctx": {
+    "arm": "bnd_w",
+    "dropped": 0,
+    "in_context": true,
+    "lang": "de",
+    "morphalign": 0.35569090094278377,
+    "trainer": "bpe",
+    "words": 16009
+  },
+  "fineweb_de_5gb_quick_bnd_w_extcaps_bpe_v34685": {
+    "arm": "bnd_w_extcaps",
+    "dropped": 0,
+    "in_context": false,
+    "lang": "de",
+    "morphalign": 0.3550424165698385,
+    "trainer": "bpe",
+    "words": 16009
+  },
+  "fineweb_de_5gb_quick_bnd_w_extcaps_bpe_v34685@ctx": {
+    "arm": "bnd_w_extcaps",
+    "dropped": 22,
+    "in_context": true,
+    "lang": "de",
+    "morphalign": 0.3554710949151255,
+    "trainer": "bpe",
+    "words": 15987
+  },
+  "fineweb_de_5gb_quick_bnd_w_extcaps_mingram_v34685": {
+    "arm": "bnd_w_extcaps",
+    "dropped": 0,
+    "in_context": false,
+    "lang": "de",
+    "morphalign": 0.484247219563732,
+    "trainer": "mingram",
+    "words": 16009
+  },
+  "fineweb_de_5gb_quick_bnd_w_extcaps_mingram_v34685@ctx": {
+    "arm": "bnd_w_extcaps",
+    "dropped": 247,
+    "in_context": true,
+    "lang": "de",
+    "morphalign": 0.48765211235862854,
+    "trainer": "mingram",
+    "words": 15762
+  },
   "fineweb_de_5gb_quick_bnd_w_mingram_v34685": {
     "arm": "bnd_w",
     "dropped": 0,
+    "lang": "de",
+    "morphalign": 0.4814524376467819,
+    "trainer": "mingram",
+    "words": 16009
+  },
+  "fineweb_de_5gb_quick_bnd_w_mingram_v34685@ctx": {
+    "arm": "bnd_w",
+    "dropped": 0,
+    "in_context": true,
     "lang": "de",
     "morphalign": 0.4814524376467819,
     "trainer": "mingram",
@@ -23,9 +77,63 @@
     "trainer": "bpe",
     "words": 16009
   },
+  "fineweb_de_5gb_quick_bnd_wp_bpe_v34685@ctx": {
+    "arm": "bnd_wp",
+    "dropped": 0,
+    "in_context": true,
+    "lang": "de",
+    "morphalign": 0.3575480516591967,
+    "trainer": "bpe",
+    "words": 16009
+  },
+  "fineweb_de_5gb_quick_bnd_wp_extcaps_bpe_v34685": {
+    "arm": "bnd_wp_extcaps",
+    "dropped": 0,
+    "in_context": false,
+    "lang": "de",
+    "morphalign": 0.35574773901922996,
+    "trainer": "bpe",
+    "words": 16009
+  },
+  "fineweb_de_5gb_quick_bnd_wp_extcaps_bpe_v34685@ctx": {
+    "arm": "bnd_wp_extcaps",
+    "dropped": 24,
+    "in_context": true,
+    "lang": "de",
+    "morphalign": 0.35615187527581776,
+    "trainer": "bpe",
+    "words": 15985
+  },
+  "fineweb_de_5gb_quick_bnd_wp_extcaps_mingram_v34685": {
+    "arm": "bnd_wp_extcaps",
+    "dropped": 0,
+    "in_context": false,
+    "lang": "de",
+    "morphalign": 0.48898353511384146,
+    "trainer": "mingram",
+    "words": 16009
+  },
+  "fineweb_de_5gb_quick_bnd_wp_extcaps_mingram_v34685@ctx": {
+    "arm": "bnd_wp_extcaps",
+    "dropped": 246,
+    "in_context": true,
+    "lang": "de",
+    "morphalign": 0.4926783280952784,
+    "trainer": "mingram",
+    "words": 15763
+  },
   "fineweb_de_5gb_quick_bnd_wp_mingram_v34685": {
     "arm": "bnd_wp",
     "dropped": 0,
+    "lang": "de",
+    "morphalign": 0.4780075812044695,
+    "trainer": "mingram",
+    "words": 16009
+  },
+  "fineweb_de_5gb_quick_bnd_wp_mingram_v34685@ctx": {
+    "arm": "bnd_wp",
+    "dropped": 0,
+    "in_context": true,
     "lang": "de",
     "morphalign": 0.4780075812044695,
     "trainer": "mingram",
@@ -56,6 +164,15 @@
     "trainer": "bpe",
     "words": 16009
   },
+  "fineweb_de_5gb_quick_bnd_wpd_caps_bpe_v34685@ctx": {
+    "arm": "bnd_wpd_caps",
+    "dropped": 21,
+    "in_context": true,
+    "lang": "de",
+    "morphalign": 0.352838115798411,
+    "trainer": "bpe",
+    "words": 15988
+  },
   "fineweb_de_5gb_quick_bnd_wpd_caps_mingram_v34685": {
     "arm": "bnd_wpd_caps",
     "dropped": 0,
@@ -63,6 +180,15 @@
     "morphalign": 0.48785506156610775,
     "trainer": "mingram",
     "words": 16009
+  },
+  "fineweb_de_5gb_quick_bnd_wpd_caps_mingram_v34685@ctx": {
+    "arm": "bnd_wpd_caps",
+    "dropped": 95,
+    "in_context": true,
+    "lang": "de",
+    "morphalign": 0.4884469731231801,
+    "trainer": "mingram",
+    "words": 15914
   },
   "fineweb_de_5gb_quick_bnd_wpd_extcaps_bpe_v34685": {
     "arm": "bnd_wpd_extcaps",
@@ -157,9 +283,63 @@
     "trainer": "bpe",
     "words": 27427
   },
+  "fineweb_en_5gb_quick_bnd_w_bpe_v34685@ctx": {
+    "arm": "bnd_w",
+    "dropped": 0,
+    "in_context": true,
+    "lang": "en",
+    "morphalign": 0.21027088249774478,
+    "trainer": "bpe",
+    "words": 27427
+  },
+  "fineweb_en_5gb_quick_bnd_w_extcaps_bpe_v34685": {
+    "arm": "bnd_w_extcaps",
+    "dropped": 16,
+    "in_context": false,
+    "lang": "en",
+    "morphalign": 0.21135223965426234,
+    "trainer": "bpe",
+    "words": 27411
+  },
+  "fineweb_en_5gb_quick_bnd_w_extcaps_bpe_v34685@ctx": {
+    "arm": "bnd_w_extcaps",
+    "dropped": 17,
+    "in_context": true,
+    "lang": "en",
+    "morphalign": 0.2113653250515761,
+    "trainer": "bpe",
+    "words": 27410
+  },
+  "fineweb_en_5gb_quick_bnd_w_extcaps_mingram_v34685": {
+    "arm": "bnd_w_extcaps",
+    "dropped": 16,
+    "in_context": false,
+    "lang": "en",
+    "morphalign": 0.23578271359378988,
+    "trainer": "mingram",
+    "words": 27411
+  },
+  "fineweb_en_5gb_quick_bnd_w_extcaps_mingram_v34685@ctx": {
+    "arm": "bnd_w_extcaps",
+    "dropped": 24,
+    "in_context": true,
+    "lang": "en",
+    "morphalign": 0.23594494978941685,
+    "trainer": "mingram",
+    "words": 27403
+  },
   "fineweb_en_5gb_quick_bnd_w_mingram_v34685": {
     "arm": "bnd_w",
     "dropped": 0,
+    "lang": "en",
+    "morphalign": 0.2306502402096415,
+    "trainer": "mingram",
+    "words": 27427
+  },
+  "fineweb_en_5gb_quick_bnd_w_mingram_v34685@ctx": {
+    "arm": "bnd_w",
+    "dropped": 0,
+    "in_context": true,
     "lang": "en",
     "morphalign": 0.2306502402096415,
     "trainer": "mingram",
@@ -173,9 +353,63 @@
     "trainer": "bpe",
     "words": 27427
   },
+  "fineweb_en_5gb_quick_bnd_wp_bpe_v34685@ctx": {
+    "arm": "bnd_wp",
+    "dropped": 0,
+    "in_context": true,
+    "lang": "en",
+    "morphalign": 0.21139077917436758,
+    "trainer": "bpe",
+    "words": 27427
+  },
+  "fineweb_en_5gb_quick_bnd_wp_extcaps_bpe_v34685": {
+    "arm": "bnd_wp_extcaps",
+    "dropped": 16,
+    "in_context": false,
+    "lang": "en",
+    "morphalign": 0.2115444140445825,
+    "trainer": "bpe",
+    "words": 27411
+  },
+  "fineweb_en_5gb_quick_bnd_wp_extcaps_bpe_v34685@ctx": {
+    "arm": "bnd_wp_extcaps",
+    "dropped": 17,
+    "in_context": true,
+    "lang": "en",
+    "morphalign": 0.21155751372254772,
+    "trainer": "bpe",
+    "words": 27410
+  },
+  "fineweb_en_5gb_quick_bnd_wp_extcaps_mingram_v34685": {
+    "arm": "bnd_wp_extcaps",
+    "dropped": 16,
+    "in_context": false,
+    "lang": "en",
+    "morphalign": 0.2349847811840815,
+    "trainer": "mingram",
+    "words": 27411
+  },
+  "fineweb_en_5gb_quick_bnd_wp_extcaps_mingram_v34685@ctx": {
+    "arm": "bnd_wp_extcaps",
+    "dropped": 23,
+    "in_context": true,
+    "lang": "en",
+    "morphalign": 0.23513095944542878,
+    "trainer": "mingram",
+    "words": 27404
+  },
   "fineweb_en_5gb_quick_bnd_wp_mingram_v34685": {
     "arm": "bnd_wp",
     "dropped": 0,
+    "lang": "en",
+    "morphalign": 0.23052872682906553,
+    "trainer": "mingram",
+    "words": 27427
+  },
+  "fineweb_en_5gb_quick_bnd_wp_mingram_v34685@ctx": {
+    "arm": "bnd_wp",
+    "dropped": 0,
+    "in_context": true,
     "lang": "en",
     "morphalign": 0.23052872682906553,
     "trainer": "mingram",
@@ -206,6 +440,15 @@
     "trainer": "bpe",
     "words": 27411
   },
+  "fineweb_en_5gb_quick_bnd_wpd_caps_bpe_v34685@ctx": {
+    "arm": "bnd_wpd_caps",
+    "dropped": 17,
+    "in_context": true,
+    "lang": "en",
+    "morphalign": 0.21223102362678295,
+    "trainer": "bpe",
+    "words": 27410
+  },
   "fineweb_en_5gb_quick_bnd_wpd_caps_mingram_v34685": {
     "arm": "bnd_wpd_caps",
     "dropped": 16,
@@ -213,6 +456,15 @@
     "morphalign": 0.23042301832481754,
     "trainer": "mingram",
     "words": 27411
+  },
+  "fineweb_en_5gb_quick_bnd_wpd_caps_mingram_v34685@ctx": {
+    "arm": "bnd_wpd_caps",
+    "dropped": 17,
+    "in_context": true,
+    "lang": "en",
+    "morphalign": 0.23043791536363256,
+    "trainer": "mingram",
+    "words": 27410
   },
   "fineweb_en_5gb_quick_bnd_wpd_extcaps_bpe_v34685": {
     "arm": "bnd_wpd_extcaps",
@@ -307,9 +559,63 @@
     "trainer": "bpe",
     "words": 13929
   },
+  "fineweb_fi_5gb_quick_bnd_w_bpe_v34685@ctx": {
+    "arm": "bnd_w",
+    "dropped": 0,
+    "in_context": true,
+    "lang": "fi",
+    "morphalign": 1.0669861509298588,
+    "trainer": "bpe",
+    "words": 13929
+  },
+  "fineweb_fi_5gb_quick_bnd_w_extcaps_bpe_v34685": {
+    "arm": "bnd_w_extcaps",
+    "dropped": 4,
+    "in_context": false,
+    "lang": "fi",
+    "morphalign": 1.0408752027494081,
+    "trainer": "bpe",
+    "words": 13925
+  },
+  "fineweb_fi_5gb_quick_bnd_w_extcaps_bpe_v34685@ctx": {
+    "arm": "bnd_w_extcaps",
+    "dropped": 4,
+    "in_context": true,
+    "lang": "fi",
+    "morphalign": 1.0408752027494081,
+    "trainer": "bpe",
+    "words": 13925
+  },
+  "fineweb_fi_5gb_quick_bnd_w_extcaps_mingram_v34685": {
+    "arm": "bnd_w_extcaps",
+    "dropped": 4,
+    "in_context": false,
+    "lang": "fi",
+    "morphalign": 1.1134820256123783,
+    "trainer": "mingram",
+    "words": 13925
+  },
+  "fineweb_fi_5gb_quick_bnd_w_extcaps_mingram_v34685@ctx": {
+    "arm": "bnd_w_extcaps",
+    "dropped": 4,
+    "in_context": true,
+    "lang": "fi",
+    "morphalign": 1.1134820256123783,
+    "trainer": "mingram",
+    "words": 13925
+  },
   "fineweb_fi_5gb_quick_bnd_w_mingram_v34685": {
     "arm": "bnd_w",
     "dropped": 0,
+    "lang": "fi",
+    "morphalign": 1.1106886964997418,
+    "trainer": "mingram",
+    "words": 13929
+  },
+  "fineweb_fi_5gb_quick_bnd_w_mingram_v34685@ctx": {
+    "arm": "bnd_w",
+    "dropped": 0,
+    "in_context": true,
     "lang": "fi",
     "morphalign": 1.1106886964997418,
     "trainer": "mingram",
@@ -323,9 +629,63 @@
     "trainer": "bpe",
     "words": 13929
   },
+  "fineweb_fi_5gb_quick_bnd_wp_bpe_v34685@ctx": {
+    "arm": "bnd_wp",
+    "dropped": 0,
+    "in_context": true,
+    "lang": "fi",
+    "morphalign": 1.066401810802954,
+    "trainer": "bpe",
+    "words": 13929
+  },
+  "fineweb_fi_5gb_quick_bnd_wp_extcaps_bpe_v34685": {
+    "arm": "bnd_wp_extcaps",
+    "dropped": 4,
+    "in_context": false,
+    "lang": "fi",
+    "morphalign": 1.0409576625962274,
+    "trainer": "bpe",
+    "words": 13925
+  },
+  "fineweb_fi_5gb_quick_bnd_wp_extcaps_bpe_v34685@ctx": {
+    "arm": "bnd_wp_extcaps",
+    "dropped": 4,
+    "in_context": true,
+    "lang": "fi",
+    "morphalign": 1.0409576625962274,
+    "trainer": "bpe",
+    "words": 13925
+  },
+  "fineweb_fi_5gb_quick_bnd_wp_extcaps_mingram_v34685": {
+    "arm": "bnd_wp_extcaps",
+    "dropped": 4,
+    "in_context": false,
+    "lang": "fi",
+    "morphalign": 1.109556858784975,
+    "trainer": "mingram",
+    "words": 13925
+  },
+  "fineweb_fi_5gb_quick_bnd_wp_extcaps_mingram_v34685@ctx": {
+    "arm": "bnd_wp_extcaps",
+    "dropped": 4,
+    "in_context": true,
+    "lang": "fi",
+    "morphalign": 1.109556858784975,
+    "trainer": "mingram",
+    "words": 13925
+  },
   "fineweb_fi_5gb_quick_bnd_wp_mingram_v34685": {
     "arm": "bnd_wp",
     "dropped": 0,
+    "lang": "fi",
+    "morphalign": 1.1116369079980208,
+    "trainer": "mingram",
+    "words": 13929
+  },
+  "fineweb_fi_5gb_quick_bnd_wp_mingram_v34685@ctx": {
+    "arm": "bnd_wp",
+    "dropped": 0,
+    "in_context": true,
     "lang": "fi",
     "morphalign": 1.1116369079980208,
     "trainer": "mingram",
@@ -356,9 +716,27 @@
     "trainer": "bpe",
     "words": 13925
   },
+  "fineweb_fi_5gb_quick_bnd_wpd_caps_bpe_v34685@ctx": {
+    "arm": "bnd_wpd_caps",
+    "dropped": 4,
+    "in_context": true,
+    "lang": "fi",
+    "morphalign": 1.3360777016397702,
+    "trainer": "bpe",
+    "words": 13925
+  },
   "fineweb_fi_5gb_quick_bnd_wpd_caps_mingram_v34685": {
     "arm": "bnd_wpd_caps",
     "dropped": 4,
+    "lang": "fi",
+    "morphalign": 1.4437294450896796,
+    "trainer": "mingram",
+    "words": 13925
+  },
+  "fineweb_fi_5gb_quick_bnd_wpd_caps_mingram_v34685@ctx": {
+    "arm": "bnd_wpd_caps",
+    "dropped": 4,
+    "in_context": true,
     "lang": "fi",
     "morphalign": 1.4437294450896796,
     "trainer": "mingram",

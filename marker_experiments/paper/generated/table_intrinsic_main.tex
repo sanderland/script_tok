@@ -3,21 +3,21 @@
 % source: marker_experiments/paper/generated/eval_goldfish.json (quick corpus)
 \centering
 \small
-\begin{tabular}{l rrr rrr}
+\begin{tabular}{l rrrr rrrr}
 \toprule
-Scheme & \multicolumn{3}{c}{BPE} & \multicolumn{3}{c}{MinGram} \\
-\cmidrule(lr){2-4} \cmidrule(lr){5-7}
- & train & eval & $n$ & train & eval & $n$ \\
+Scheme & \multicolumn{4}{c}{BPE} & \multicolumn{4}{c}{MinGram} \\
+\cmidrule(lr){2-5} \cmidrule(lr){6-9}
+ & train & eval & MA & MS & train & eval & MA & MS \\
 \midrule
-\plainscheme & 4.0399 & 4.1031 & 6 & 4.1050 & 4.1682 & 6 \\
-\bnds{w} & $-8.70$ & $-9.30$ & 6 & $-9.19$ & $-9.85$ & 6 \\
-\bnds{wcaps} & $-8.96$ & $-9.52$ & 6 & $-9.21$ & $-9.82$ & 6 \\
-\bnds{wp} & $-1.82$ & $-2.19$ & 6 & $-2.26$ & $-2.70$ & 6 \\
-\bnds{wpcaps} & $-2.11$ & $-2.44$ & 6 & $-2.28$ & $-2.66$ & 6 \\
-\bnds{wpd} & $-0.09$ & $-0.47$ & 6 & $-0.52$ & $-0.96$ & 6 \\
-\bnds{wpdcaps} & $-0.40$ & $-0.73$ & 6 & $-0.53$ & $-0.92$ & 6 \\
-\bnds{wpdcapsin} & $-0.37$ & $-0.70$ & 6 & $-0.70$ & $-1.10$ & 6 \\
+\plainscheme & 4.0399 & 4.1031 & 0.424/\textbf{0.282} & 0.186/\textbf{0.700} & 4.1050 & 4.1682 & 0.568/\textbf{0.408} & 0.318/\textbf{0.814} \\
+\bnds{w} & $-8.70$ & $-9.30$ & 0.210 & 0.657 & $-9.19$ & $-9.85$ & 0.231 & 0.691 \\
+\bnds{wcaps} & $-8.96$ & $-9.52$ & 0.211 & \underline{0.663} & $-9.21$ & $-9.82$ & \underline{0.236} & 0.712/\underline{0.711} \\
+\bnds{wp} & $-1.82$ & $-2.19$ & 0.211 & 0.655 & $-2.26$ & $-2.70$ & 0.231 & 0.690 \\
+\bnds{wpcaps} & $-2.11$ & $-2.44$ & 0.212 & 0.661 & $-2.28$ & $-2.66$ & 0.235 & 0.710 \\
+\bnds{wpd} & $\mathbf{-0.09}$ & $\mathbf{-0.47}$ & 0.212 & 0.654 & $\mathbf{-0.52}$ & $\underline{-0.96}$ & 0.231 & 0.689 \\
+\bnds{wpdcaps} & $-0.40$ & $-0.73$ & \underline{0.215} & 0.659 & $\underline{-0.53}$ & $\mathbf{-0.92}$ & 0.231 & 0.709/0.708 \\
+\bnds{wpdcapsin} & $\underline{-0.37}$ & $\underline{-0.70}$ & 0.212 & 0.657 & $-0.70$ & $-1.10$ & 0.230 & 0.692 \\
 \bottomrule
 \end{tabular}
-\caption{Compression, trained on 5\,GB of FineWeb per language (the \texttt{quick} read-until-full sample, which is not uniform over the source), 34{,}685 matched total vocabulary, evaluated on held-out Goldfish. \plainscheme{} is the mean absolute baseline in characters per token, every other cell the mean percentage change against it, positive meaning better compression. \bnds{w} $<$ \bnds{wp} $<$ \bnds{wpd} throughout. Per-language numbers in Table~\ref{tab:intrinsic-quick}. Each mean covers the languages that have that scheme; $n$ is how many.}
+\caption{Compression, trained on 5\,GB of FineWeb per language (the \texttt{quick} read-until-full sample, which is not uniform over the source), 34{,}685 matched total vocabulary, evaluated on held-out Goldfish. \plainscheme{} is the mean absolute baseline in characters per token, every other compression cell the mean percentage change against it, positive meaning better compression. \bnds{w} $<$ \bnds{wp} $<$ \bnds{wpd} throughout. MA is MorphAlign (IBM1 alignment at threshold 0.01, scaled by 100) and MS is MorphScore $F_1$ with an unsplit word credited rather than dropped, both on English and both higher-is-better. Where a scheme's two probes disagree the cell reads bare/in-context and only the in-context score is ranked: segmenting a gold word on its own is unreachable for a leading-space vocabulary, so \plainscheme{} is scored there on splits it does not make in running text. \textbf{Bold} is the best and \underline{underline} the runner-up within a column, ties sharing a place. Per-language numbers in Table~\ref{tab:intrinsic-quick}. Each compression mean covers the languages that have that scheme.}
 \label{tab:intrinsic-main}

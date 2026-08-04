@@ -58,7 +58,8 @@ GOLD = {
     "de": "deu-unimorph2uniseg_CELEX.tsv",
     "fi": "fin-unimorph2uniseg_morphynet.tsv",
 }
-ARMS = ["plain", "bnd_w", "bnd_wp", "bnd_wpd", "bnd_wpd_caps", "bnd_wpd_extcaps"]
+ARMS = ["plain", "bnd_w", "bnd_w_extcaps", "bnd_wp", "bnd_wp_extcaps",
+        "bnd_wpd", "bnd_wpd_extcaps", "bnd_wpd_caps"]
 
 app = cyclopts.App()
 

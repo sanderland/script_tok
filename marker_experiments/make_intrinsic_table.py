@@ -25,8 +25,17 @@ nothing to compute -- but the sample cache lives where the corpus was built, so 
 trained on another machine has percentages (characters cancel) and no absolute baseline.
 
 Two layouts. `--layout languages` is the appendix table: every language, both corpora,
-fifteen columns of `\tiny` in a `table*`. `--layout mean` is the main-paper one: means
-only, with `n` for how many languages each covers, narrow enough for a single ACL column.
+fifteen columns of `\tiny` in a `table*`. `--layout mean` is the main-paper one: the
+compression means beside the two morphology metrics, MorphAlign and MorphScore, which come
+from `morphalign.json` and `morphscore.json` and cover `--morph-langs` rather than the full
+grid -- their gold segmentations exist for three languages and their scales differ enough
+between those that a mean over more than one says more about the language mix than the
+schemes.
+
+In both layouts the best cell in a **column** is bold and the runner-up underlined, ties
+sharing a place. The column is the comparison the table is for: one scheme against the
+others, everything else held fixed. Nothing is emphasised along a row -- a row spans
+languages whose absolute compression differs by a factor of two.
 
 Needs `booktabs` and the paper's boundary macros. The `\textuparrow` key is the canonical
 case form; it belongs to the `_extcaps` arms, which put it outside the markers and are the
@@ -57,11 +66,14 @@ be dropped, so it takes the marked-up `in` key rather than the clean one:
 
 import json
 import os
+from collections import namedtuple
 
 import cyclopts
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 GENERATED = os.path.join(HERE, "paper", "generated")
+MORPHALIGN = os.path.join(GENERATED, "morphalign.json")
+MORPHSCORE = os.path.join(GENERATED, "morphscore.json")
 
 LANG_LABEL = {"en": "English", "de": "German", "fi": "Finnish",
               "ru": "Russian", "ar": "Arabic", "ko": "Korean"}
@@ -140,12 +152,56 @@ def deltas(cells, lang, arm, trainer):
     return train, ev
 
 
-def fmt(value):
-    return MISSING if value is None else (
-        f"$\\mathbf{{{value:+.2f}}}$" if value > 0 else f"${value:+.2f}$")
+# A rendered cell, kept apart from its own emphasis: which cells are bold or underlined is
+# a property of the column they sit in, so it cannot be decided while the cell is built.
+# `rank` is what the column sorts on (None keeps the cell out of the ranking), and `pre`
+# holds the part of a two-value cell that is not ranked and so is never marked up.
+Cell = namedtuple("Cell", "emph rank pre math")
 
 
-def chars_per_token(cell, corpus):
+def cell(emph, rank=None, pre="", math=False):
+    return Cell(emph, rank, pre, math)
+
+
+MISSING_CELL = cell(MISSING)
+
+
+def render(c, mark):
+    """One cell as LaTeX. `mark` is `best`, `second` or None."""
+    text = c.emph
+    if mark == "best":
+        text = rf"\{'mathbf' if c.math else 'textbf'}{{{text}}}"
+    elif mark == "second":
+        text = rf"\underline{{{text}}}"
+    text = c.pre + text
+    return f"${text}$" if c.math else text
+
+
+def emphasise(rows):
+    """Bold the best and underline the runner-up in each column of one block.
+
+    By column, because that is the comparison the table exists to support: one scheme
+    against the others on the same language, corpus and trainer. A row spans languages
+    whose absolute compression differs by a factor of two and metrics on unrelated scales,
+    so ranking across one says nothing.
+
+    Ties share a mark and consume a place, so two cells tied for best leave no runner-up.
+    That is deliberate -- promoting the third-best would claim a separation the numbers do
+    not have.
+    """
+    marks = [[None] * len(cells) for _, cells in rows]
+    for col in range(max((len(cells) for _, cells in rows), default=0)):
+        ranked = [(cells[col].rank, i) for i, (_, cells) in enumerate(rows)
+                  if col < len(cells) and cells[col].rank is not None]
+        best = sorted({r for r, _ in ranked}, reverse=True)[:2]
+        for value, i in ranked:
+            if value in best:
+                marks[i][col] = "best" if value == best[0] else "second"
+    return [(label, [render(c, m) for c, m in zip(cells, row_marks)])
+            for (label, cells), row_marks in zip(rows, marks)]
+
+
+def chars_per_token(entry, corpus):
     """Absolute characters per token on one corpus, or None where the count is missing.
 
     The evaluation figure is measured directly. The training one divides the corpus
@@ -153,16 +209,24 @@ def chars_per_token(cell, corpus):
     token count the trainer left behind, so it costs nothing to compute but is only
     available where that corpus was built.
     """
-    if cell is None:
+    if entry is None:
         return None
     if corpus == "eval":
-        return cell["eval_chars_per_token"]
-    return None if cell.get("train_chars") is None else cell["train_chars"] / cell["train_tokens"]
+        return entry["eval_chars_per_token"]
+    return None if entry.get("train_chars") is None else entry["train_chars"] / entry["train_tokens"]
 
 
-def fmt_chars_per_token(cell, corpus):
-    value = chars_per_token(cell, corpus)
-    return MISSING if value is None else f"{value:.4f}"
+def absolute_cell(value, digits=4):
+    """An absolute baseline, which is never ranked -- it is the scale, not a competitor."""
+    return MISSING_CELL if value is None else cell(f"{value:.{digits}f}")
+
+
+def delta_cell(value, digits=2):
+    # Ranked on the rounded value, not the raw one: two cells printed as $-1.67$ are the
+    # same number as far as the page is concerned, and marking one of them better claims a
+    # separation the reader cannot see.
+    return MISSING_CELL if value is None else cell(
+        f"{value:+.{digits}f}", round(value, digits), math=True)
 
 
 def row_mean(values):
@@ -178,7 +242,7 @@ def row_mean(values):
         i for i, v in enumerate(values) if v is not None)
 
 
-def matched_means(pairs, digits=None):
+def matched_means(pairs, absolute=False):
     """The (train, eval) means of a row, with train withheld unless it covers the same
     languages as eval.
 
@@ -189,67 +253,114 @@ def matched_means(pairs, digits=None):
     (train, train_set), (ev, ev_set) = (row_mean([p[i] for p in pairs]) for i in (0, 1))
     if train_set != ev_set:
         train = None
-    if digits is None:
-        return [fmt(train), fmt(ev)]
-    return [MISSING if v is None else f"{v:.{digits}f}" for v in (train, ev)]
+    build = absolute_cell if absolute else delta_cell
+    return [build(train), build(ev)]
+
+
+def morph_scores(path, statistic):
+    """(lang, arm, trainer, in_context) -> score, from one morphology metric's result file.
+
+    Both files carry the two probes side by side, the in-context one keyed with a `@ctx`
+    suffix, so a cell knows which of the two it is.
+    """
+    with open(path) as f:
+        data = json.load(f)
+    return {(v["lang"], v["arm"], v["trainer"], key.endswith("@ctx")): statistic(v)
+            for key, v in data.items()}
+
+
+def morphalign_statistic(record):
+    return record["morphalign"]
+
+
+def morphscore_statistic(record):
+    """MorphScore F$_1$ with whole words credited rather than dropped.
+
+    The harmonic mean of the two macro means, which is how `morphscore.py` forms its own
+    `macro_f1`. Recall alone would reward a scheme for splitting everywhere, and the
+    marker schemes split less than the baseline, not more.
+    """
+    d = record["credit_single_tok"]
+    r, p = d["recall"], d["precision"]
+    return 2 * r * p / (r + p) if r + p else 0.0
+
+
+def morph_cell(scores, langs, arm, trainer, digits=3):
+    """One morphology cell: the in-context score, preceded by the bare one where they part.
+
+    The bare probe segments each gold word on its own, which a leading-space vocabulary
+    cannot match -- `plain` comes back as `lead|s` for a word it emits whole in running
+    text, and is credited for a split it never makes. The marker schemes delimit a span the
+    same way either side, so the two probes agree for them and the cell shows one number;
+    where they disagree, both are shown and only the in-context one is ranked.
+    """
+    def mean(in_context):
+        got = [scores[(lg, arm, trainer, in_context)] for lg in langs
+               if (lg, arm, trainer, in_context) in scores]
+        return sum(got) / len(got) if got else None
+
+    bare, ctx = mean(False), mean(True)
+    if ctx is None:
+        return MISSING_CELL
+    shown = f"{ctx:.{digits}f}"
+    pre = "" if bare is None or f"{bare:.{digits}f}" == shown else f"{bare:.{digits}f}/"
+    return cell(shown, round(ctx, digits), pre=pre)
 
 
 def body(cells, langs, trainers, arms):
     """One block per trainer: the absolute `plain` anchors, then a row per variant."""
-    lines, means = [], {}
-    for i, tr in enumerate(trainers):
-        means[tr] = [lg for lg in langs if (lg, "plain", tr) in cells]
-        if i:
-            lines.append(r"\midrule")
-        lines.append(rf"\multicolumn{{{1 + 2 * (len(langs) + 1)}}}{{l}}"  # noqa: E501
-                     rf"{{\emph{{{TRAINER_LABEL[tr]}}}}} \\")
-
+    blocks = []
+    for tr in trainers:
+        rows = []
         anchors, absolute = [], []
         for lg in langs:
             base = cells.get((lg, "plain", tr))
-            anchors += [fmt_chars_per_token(base, c) for c in ("train", "eval")]
-            absolute.append(tuple(chars_per_token(base, c) for c in ("train", "eval")))
-        anchors += matched_means(absolute, digits=4)
-        lines.append(f"{PLAIN_LABEL} & " + " & ".join(anchors) + r" \\")
+            pair = tuple(chars_per_token(base, c) for c in ("train", "eval"))
+            anchors += [absolute_cell(v) for v in pair]
+            absolute.append(pair)
+        rows.append((PLAIN_LABEL, anchors + matched_means(absolute, absolute=True)))
 
         for arm in arms:
             pairs = [deltas(cells, lg, arm, tr) for lg in langs]
-            row = [fmt(value) for pair in pairs for value in pair]
-            lines.append(f"{ARM_LABEL[arm]} & " + " & ".join(row + matched_means(pairs))
-                         + r" \\")
-    return lines, means
+            row = [delta_cell(value) for pair in pairs for value in pair]
+            rows.append((ARM_LABEL[arm], row + matched_means(pairs)))
+        blocks.append((TRAINER_LABEL[tr], rows))
+    return blocks
 
 
-def mean_body(cells, langs, trainers, arms):
-    """The main-paper layout: one row per scheme, one column pair per trainer, means only.
+def mean_body(cells, langs, trainers, arms, morph_langs):
+    """The main-paper layout: one row per scheme, four columns per trainer, means only.
 
-    The \\plainscheme row averages the absolute baselines, which no single language has but
-    which gives the rest of the column its scale; per-language baselines are in the
-    appendix table.
+    Compression is the mean over every language the grid has; the two morphology metrics
+    are over `morph_langs`, which is narrower because their gold segmentations are. They
+    live on scales that differ by language -- Finnish MorphAlign runs five times English --
+    so a mean over a language set that grows as the grid fills would move for reasons that
+    have nothing to do with the schemes.
+
+    The \\plainscheme row's compression is the absolute baseline, which no single language
+    has but which gives the rest of the column its scale; its morphology cells are real
+    scores on the same footing as every other row, and are ranked with them.
     """
+    aligned = morph_scores(MORPHALIGN, morphalign_statistic)
+    morphed = morph_scores(MORPHSCORE, morphscore_statistic)
+
+    rows = []
     anchors = []
     for tr in trainers:
         bases = [cells.get((lg, "plain", tr)) for lg in langs]
-        counts = set()
         for corpus in ("train", "eval"):
-            mean, covered = row_mean([chars_per_token(b, corpus) for b in bases])
-            anchors.append(MISSING if mean is None else f"{mean:.4f}")
-            counts.add(len(covered))
-        anchors.append(str(max(counts)))
-    lines = [f"{PLAIN_LABEL} & " + " & ".join(anchors) + r" \\"]
+            anchors.append(absolute_cell(row_mean([chars_per_token(b, corpus) for b in bases])[0]))
+        anchors += [morph_cell(s, morph_langs, "plain", tr) for s in (aligned, morphed)]
+    rows.append((PLAIN_LABEL, anchors))
 
     for arm in arms:
         row = []
         for tr in trainers:
             pairs = [deltas(cells, lg, arm, tr) for lg in langs]
-            counts = set()
-            for i in (0, 1):
-                mean, covered = row_mean([p[i] for p in pairs])
-                row.append(fmt(mean))
-                counts.add(len(covered))
-            row.append(str(max(counts)))
-        lines.append(f"{ARM_LABEL[arm]} & " + " & ".join(row) + r" \\")
-    return lines, {tr: [lg for lg in langs if (lg, "plain", tr) in cells] for tr in trainers}
+            row += [delta_cell(row_mean([p[i] for p in pairs])[0]) for i in (0, 1)]
+            row += [morph_cell(s, morph_langs, arm, tr) for s in (aligned, morphed)]
+        rows.append((ARM_LABEL[arm], row))
+    return [(None, rows)]
 
 
 def excess_roundtrip_failures(cells, langs, trainers, arms):
@@ -279,6 +390,7 @@ def main(
     setting: str | None = None,
     label: str | None = None,
     detail: str | None = None,
+    morph_langs: str = "en",
 ) -> None:
     """Write the compression table for one grid.
 
@@ -289,11 +401,16 @@ def main(
         corpus: `full` or `quick`, for sources holding both. `quick` is the
             read-until-full sample -- useful for iterating, not for reported results.
         layout: `languages` for the per-language appendix table, or `mean` for the
-            main-paper one: means only, four columns, fits a single ACL column.
+            main-paper one: means and the two morphology metrics.
         setting: How the corpora and vocabulary are described in the caption. Defaults to
             the FineWeb grid's description.
         label: LaTeX label. Defaults to `tab:intrinsic[-quick|-main]`.
         detail: Label the `mean` layout points at for the per-language numbers.
+        morph_langs: Comma-separated languages the `mean` layout's MorphAlign and
+            MorphScore columns cover. Both metrics have gold segmentations for en, de and
+            fi only, and their scales differ enough by language that a mean over more than
+            one is dominated by whichever is largest -- Finnish MorphAlign is five times
+            English. One language keeps the column a comparison between schemes.
     """
     if corpus not in ("full", "quick"):
         raise SystemExit(f"--corpus must be full or quick, not {corpus!r}")
@@ -324,20 +441,30 @@ def main(
         for lg in langs for tr in trainers if (lg, "plain", tr) in cells
     )
 
+    morphs = [x.strip() for x in morph_langs.split(",") if x.strip()]
     if layout == "mean":
-        lines, means = mean_body(cells, langs, trainers, arms)
+        blocks = mean_body(cells, langs, trainers, arms, morphs)
         columns = [TRAINER_LABEL[tr] for tr in trainers]
-        # A third column per trainer: how many languages went into that row's mean.
-        subheads = ["train", "eval", "$n$"]
+        subheads = ["train", "eval", "MA", "MS"]
         anchor = (r"\plainscheme{} is the mean absolute baseline in characters per token, "
-                  r"every other cell the mean percentage change against it, ")
+                  r"every other compression cell the mean percentage change against it, ")
     else:
-        lines, means = body(cells, langs, trainers, arms)
+        blocks = body(cells, langs, trainers, arms)
         columns = [LANG_LABEL[lg] for lg in langs] + ["Mean"]
         subheads = ["train", "eval"]
         anchor = (r"\plainscheme{} is absolute characters per token on each corpus, every "
                   r"other cell the percentage change against it within the same block, ")
     width = len(subheads)
+    span = 1 + width * len(columns)
+    lines = []
+    for i, (heading, rows) in enumerate(blocks):
+        if heading is not None:
+            if i:
+                lines.append(r"\midrule")
+            lines.append(rf"\multicolumn{{{span}}}{{l}}{{\emph{{{heading}}}}} \\")
+        # Ranked inside the block, since a delta is against that block's own baseline.
+        lines += [f"{label_} & " + " & ".join(cells_) + r" \\"
+                  for label_, cells_ in emphasise(rows)]
     header = [
         r"\begin{tabular}{l" + (" " + "r" * width) * len(columns) + "}",
         r"\toprule",
@@ -350,13 +477,25 @@ def main(
     # Only a variant that loses a round trip its own baseline keeps is this table's
     # business, and it never has. The shared counts are the encoding, not the markers.
     lossy = excess_roundtrip_failures(cells, langs, trainers, arms)
+    morph_note = (
+        r"MA is MorphAlign (IBM1 alignment at threshold 0.01, scaled by 100) and MS is "
+        r"MorphScore $F_1$ with an unsplit word credited rather than dropped, both on "
+        + " and ".join(LANG_LABEL[lg] for lg in morphs)
+        + r" and both higher-is-better. Where a scheme's two probes disagree the cell "
+        r"reads bare/in-context and only the in-context score is ranked: segmenting a gold "
+        r"word on its own is unreachable for a leading-space vocabulary, so \plainscheme{} "
+        r"is scored there on splits it does not make in running text. "
+    )
     caption = (
         r"\caption{Compression, " + setting + r". " + anchor
         + r"positive meaning better compression. "
         + (r"\bnds{w} $<$ \bnds{wp} $<$ \bnds{wpd} throughout. " if ordered else "")
+        + (morph_note if layout == "mean" else "")
+        + r"\textbf{Bold} is the best and \underline{underline} the runner-up within a "
+        r"column, ties sharing a place. "
         + (rf"Per-language numbers in Table~\ref{{{detail}}}. " if layout == "mean"
            else MISSING + r"~marks cells the grid has not reached. ")
-        + (r"Each mean covers the languages that have that scheme; $n$ is how many. "
+        + (r"Each compression mean covers the languages that have that scheme. "
            if layout == "mean" else
            r"Means cover the languages present in that row, and a train mean is shown "
            r"only where it covers the same ones as the eval mean beside it. ")

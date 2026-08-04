@@ -53,7 +53,8 @@ GENERATED = os.path.join(HERE, "paper", "generated")
 # MorphScore's language codes for the six the grid trains. Arabic has no entry.
 LANGS = {"en": "eng_latn", "de": "deu_latn", "fi": "fin_latn",
          "ru": "rus_cyrl", "ko": "kor_hang"}
-ARMS = ["plain", "bnd_w", "bnd_wp", "bnd_wpd", "bnd_wpd_caps", "bnd_wpd_extcaps"]
+ARMS = ["plain", "bnd_w", "bnd_w_extcaps", "bnd_wp", "bnd_wp_extcaps",
+        "bnd_wpd", "bnd_wpd_extcaps", "bnd_wpd_caps"]
 
 app = cyclopts.App()
 
@@ -101,6 +102,7 @@ def main(
     vocab: int = 34_685,
     in_context: bool = False,
     out: str = os.path.join(GENERATED, "morphscore.json"),
+    force: bool = False,
 ) -> None:
     """Score each arm both ways: whole words excluded, and whole words credited.
 
@@ -113,9 +115,15 @@ def main(
         in_context: Segment the word inside a carrier phrase rather than on its own, so a
             leading-space vocabulary is actually reachable. Without it the baseline is
             scored on splits it never makes in running text.
-        out: JSON of scores, keyed by tokenizer name.
+        out: JSON of scores, keyed by tokenizer name, with `@ctx` appended in that mode so
+            both probes live in one file.
+        force: Re-score cells already present.
     """
     segmenter = segment_in_context if in_context else segment
+    # The two probes are different measurements of the same tokenizer and both are worth
+    # keeping, so they need different keys -- without the suffix an in-context run silently
+    # overwrites the bare one and the file no longer says which it holds.
+    suffix = "@ctx" if in_context else ""
     scores = json.load(open(out)) if os.path.exists(out) else {}
     for lang in [x.strip() for x in langs.split(",") if x.strip()]:
         # One filtered dataset per language, shared by every arm, so all arms are scored on
@@ -128,15 +136,16 @@ def main(
               f"{'1-token':>9}{'scored':>8}")
         for arm in [x.strip() for x in arms.split(",") if x.strip()]:
             for trainer in [x.strip() for x in trainers.split(",") if x.strip()]:
-                key = f"{corpus.format(lang=lang)}_{arm}_{trainer}_v{vocab}"
-                path = os.path.join(TOKENIZERS, f"{key}.json.gz")
-                if not os.path.exists(path):
+                name = f"{corpus.format(lang=lang)}_{arm}_{trainer}_v{vocab}"
+                path = os.path.join(TOKENIZERS, f"{name}.json.gz")
+                if not os.path.exists(path) or (name + suffix in scores and not force):
                     continue
                 tokenizer = load_tokenizer(path)
                 a = score_arm(tokenizer, dataset, excl, segmenter)
                 b = score_arm(tokenizer, dataset, incl, segmenter)
-                scores[key] = {"lang": lang, "arm": arm, "trainer": trainer,
-                               "exclude_single_tok": a, "credit_single_tok": b}
+                scores[name + suffix] = {"lang": lang, "arm": arm, "trainer": trainer,
+                                         "in_context": in_context,
+                                         "exclude_single_tok": a, "credit_single_tok": b}
                 print(f"  {arm:<18}{trainer:<9}{a['recall']:>8.4f}{a['precision']:>8.4f}"
                       f"{b['recall']:>8.4f}{b['precision']:>8.4f}"
                       f"{100 * a['single_token_share']:>8.1f}%{a['scored']:>8,}", flush=True)
