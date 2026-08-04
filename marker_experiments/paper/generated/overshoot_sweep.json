@@ -1,0 +1,26 @@
+{
+  "1.15": {
+    "arm": "bnd_wpd_extcaps",
+    "eval_chars_per_token": 4.5335289257214795,
+    "lang": "en",
+    "morphalign": 0.23137563793425986,
+    "morphalign_dropped": 23,
+    "morphalign_words": 27404,
+    "morphscore_precision": 0.6993597585841287,
+    "morphscore_recall": 0.7177636408123318,
+    "overshoot": 1.15,
+    "single_token_share": 0.685099094690482
+  },
+  "1.25": {
+    "arm": "bnd_wpd_extcaps",
+    "eval_chars_per_token": 4.533787455581074,
+    "lang": "en",
+    "morphalign": 0.2296852447701994,
+    "morphalign_dropped": 21,
+    "morphalign_words": 27406,
+    "morphscore_precision": 0.7032860404435747,
+    "morphscore_recall": 0.7219911937377691,
+    "overshoot": 1.25,
+    "single_token_share": 0.6893346379647749
+  }
+}
