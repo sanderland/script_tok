@@ -368,9 +368,14 @@ def main(
         r"% Requires booktabs and the paper's \bnds and \plainscheme macros.",
         f"% source: {os.path.relpath(results, os.path.dirname(HERE))} ({corpus} corpus)",
         r"\centering",
-        # Thirteen columns of a per-language table need \tiny to fit the page width; the
-        # main table has four and stays readable.
+        # Fifteen columns of a per-language table need \tiny to fit the page width; the
+        # main table has seven and stays readable.
         r"\tiny" if layout == "languages" else r"\small",
+        # \tiny alone still overfills by ~44pt: the gutters are set in points and do not
+        # shrink with the font, so 15 columns carry 180pt of padding at the 6pt default.
+        # 4pt returns 60pt of it, which is the whole overflow and then some. Scoped to the
+        # float this is \input into.
+        *([r"\setlength{\tabcolsep}{4pt}"] if layout == "languages" else []),
         *header, *lines,
         r"\bottomrule",
         r"\end{tabular}",

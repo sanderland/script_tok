@@ -22,5 +22,29 @@
     "morphscore_recall": 0.7219911937377691,
     "overshoot": 1.25,
     "single_token_share": 0.6893346379647749
+  },
+  "1.35": {
+    "arm": "bnd_wpd_extcaps",
+    "eval_chars_per_token": 4.532272181081459,
+    "lang": "en",
+    "morphalign": 0.23223167466868244,
+    "morphalign_dropped": 21,
+    "morphalign_words": 27406,
+    "morphscore_precision": 0.7078400195694716,
+    "morphscore_recall": 0.7271281800391389,
+    "overshoot": 1.35,
+    "single_token_share": 0.6934931506849316
+  },
+  "1.44": {
+    "arm": "bnd_wpd_extcaps",
+    "eval_chars_per_token": 4.530388370016882,
+    "lang": "en",
+    "morphalign": 0.23316187789875478,
+    "morphalign_dropped": 20,
+    "morphalign_words": 27407,
+    "morphscore_precision": 0.7088489443221652,
+    "morphscore_recall": 0.7286622646123747,
+    "overshoot": 1.44,
+    "single_token_share": 0.6947909024211298
   }
 }
