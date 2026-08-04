@@ -11,12 +11,12 @@ Scheme & \multicolumn{4}{c}{BPE} & \multicolumn{4}{c}{MinGram} \\
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9}
  & train & eval & MorphAlign & MorphScore & train & eval & MorphAlign & MorphScore \\
 \midrule
-\plainscheme & \textbf{4.04} & \textbf{4.10} & 0.424/\textbf{0.282} & 0.186/\textbf{0.700} & \textbf{4.11} & \textbf{4.17} & 0.568/\textbf{0.408} & 0.318/\textbf{0.814} \\
-\bnds{w} & $-8.70$ & $-9.30$ & 0.210 & 0.657 & $-9.19$ & $-9.85$ & \underline{0.231} & 0.691 \\
-\bnds{wp} & $-1.82$ & $-2.19$ & 0.211 & 0.655 & $-2.26$ & $-2.70$ & \underline{0.231} & 0.690 \\
-\bnds{wpd} & $\underline{-0.09}$ & $\underline{-0.47}$ & 0.212 & 0.654 & $\underline{-0.52}$ & $-0.96$ & \underline{0.231} & 0.689 \\
-\bnds{wpdcaps} & $-0.40$ & $-0.73$ & \underline{0.215} & \underline{0.659} & $-0.53$ & $\underline{-0.92}$ & \underline{0.231} & \underline{0.709} \\
+\plainscheme & \textbf{4.04} & \textbf{4.10} & \textbf{0.64}\,(0.78) & \textbf{0.40}\,(0.15) & \textbf{4.11} & \textbf{4.17} & \textbf{0.78}\,(0.89) & \textbf{0.54}\,(0.26) \\
+\bnds{w} & $-8.70$ & $-9.30$ & 0.544 & 0.350 & $-9.19$ & $-9.85$ & 0.608 & 0.378 \\
+\bnds{wp} & $-1.82$ & $-2.19$ & 0.545 & 0.349 & $-2.26$ & $-2.70$ & 0.607 & 0.378 \\
+\bnds{wpd} & $\underline{-0.09}$ & $\underline{-0.47}$ & \underline{0.550} & 0.348 & $\underline{-0.52}$ & $-0.96$ & \underline{0.609} & 0.377 \\
+\bnds{wpdcaps} & $-0.40$ & $-0.73$ & 0.538 & \underline{0.352} & $-0.53$ & $\underline{-0.92}$ & 0.608 & \underline{0.398} \\
 \bottomrule
 \end{tabular}
-\caption{Compression, trained on 5\,GB of FineWeb per language (the \texttt{quick} read-until-full sample, which is not uniform over the source), 34{,}685 matched total vocabulary, evaluated on held-out Goldfish. \plainscheme{} is the mean absolute baseline in characters per token, every other compression cell the mean percentage change against it, positive meaning better compression. \bnds{w} $<$ \bnds{wp} $<$ \bnds{wpd} throughout. MorphAlign is IBM1 alignment at threshold 0.01 scaled by 100, MorphScore is $F_1$ with an unsplit word credited rather than dropped; both are on English, and on both higher is better. Gold words are segmented inside a carrier phrase rather than on their own, because a bare word cannot reach a leading-space entry and \plainscheme{} would be scored on splits it does not make in running text. A cell reading $a$/$b$ gives that bare probe before the in-context one, which is the figure ranked; the marker schemes delimit a span the same way either side and the two probes agree for them. \textbf{Bold} is the best and \underline{underline} the runner-up within a column, ties sharing a place; \plainscheme{} ranks at the zero its own percentages are measured from. Per-language numbers in Table~\ref{tab:intrinsic-quick}. Compression figures are means over English, German, Finnish, Russian, Arabic and Korean.}
+\caption{Compression, trained on 5\,GB of FineWeb per language (\texttt{quick} non-uniform sample), 34{,}685 matched total vocabulary, evaluated on held-out Goldfish, averaged over all 6 languages. \plainscheme{} is characters per token, every other compression cell the percentage change against it, positive meaning better compression. Morphology is the mean over English, German and Finnish, higher better; parenthesised is the same score with each word segmented alone rather than in a carrier phrase. \textbf{Bold} is best in a column and \underline{underline} runner-up, counting \plainscheme{} as zero. Per-language numbers in Table~\ref{tab:intrinsic-quick}.}
 \label{tab:intrinsic-main}

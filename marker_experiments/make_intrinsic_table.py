@@ -159,13 +159,15 @@ def deltas(cells, lang, arm, trainer):
 
 # A rendered cell, kept apart from its own emphasis: which cells are bold or underlined is
 # a property of the column they sit in, so it cannot be decided while the cell is built.
-# `rank` is what the column sorts on (None keeps the cell out of the ranking), and `pre`
-# holds the part of a two-value cell that is not ranked and so is never marked up.
-Cell = namedtuple("Cell", "emph rank pre math")
+# `rank` is what the column sorts on (None keeps the cell out of the ranking), and `post`
+# trails the ranked figure with anything that is not ranked and so is never marked up. It
+# trails rather than leads so the emphasis always falls on the first number in the cell:
+# bold on the second of two reads as marking the smaller one.
+Cell = namedtuple("Cell", "emph rank post math")
 
 
-def cell(emph, rank=None, pre="", math=False):
-    return Cell(emph, rank, pre, math)
+def cell(emph, rank=None, post="", math=False):
+    return Cell(emph, rank, post, math)
 
 
 MISSING_CELL = cell(MISSING)
@@ -178,7 +180,7 @@ def render(c, mark):
         text = rf"\{'mathbf' if c.math else 'textbf'}{{{text}}}"
     elif mark == "second":
         text = rf"\underline{{{text}}}"
-    text = c.pre + text
+    text += c.post
     return f"${text}$" if c.math else text
 
 
@@ -298,13 +300,13 @@ def morphscore_statistic(record):
 
 
 def morph_cell(scores, langs, arm, trainer, digits=3):
-    """One morphology cell: the in-context score, preceded by the bare one where they part.
+    """One morphology cell: the in-context score, trailed by the bare one where they part.
 
     The bare probe segments each gold word on its own, which a leading-space vocabulary
     cannot match -- `plain` comes back as `lead|s` for a word it emits whole in running
     text, and is credited for a split it never makes. The marker schemes delimit a span the
     same way either side, so the two probes agree for them and the cell shows one number;
-    where they disagree, both are shown and only the in-context one is ranked.
+    where they disagree the bare figure follows in parentheses and is not ranked.
     """
     def mean(in_context):
         got = [scores[(lg, arm, trainer, in_context)] for lg in langs
@@ -315,8 +317,8 @@ def morph_cell(scores, langs, arm, trainer, digits=3):
     if ctx is None:
         return MISSING_CELL
     shown = f"{ctx:.{digits}f}"
-    pre = "" if bare is None or f"{bare:.{digits}f}" == shown else f"{bare:.{digits}f}/"
-    return cell(shown, round(ctx, digits), pre=pre)
+    post = "" if bare is None or f"{bare:.{digits}f}" == shown else rf"\,({bare:.{digits}f})"
+    return cell(shown, round(ctx, digits), post=post)
 
 
 def body(cells, langs, trainers, arms):
@@ -371,7 +373,10 @@ def mean_body(cells, langs, trainers, arms, morph_langs):
             # column.
             anchors.append(absolute_cell(
                 row_mean([chars_per_token(b, corpus) for b in bases])[0], digits=2, rank=0.0))
-        anchors += [morph_cell(s, morph_langs, "plain", tr) for s in (aligned, morphed)]
+        # Two decimals on this row alone: it is the only one carrying a second figure, and
+        # a third digit on both halves makes it much the widest cell in the table.
+        anchors += [morph_cell(s, morph_langs, "plain", tr, digits=2)
+                    for s in (aligned, morphed)]
     rows.append((PLAIN_LABEL, anchors))
 
     for arm in arms:
@@ -411,7 +416,7 @@ def main(
     setting: str | None = None,
     label: str | None = None,
     detail: str | None = None,
-    morph_langs: str = "en",
+    morph_langs: str = "en,de,fi",
     arms: str | None = None,
 ) -> None:
     """Write the compression table for one grid.
@@ -429,10 +434,11 @@ def main(
         label: LaTeX label. Defaults to `tab:intrinsic[-quick|-main]`.
         detail: Label the `mean` layout points at for the per-language numbers.
         morph_langs: Comma-separated languages the `mean` layout's MorphAlign and
-            MorphScore columns cover. Both metrics have gold segmentations for en, de and
-            fi only, and their scales differ enough by language that a mean over more than
-            one is dominated by whichever is largest -- Finnish MorphAlign is five times
-            English. One language keeps the column a comparison between schemes.
+            MorphScore columns cover. Both need gold segmentations: MorphAlign has en, de
+            and fi, MorphScore those plus ru and ko, so their intersection is the default.
+            The scales differ sharply by language -- Finnish MorphAlign runs five times
+            English -- so the mean is dominated by Finnish and its absolute value means
+            little; the ordering between schemes is the same on any of the three alone.
         arms: Comma-separated schemes to show. Defaults to everything the source has for
             the appendix layout and to MAIN_ARMS for the main one.
     """
@@ -460,14 +466,8 @@ def main(
     detail = detail or f"tab:intrinsic{'-quick' if corpus == 'quick' else ''}"
     setting = setting or (
         "trained on 5\\,GB of FineWeb per language"
-        + (" (the \\texttt{quick} read-until-full sample, which is not uniform over the "
-           "source)" if corpus == "quick" else "")
+        + (" (\\texttt{quick} non-uniform sample)" if corpus == "quick" else "")
         + ", 34{,}685 matched total vocabulary, evaluated on held-out Goldfish"
-    )
-    ordered = all(
-        (d := [deltas(cells, lg, arm, tr)[1] for arm in ["bnd_w", "bnd_wp", "bnd_wpd"]])
-        and None not in d and d == sorted(d)
-        for lg in langs for tr in trainers if (lg, "plain", tr) in cells
     )
 
     morphs = [x.strip() for x in morph_langs.split(",") if x.strip()]
@@ -478,8 +478,8 @@ def main(
         # the quantity -- and beside two morphology metrics that is the ambiguous half.
         groups = [("Compression", 2), ("Morphology", 2)]
         subheads = ["train", "eval", "MorphAlign", "MorphScore"]
-        anchor = (r"\plainscheme{} is the mean absolute baseline in characters per token, "
-                  r"every other compression cell the mean percentage change against it, ")
+        anchor = (r"\plainscheme{} is characters per token, every other compression cell "
+                  r"the percentage change against it, ")
     else:
         blocks = body(cells, langs, trainers, arms)
         columns = [LANG_LABEL[lg] for lg in langs] + ["Mean"]
@@ -530,30 +530,21 @@ def main(
     # a ragged mean should not be the one that goes in the paper.
     complete = all((lg, arm, tr) in cells
                    for lg in langs for tr in trainers for arm in ["plain", *arms])
-    coverage = ("Compression figures are means over "
-                + ", ".join(LANG_LABEL[lg] for lg in langs[:-1])
-                + f" and {LANG_LABEL[langs[-1]]}. " if complete and layout == "mean" else "")
+    coverage = (rf", averaged over all {len(langs)} languages"
+                if complete and layout == "mean" else "")
     morph_note = (
-        r"MorphAlign is IBM1 alignment at threshold 0.01 scaled by 100, MorphScore is "
-        r"$F_1$ with an unsplit word credited rather than dropped; both are on "
-        + " and ".join(LANG_LABEL[lg] for lg in morphs)
-        + r", and on both higher is better. Gold words are segmented inside a carrier "
-        r"phrase rather than on their own, because a bare word cannot reach a "
-        r"leading-space entry and \plainscheme{} would be scored on splits it does not "
-        r"make in running text. A cell reading $a$/$b$ gives that bare probe before the "
-        r"in-context one, which is the figure ranked; the marker schemes delimit a span "
-        r"the same way either side and the two probes agree for them. "
+        r"Morphology is the mean over "
+        + ", ".join(LANG_LABEL[lg] for lg in morphs[:-1])
+        + rf" and {LANG_LABEL[morphs[-1]]}, higher better; parenthesised is the same "
+        r"score with each word segmented alone rather than in a carrier phrase. "
     )
     caption = (
-        r"\caption{Compression, " + setting + r". " + anchor
+        r"\caption{Compression, " + setting + coverage + r". " + anchor
         + r"positive meaning better compression. "
-        + (r"\bnds{w} $<$ \bnds{wp} $<$ \bnds{wpd} throughout. " if ordered else "")
         + (morph_note if layout == "mean" else "")
-        + r"\textbf{Bold} is the best and \underline{underline} the runner-up within a "
-        r"column, ties sharing a place; \plainscheme{} ranks at the zero its own "
-        r"percentages are measured from. "
+        + r"\textbf{Bold} is best in a column and \underline{underline} runner-up, "
+        r"counting \plainscheme{} as zero. "
         + (rf"Per-language numbers in Table~\ref{{{detail}}}. " if layout == "mean" else "")
-        + coverage
         + (rf"{lossy} documents fail to round-trip under a variant but not under its "
            rf"baseline. " if lossy > 0 else "")
     ).rstrip() + r"}"
