@@ -1211,6 +1211,18 @@
     "train_corpus": "fineweb_ko_5gb_quick",
     "train_tokens": 2267274956
   },
+  "fineweb_ko_5gb_quick_bnd_wp_extcaps_bpe_v34685": {
+    "eval_chars": 7923744,
+    "eval_chars_per_token": 2.203461971950836,
+    "eval_corpus": "goldfish:kor_hang.txt",
+    "eval_docs": 37636,
+    "eval_tokens": 3596043,
+    "roundtrip_failures": 0,
+    "slice_hash": "cda3548bef457716",
+    "train_chars": 5000001608,
+    "train_corpus": "fineweb_ko_5gb_quick",
+    "train_tokens": 2267404964
+  },
   "fineweb_ko_5gb_quick_bnd_wp_mingram_v34685": {
     "eval_chars": 7923744,
     "eval_chars_per_token": 2.2120356605962135,
