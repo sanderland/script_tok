@@ -11,19 +11,19 @@ Scheme & \multicolumn{2}{c}{English} & \multicolumn{2}{c}{German} & \multicolumn
  & train & eval & train & eval & train & eval & train & eval & train & eval & train & eval & train & eval \\
 \midrule
 \multicolumn{15}{l}{\emph{BPE}} \\
-\plainscheme & -- & 4.4571 & -- & 4.5744 & -- & 5.0118 & -- & 4.3216 & -- & 3.9735 & 2.2881 & 2.2987 & -- & 4.1062 \\
+\plainscheme & -- & 4.4571 & -- & \textbf{4.5744} & -- & \textbf{5.0118} & -- & 4.3216 & -- & \textbf{3.9735} & \textbf{2.2881} & \textbf{2.2987} & -- & \textbf{4.1062} \\
 \bnds{w} & $-8.29$ & $-8.87$ & $-9.73$ & $-10.68$ & $-7.76$ & $-7.74$ & $-10.03$ & $-10.87$ & $-8.01$ & $-8.49$ & $-8.15$ & $-9.12$ & $-8.66$ & $-9.30$ \\
-\bnds{wp} & $-0.94$ & $-1.30$ & $-2.43$ & $-2.97$ & $-1.70$ & $-1.67$ & $-0.91$ & $-1.22$ & $\underline{-1.23}$ & $\underline{-1.91}$ & $\underline{-3.39}$ & $-4.00$ & $-1.77$ & $-2.18$ \\
-\bnds{wpd} & $\underline{+0.80}$ & $\underline{+0.62}$ & $\underline{-0.63}$ & $\underline{-1.03}$ & $\underline{-0.21}$ & $\underline{-0.47}$ & $\underline{+0.79}$ & $\underline{+0.52}$ & $\mathbf{+0.37}$ & $\mathbf{-0.21}$ & $\mathbf{-1.63}$ & $\mathbf{-2.18}$ & $\mathbf{-0.08}$ & $\mathbf{-0.46}$ \\
-\bnds{wpdcapsin} & $\mathbf{+0.96}$ & $\mathbf{+0.72}$ & $\mathbf{-0.39}$ & $\mathbf{-0.78}$ & $\mathbf{+0.06}$ & $\mathbf{-0.35}$ & $\mathbf{+1.09}$ & $\mathbf{+0.92}$ & $-2.44$ & $-2.52$ & $\mathbf{-1.63}$ & $\underline{-2.22}$ & $\underline{-0.39}$ & $\underline{-0.71}$ \\
+\bnds{wp} & $-0.94$ & $-1.30$ & $-2.43$ & $-2.97$ & $-1.70$ & $-1.67$ & $-0.91$ & $-1.22$ & $\underline{-1.23}$ & $-1.91$ & $-3.39$ & $-4.00$ & $-1.77$ & $-2.18$ \\
+\bnds{wpd} & $\underline{+0.80}$ & $\underline{+0.62}$ & $\underline{-0.63}$ & $-1.03$ & $\underline{-0.21}$ & $-0.47$ & $\underline{+0.79}$ & $\underline{+0.52}$ & $\mathbf{+0.37}$ & $\underline{-0.21}$ & $\underline{-1.63}$ & $\underline{-2.18}$ & $\mathbf{-0.08}$ & $\underline{-0.46}$ \\
+\bnds{wpdcapsin} & $\mathbf{+0.96}$ & $\mathbf{+0.72}$ & $\mathbf{-0.39}$ & $\underline{-0.78}$ & $\mathbf{+0.06}$ & $\underline{-0.35}$ & $\mathbf{+1.09}$ & $\mathbf{+0.92}$ & $-2.44$ & $-2.52$ & $\underline{-1.63}$ & $-2.22$ & $\underline{-0.39}$ & $-0.71$ \\
 \midrule
 \multicolumn{15}{l}{\emph{MinGram}} \\
-\plainscheme & -- & 4.5002 & -- & -- & -- & -- & -- & -- & -- & -- & 2.2998 & 2.3103 & -- & 3.4052 \\
+\plainscheme & -- & \underline{4.5002} & -- & -- & -- & -- & -- & -- & -- & -- & \textbf{2.2998} & \textbf{2.3103} & -- & \textbf{3.4052} \\
 \bnds{w} & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & $-8.36$ & $-9.33$ & $-8.36$ & $-9.33$ \\
 \bnds{wp} & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & $-3.59$ & $-4.17$ & $-3.59$ & $-4.17$ \\
-\bnds{wpd} & $\mathbf{+0.60}$ & $\mathbf{+0.35}$ & -- & -- & -- & -- & -- & -- & -- & -- & $\underline{-1.83}$ & $\mathbf{-2.35}$ & $\mathbf{-0.61}$ & $\mathbf{-1.00}$ \\
-\bnds{wpdcapsin} & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & $\mathbf{-1.82}$ & $\underline{-2.38}$ & $\underline{-1.82}$ & $\underline{-2.38}$ \\
+\bnds{wpd} & $\mathbf{+0.60}$ & $\mathbf{+0.35}$ & -- & -- & -- & -- & -- & -- & -- & -- & $-1.83$ & $\underline{-2.35}$ & $\mathbf{-0.61}$ & $\underline{-1.00}$ \\
+\bnds{wpdcapsin} & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & $\underline{-1.82}$ & $-2.38$ & $\underline{-1.82}$ & $-2.38$ \\
 \bottomrule
 \end{tabular}
-\caption{Compression, trained on 5\,GB of FineWeb per language, 34{,}685 matched total vocabulary, evaluated on held-out Goldfish. \plainscheme{} is absolute characters per token on each corpus, every other cell the percentage change against it within the same block, positive meaning better compression. \textbf{Bold} is the best and \underline{underline} the runner-up within a column, ties sharing a place. --~marks cells the grid has not reached. Means cover the languages present in that row, and a train mean is shown only where it covers the same ones as the eval mean beside it.}
+\caption{Compression, trained on 5\,GB of FineWeb per language, 34{,}685 matched total vocabulary, evaluated on held-out Goldfish. \plainscheme{} is absolute characters per token on each corpus, every other cell the percentage change against it within the same block, positive meaning better compression. \textbf{Bold} is the best and \underline{underline} the runner-up within a column, ties sharing a place; \plainscheme{} ranks at the zero its own percentages are measured from.}
 \label{tab:intrinsic}

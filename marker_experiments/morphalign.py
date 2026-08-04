@@ -135,7 +135,7 @@ def segment_in_context(tokenizer, word, carrier=("the ", " to")):
     text = left + word + right
     start, end = len(left), len(left) + len(word)
 
-    pieces, at, code, seen = [], 0, None, []
+    pieces, at, code, seen, pending = [], 0, None, [], None
     pt = tokenizer.pretokenizer
     marker = getattr(pt, "marker_token_id", None)
     shift, caps = getattr(pt, "shift_token_id", None), getattr(pt, "caps_token_id", None)
@@ -147,12 +147,24 @@ def segment_in_context(tokenizer, word, carrier=("the ", " to")):
         seen.extend(ids)
         span = (at, len(pt.decode(seen)))
         at = span[1]
-        if span[1] <= start or span[0] >= end:
+        inside = span[1] > start and span[0] < end
+        here = ("caps" if caps is not None and caps in ids else
+                "shift" if shift is not None and shift in ids else None)
+        if not inside:
+            # Under `_extcaps` the case code sits outside the marker pair, so it is its own
+            # token sitting just before the word rather than part of it. It cannot be
+            # placed by offset: the pair of touching markers only reconstructs the elided
+            # space when both have decoded, so the code token ends one character short of
+            # where the word begins and no boundary test matches it. Carry it forward
+            # instead -- a code applies to the next character, so the last one still
+            # unspent when the word starts is the word's. Anything that spells characters
+            # spends it. Without this every capitalised word came back lowercased, failed
+            # the spelling check and was dropped, which is exactly what the 28 words lost
+            # under `_extcaps` and no other arm had in common.
+            pending = here or (None if span[1] > span[0] else pending)
             continue
-        if shift is not None and shift in ids:
-            code = "shift"
-        if caps is not None and caps in ids:
-            code = "caps"
+        code = here or pending or code
+        pending = None
         core = [i for i in ids if i not in (marker, shift, caps)]
         if not core:
             continue

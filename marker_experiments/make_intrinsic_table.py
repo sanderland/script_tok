@@ -216,9 +216,15 @@ def chars_per_token(entry, corpus):
     return None if entry.get("train_chars") is None else entry["train_chars"] / entry["train_tokens"]
 
 
-def absolute_cell(value, digits=4):
-    """An absolute baseline, which is never ranked -- it is the scale, not a competitor."""
-    return MISSING_CELL if value is None else cell(f"{value:.{digits}f}")
+def absolute_cell(value, digits=4, rank=None):
+    """The \\plainscheme anchor: printed absolute, but ranked as the zero it is.
+
+    Every other cell in the column is a percentage against this one, so the baseline sits
+    at exactly 0 and belongs in the ranking at that value. Leaving it out marked the least
+    bad variant as best in columns where nothing beat the baseline at all -- which is most
+    of them.
+    """
+    return MISSING_CELL if value is None else cell(f"{value:.{digits}f}", rank)
 
 
 def delta_cell(value, digits=2):
@@ -253,8 +259,9 @@ def matched_means(pairs, absolute=False):
     (train, train_set), (ev, ev_set) = (row_mean([p[i] for p in pairs]) for i in (0, 1))
     if train_set != ev_set:
         train = None
-    build = absolute_cell if absolute else delta_cell
-    return [build(train), build(ev)]
+    if absolute:
+        return [absolute_cell(train, rank=0.0), absolute_cell(ev, rank=0.0)]
+    return [delta_cell(train), delta_cell(ev)]
 
 
 def morph_scores(path, statistic):
@@ -316,7 +323,7 @@ def body(cells, langs, trainers, arms):
         for lg in langs:
             base = cells.get((lg, "plain", tr))
             pair = tuple(chars_per_token(base, c) for c in ("train", "eval"))
-            anchors += [absolute_cell(v) for v in pair]
+            anchors += [absolute_cell(v, rank=0.0) for v in pair]
             absolute.append(pair)
         rows.append((PLAIN_LABEL, anchors + matched_means(absolute, absolute=True)))
 
@@ -349,7 +356,12 @@ def mean_body(cells, langs, trainers, arms, morph_langs):
     for tr in trainers:
         bases = [cells.get((lg, "plain", tr)) for lg in langs]
         for corpus in ("train", "eval"):
-            anchors.append(absolute_cell(row_mean([chars_per_token(b, corpus) for b in bases])[0]))
+            # Two decimals here, four in the appendix: this row is the scale the
+            # percentages below it are read against, not the number anyone reproduces
+            # against, and the fourth digit is a hundredth of the smallest delta in the
+            # column.
+            anchors.append(absolute_cell(
+                row_mean([chars_per_token(b, corpus) for b in bases])[0], digits=2, rank=0.0))
         anchors += [morph_cell(s, morph_langs, "plain", tr) for s in (aligned, morphed)]
     rows.append((PLAIN_LABEL, anchors))
 
@@ -445,12 +457,16 @@ def main(
     if layout == "mean":
         blocks = mean_body(cells, langs, trainers, arms, morphs)
         columns = [TRAINER_LABEL[tr] for tr in trainers]
-        subheads = ["train", "eval", "MA", "MS"]
+        # A middle header tier, because `train` and `eval` alone name the corpus and not
+        # the quantity -- and beside two morphology metrics that is the ambiguous half.
+        groups = [("Compression", 2), ("Morphology", 2)]
+        subheads = ["train", "eval", "MorphAlign", "MorphScore"]
         anchor = (r"\plainscheme{} is the mean absolute baseline in characters per token, "
                   r"every other compression cell the mean percentage change against it, ")
     else:
         blocks = body(cells, langs, trainers, arms)
         columns = [LANG_LABEL[lg] for lg in langs] + ["Mean"]
+        groups = None
         subheads = ["train", "eval"]
         anchor = (r"\plainscheme{} is absolute characters per token on each corpus, every "
                   r"other cell the percentage change against it within the same block, ")
@@ -465,26 +481,51 @@ def main(
         # Ranked inside the block, since a delta is against that block's own baseline.
         lines += [f"{label_} & " + " & ".join(cells_) + r" \\"
                   for label_, cells_ in emphasise(rows)]
+    def rule(spans):
+        """A \\cmidrule under each group, from a list of (start column, width)."""
+        return " ".join(rf"\cmidrule(lr){{{a}-{a + w - 1}}}" for a, w in spans)
+
     header = [
         r"\begin{tabular}{l" + (" " + "r" * width) * len(columns) + "}",
         r"\toprule",
         "Scheme " + "".join(rf"& \multicolumn{{{width}}}{{c}}{{{c}}} " for c in columns) + r"\\",
-        " ".join(rf"\cmidrule(lr){{{2 + width * i}-{1 + width * (i + 1)}}}"
-                 for i in range(len(columns))),
+        rule([(2 + width * i, width) for i in range(len(columns))]),
+    ]
+    if groups:
+        header.append(" " + "".join(
+            rf"& \multicolumn{{{w}}}{{c}}{{{name}}} " for _ in columns for name, w in groups
+        ) + r"\\")
+        starts, at = [], 2
+        for _ in columns:
+            for _name, w in groups:
+                starts.append((at, w))
+                at += w
+        header.append(rule(starts))
+    header += [
         " & " + " & ".join(subheads * len(columns)) + r" \\",
         r"\midrule",
     ]
     # Only a variant that loses a round trip its own baseline keeps is this table's
     # business, and it never has. The shared counts are the encoding, not the markers.
     lossy = excess_roundtrip_failures(cells, langs, trainers, arms)
+    # What a mean is over, stated only when it is the same everywhere -- a caption is not
+    # the place to narrate which cells a running grid has not filled yet, and a table with
+    # a ragged mean should not be the one that goes in the paper.
+    complete = all((lg, arm, tr) in cells
+                   for lg in langs for tr in trainers for arm in ["plain", *arms])
+    coverage = ("Compression figures are means over "
+                + ", ".join(LANG_LABEL[lg] for lg in langs[:-1])
+                + f" and {LANG_LABEL[langs[-1]]}. " if complete and layout == "mean" else "")
     morph_note = (
-        r"MA is MorphAlign (IBM1 alignment at threshold 0.01, scaled by 100) and MS is "
-        r"MorphScore $F_1$ with an unsplit word credited rather than dropped, both on "
+        r"MorphAlign is IBM1 alignment at threshold 0.01 scaled by 100, MorphScore is "
+        r"$F_1$ with an unsplit word credited rather than dropped; both are on "
         + " and ".join(LANG_LABEL[lg] for lg in morphs)
-        + r" and both higher-is-better. Where a scheme's two probes disagree the cell "
-        r"reads bare/in-context and only the in-context score is ranked: segmenting a gold "
-        r"word on its own is unreachable for a leading-space vocabulary, so \plainscheme{} "
-        r"is scored there on splits it does not make in running text. "
+        + r", and on both higher is better. Gold words are segmented inside a carrier "
+        r"phrase rather than on their own, because a bare word cannot reach a "
+        r"leading-space entry and \plainscheme{} would be scored on splits it does not "
+        r"make in running text. A cell reading $a$/$b$ gives that bare probe before the "
+        r"in-context one, which is the figure ranked; the marker schemes delimit a span "
+        r"the same way either side and the two probes agree for them. "
     )
     caption = (
         r"\caption{Compression, " + setting + r". " + anchor
@@ -492,13 +533,10 @@ def main(
         + (r"\bnds{w} $<$ \bnds{wp} $<$ \bnds{wpd} throughout. " if ordered else "")
         + (morph_note if layout == "mean" else "")
         + r"\textbf{Bold} is the best and \underline{underline} the runner-up within a "
-        r"column, ties sharing a place. "
-        + (rf"Per-language numbers in Table~\ref{{{detail}}}. " if layout == "mean"
-           else MISSING + r"~marks cells the grid has not reached. ")
-        + (r"Each compression mean covers the languages that have that scheme. "
-           if layout == "mean" else
-           r"Means cover the languages present in that row, and a train mean is shown "
-           r"only where it covers the same ones as the eval mean beside it. ")
+        r"column, ties sharing a place; \plainscheme{} ranks at the zero its own "
+        r"percentages are measured from. "
+        + (rf"Per-language numbers in Table~\ref{{{detail}}}. " if layout == "mean" else "")
+        + coverage
         + (rf"{lossy} documents fail to round-trip under a variant but not under its "
            rf"baseline. " if lossy > 0 else "")
     ).rstrip() + r"}"
