@@ -535,8 +535,9 @@ def main(
     morph_note = (
         r"Morphology is the mean over "
         + ", ".join(LANG_LABEL[lg] for lg in morphs[:-1])
-        + rf" and {LANG_LABEL[morphs[-1]]}, higher better; parenthesised is the same "
-        r"score with each word segmented alone rather than in a carrier phrase. "
+        + rf" and {LANG_LABEL[morphs[-1]]}, higher better. Each word is segmented inside "
+        r"a carrier phrase; parenthesised is both metrics' own default of segmenting it "
+        r"alone, which no leading-space vocabulary can match. "
     )
     caption = (
         r"\caption{Compression, " + setting + coverage + r". " + anchor
