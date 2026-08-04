@@ -1223,6 +1223,18 @@
     "train_corpus": "fineweb_ko_5gb_quick",
     "train_tokens": 2267404964
   },
+  "fineweb_ko_5gb_quick_bnd_wp_extcaps_mingram_v34685": {
+    "eval_chars": 7923744,
+    "eval_chars_per_token": 2.211204168494513,
+    "eval_corpus": "goldfish:kor_hang.txt",
+    "eval_docs": 37636,
+    "eval_tokens": 3583452,
+    "roundtrip_failures": 0,
+    "slice_hash": "cda3548bef457716",
+    "train_chars": 5000001608,
+    "train_corpus": "fineweb_ko_5gb_quick",
+    "train_tokens": 2259572742
+  },
   "fineweb_ko_5gb_quick_bnd_wp_mingram_v34685": {
     "eval_chars": 7923744,
     "eval_chars_per_token": 2.2120356605962135,
@@ -1234,6 +1246,18 @@
     "train_chars": 5000001608,
     "train_corpus": "fineweb_ko_5gb_quick",
     "train_tokens": 2259827763
+  },
+  "fineweb_ko_5gb_quick_bnd_wpd_bpe_v34685": {
+    "eval_chars": 7923744,
+    "eval_chars_per_token": 2.246290906338493,
+    "eval_corpus": "goldfish:kor_hang.txt",
+    "eval_docs": 37636,
+    "eval_tokens": 3527479,
+    "roundtrip_failures": 0,
+    "slice_hash": "cda3548bef457716",
+    "train_chars": 5000001608,
+    "train_corpus": "fineweb_ko_5gb_quick",
+    "train_tokens": 2225513156
   },
   "fineweb_ko_5gb_quick_plain_bpe_v34685": {
     "eval_chars": 7923744,
@@ -1426,6 +1450,30 @@
     "train_chars": 5000045086,
     "train_corpus": "fineweb_ru_5gb_quick",
     "train_tokens": 1144076119
+  },
+  "fineweb_ru_5gb_quick_bnd_wpd_caps_bpe_v34685": {
+    "eval_chars": 8015461,
+    "eval_chars_per_token": 4.353916969087609,
+    "eval_corpus": "goldfish:rus_cyrl.txt",
+    "eval_docs": 27615,
+    "eval_tokens": 1840977,
+    "roundtrip_failures": 0,
+    "slice_hash": "0896372a26fffac9",
+    "train_chars": 5000045086,
+    "train_corpus": "fineweb_ru_5gb_quick",
+    "train_tokens": 1140676482
+  },
+  "fineweb_ru_5gb_quick_bnd_wpd_caps_mingram_v34685": {
+    "eval_chars": 8015461,
+    "eval_chars_per_token": 4.401487578799394,
+    "eval_corpus": "goldfish:rus_cyrl.txt",
+    "eval_docs": 27615,
+    "eval_tokens": 1821080,
+    "roundtrip_failures": 0,
+    "slice_hash": "0896372a26fffac9",
+    "train_chars": 5000045086,
+    "train_corpus": "fineweb_ru_5gb_quick",
+    "train_tokens": 1128596005
   },
   "fineweb_ru_5gb_quick_bnd_wpd_extcaps_bpe_v34685": {
     "eval_chars": 8015461,

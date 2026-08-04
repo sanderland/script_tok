@@ -79,16 +79,24 @@ def main(
     if not todo:
         print(f"[prebuild] {lang}: every arm has its tokenizers, nothing to build")
         return
-    arm = todo[-1]
 
-    pt = make_pretokenizer(arm)
-    cached = os.path.join(PretokenizedCorpus.DEFAULT_BASE_PATH, corpus, pt.hash())
-    if os.path.exists(os.path.join(cached, "metadata.json")):
-        print(f"[prebuild] {lang}/{arm}: corpus {pt.hash()} already cached, nothing to build")
+    # Latest first, so the job is furthest from contending for it, and skipping whatever
+    # is already cached -- otherwise a second run finds only the arm the first one built
+    # and stops, leaving the middle of the queue cold. The first missing arm is the one
+    # the job is on or about to start, so it is left alone unless it is all that is left.
+    candidates = list(reversed(todo[1:])) or todo
+    for arm in candidates:
+        pt = make_pretokenizer(arm)
+        cached = os.path.join(PretokenizedCorpus.DEFAULT_BASE_PATH, corpus, pt.hash())
+        if not os.path.exists(os.path.join(cached, "metadata.json")):
+            break
+        print(f"[prebuild] {lang}/{arm}: corpus {pt.hash()} already cached, looking earlier")
+    else:
+        print(f"[prebuild] {lang}: every buildable arm is cached, nothing to do")
         return
 
-    print(f"[prebuild] {lang}: {len(todo)} arm(s) left {todo}, building the last one: "
-          f"{arm} ({pt.hash()})", flush=True)
+    print(f"[prebuild] {lang}: {len(todo)} arm(s) left {todo}, building {arm} ({pt.hash()})",
+          flush=True)
     if dry_run:
         return
 
