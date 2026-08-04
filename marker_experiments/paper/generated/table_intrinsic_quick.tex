@@ -3,7 +3,7 @@
 % source: marker_experiments/paper/generated/eval_goldfish.json (quick corpus)
 \centering
 \tiny
-\setlength{\tabcolsep}{4pt}
+\setlength{\tabcolsep}{3pt}
 \begin{tabular}{l rr rr rr rr rr rr rr}
 \toprule
 Scheme & \multicolumn{2}{c}{English} & \multicolumn{2}{c}{German} & \multicolumn{2}{c}{Finnish} & \multicolumn{2}{c}{Russian} & \multicolumn{2}{c}{Arabic} & \multicolumn{2}{c}{Korean} & \multicolumn{2}{c}{Mean} \\
@@ -11,7 +11,7 @@ Scheme & \multicolumn{2}{c}{English} & \multicolumn{2}{c}{German} & \multicolumn
  & train & eval & train & eval & train & eval & train & eval & train & eval & train & eval & train & eval \\
 \midrule
 \multicolumn{15}{l}{\emph{BPE}} \\
-\plainscheme & 4.3337 & 4.4562 & \textbf{4.5413} & \textbf{4.5734} & \underline{4.6459} & \textbf{5.0101} & 4.3359 & 4.3159 & \underline{4.0976} & \textbf{3.9677} & \textbf{2.2848} & \textbf{2.2956} & \textbf{4.0399} & \textbf{4.1031} \\
+\plainscheme & 4.334 & 4.456 & \textbf{4.541} & \textbf{4.573} & \underline{4.646} & \textbf{5.010} & 4.336 & 4.316 & \underline{4.098} & \textbf{3.968} & \textbf{2.285} & \textbf{2.296} & \textbf{4.040} & \textbf{4.103} \\
 \bnds{w} & $-8.30$ & $-8.85$ & $-9.73$ & $-10.70$ & $-7.81$ & $-7.74$ & $-10.01$ & $-10.89$ & $-8.15$ & $-8.50$ & $-8.22$ & $-9.10$ & $-8.70$ & $-9.30$ \\
 \bnds{wcaps} & $-8.13$ & $-8.74$ & $-9.54$ & $-10.51$ & $-7.74$ & $-7.79$ & $-9.73$ & $-10.52$ & $-10.39$ & $-10.42$ & $-8.23$ & $-9.13$ & $-8.96$ & $-9.52$ \\
 \bnds{wp} & $-0.95$ & $-1.29$ & $-2.50$ & $-3.00$ & $-1.72$ & $-1.67$ & $-0.97$ & $-1.27$ & $-1.30$ & $-1.92$ & $-3.48$ & $-3.98$ & $-1.82$ & $-2.19$ \\
@@ -21,7 +21,7 @@ Scheme & \multicolumn{2}{c}{English} & \multicolumn{2}{c}{German} & \multicolumn
 \bnds{wpdcapsin} & $\underline{+0.98}$ & $\underline{+0.74}$ & $\underline{-0.40}$ & $\underline{-0.78}$ & $\mathbf{+0.02}$ & $\underline{-0.34}$ & $\underline{+1.10}$ & $\underline{+0.88}$ & $-2.24$ & $-2.51$ & $\underline{-1.67}$ & $-2.19$ & $-0.37$ & $-0.70$ \\
 \midrule
 \multicolumn{15}{l}{\emph{MinGram}} \\
-\plainscheme & 4.3726 & 4.4988 & \textbf{4.6326} & \textbf{4.6635} & \textbf{4.7958} & \textbf{5.1533} & 4.3853 & 4.3661 & \textbf{4.1467} & \textbf{4.0199} & \textbf{2.2970} & \textbf{2.3075} & \textbf{4.1050} & \textbf{4.1682} \\
+\plainscheme & 4.373 & 4.499 & \textbf{4.633} & \textbf{4.663} & \textbf{4.796} & \textbf{5.153} & 4.385 & 4.366 & \textbf{4.147} & \textbf{4.020} & \textbf{2.297} & \textbf{2.308} & \textbf{4.105} & \textbf{4.168} \\
 \bnds{w} & $-8.56$ & $-9.17$ & $-10.05$ & $-10.99$ & $-9.21$ & $-9.53$ & $-10.15$ & $-11.04$ & $-8.71$ & $-9.08$ & $-8.43$ & $-9.28$ & $-9.19$ & $-9.85$ \\
 \bnds{wcaps} & $-8.19$ & $-8.85$ & $-9.73$ & $-10.67$ & $-8.42$ & $-8.72$ & $-9.53$ & $-10.35$ & $-10.96$ & $-11.02$ & $-8.42$ & $-9.32$ & $-9.21$ & $-9.82$ \\
 \bnds{wp} & $-1.19$ & $-1.57$ & $-2.72$ & $-3.18$ & $-3.10$ & $-3.50$ & $-1.03$ & $-1.32$ & $-1.86$ & $-2.51$ & $-3.68$ & $-4.14$ & $-2.26$ & $-2.70$ \\

@@ -253,7 +253,7 @@ def row_mean(values):
         i for i, v in enumerate(values) if v is not None)
 
 
-def matched_means(pairs, absolute=False):
+def matched_means(pairs, absolute=False, digits=3):
     """The (train, eval) means of a row, with train withheld unless it covers the same
     languages as eval.
 
@@ -265,7 +265,7 @@ def matched_means(pairs, absolute=False):
     if train_set != ev_set:
         train = None
     if absolute:
-        return [absolute_cell(train, rank=0.0), absolute_cell(ev, rank=0.0)]
+        return [absolute_cell(train, digits, rank=0.0), absolute_cell(ev, digits, rank=0.0)]
     return [delta_cell(train), delta_cell(ev)]
 
 
@@ -328,7 +328,11 @@ def body(cells, langs, trainers, arms):
         for lg in langs:
             base = cells.get((lg, "plain", tr))
             pair = tuple(chars_per_token(base, c) for c in ("train", "eval"))
-            anchors += [absolute_cell(v, rank=0.0) for v in pair]
+            # Three decimals, not four: the widest cell sets the column width, and in most
+            # of these columns that is this row rather than a two-digit percentage below
+            # it. The fourth digit is worth less than the page width it costs, and four
+            # significant figures still reconstruct any arm from its percentage.
+            anchors += [absolute_cell(v, 3, rank=0.0) for v in pair]
             absolute.append(pair)
         rows.append((PLAIN_LABEL, anchors + matched_means(absolute, absolute=True)))
 
@@ -561,11 +565,12 @@ def main(
         # Fifteen columns of a per-language table need \tiny to fit the page width; the
         # main table has seven and stays readable.
         r"\tiny" if layout == "languages" else r"\small",
-        # \tiny alone still overfills by ~44pt: the gutters are set in points and do not
-        # shrink with the font, so 15 columns carry 180pt of padding at the 6pt default.
-        # 4pt returns 60pt of it, which is the whole overflow and then some. Scoped to the
+        # \tiny alone overfills: the gutters are set in points and do not shrink with the
+        # font, so 15 columns carry 180pt of padding at the 6pt default. 3pt returns 90pt
+        # of it. 4pt was enough until the column emphasis went in -- bold digits are wider
+        # than upright ones, and the anchor row is bold in most columns. Scoped to the
         # float this is \input into.
-        *([r"\setlength{\tabcolsep}{4pt}"] if layout == "languages" else []),
+        *([r"\setlength{\tabcolsep}{3pt}"] if layout == "languages" else []),
         *header, *lines,
         r"\bottomrule",
         r"\end{tabular}",
