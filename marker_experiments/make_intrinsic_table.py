@@ -94,6 +94,11 @@ ARM_LABEL = {
     "bnd_wpd_extcaps": r"\bnds{wpdcaps}",
     "bnd_wpd_caps": r"\bnds{wpdcapsin}",
 }
+# What the main table argues: the three boundary scopes, and case handling once. The other
+# three arms are the two controls that answer questions the scopes do not raise -- case
+# handling at the narrower scopes, and the inside-the-markers placement -- and they say
+# nothing the appendix does not. Kept out of the main table, kept in the appendix one.
+MAIN_ARMS = ["bnd_w", "bnd_wp", "bnd_wpd", "bnd_wpd_extcaps"]
 PLAIN_LABEL = r"\plainscheme"
 KNOWN_TRAINERS = ["bpe", "mingram"]
 TRAINER_LABEL = {"bpe": "BPE", "mingram": "MinGram"}
@@ -403,6 +408,7 @@ def main(
     label: str | None = None,
     detail: str | None = None,
     morph_langs: str = "en",
+    arms: str | None = None,
 ) -> None:
     """Write the compression table for one grid.
 
@@ -423,6 +429,8 @@ def main(
             fi only, and their scales differ enough by language that a mean over more than
             one is dominated by whichever is largest -- Finnish MorphAlign is five times
             English. One language keeps the column a comparison between schemes.
+        arms: Comma-separated schemes to show. Defaults to everything the source has for
+            the appendix layout and to MAIN_ARMS for the main one.
     """
     if corpus not in ("full", "quick"):
         raise SystemExit(f"--corpus must be full or quick, not {corpus!r}")
@@ -431,9 +439,14 @@ def main(
     with open(results) as f:
         data = json.load(f)
     cells = read_cells(data, corpus)
-    langs, trainers, arms = select(cells)
+    langs, trainers, available = select(cells)
     if not langs:
         raise SystemExit(f"no usable cells in {results} ({corpus} corpus)")
+    wanted = ([x.strip() for x in arms.split(",") if x.strip()] if arms
+              else MAIN_ARMS if layout == "mean" else available)
+    if unknown := [a for a in wanted if a not in ARM_LABEL]:
+        raise SystemExit(f"unknown scheme(s): {', '.join(unknown)}")
+    arms = [a for a in ARM_ORDER if a in wanted and a in available]
 
     suffix = "_main" if layout == "mean" else ("_quick" if corpus == "quick" else "")
     out = out or os.path.join(GENERATED, f"table_intrinsic{suffix}.tex")
