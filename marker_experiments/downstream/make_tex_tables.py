@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
 """Generate the downstream LaTeX tables from the run artifacts.
 
-Numbers in the paper are not transcribed by hand. This reads the two artifacts the
-pipeline writes and emits table bodies to \\input{} from the paper:
+Numbers in the paper are not transcribed by hand. This reads what the pipeline writes and
+emits table bodies to \\input{} from the paper:
 
     manifest.json   one entry per trained tokenizer (train_matched.py / merge_manifests.py)
     results.tsv     one row per downstream run    (collect_results.py)
 
-Re-run it whenever another arm or seed lands; it only emits rows for artifacts that
+    table_downstream_main.tex   bits per byte, one row per scheme, both trainers
+    downstream_appendix.tex     the seed and shard robustness checks
+
+Re-run it whenever another scheme or seed lands; it only emits rows for artifacts that
 exist, so a partial sweep produces a partial table rather than a fabricated one, and
-records in the caption how many runs each cell averages.
+records in the caption how many runs each cell rests on.
+
+Schemes, their order and their macros are imported from make_intrinsic_table, so a scheme
+is named the same in every table in the paper and the row set here is the intrinsic main
+table's, minus anything never pretrained.
 
     uv run python marker_experiments/downstream/make_tex_tables.py
 """
@@ -26,38 +33,24 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, REPO)
 
-# Imported, not restated. The main table's whole point is that a scheme carries the same
-# name here as in table_intrinsic_quick, and a second copy of these would drift the first
-# time an arm is added. `bnd_wpd_extcaps` is \bnds{wpdcaps} and `bnd_wpd_caps` is
-# \bnds{wpdcapsin}; ARM_LABEL below, used by the older tables, disagrees with both.
+# Imported, not restated. A scheme has to carry the same name and the same place in the
+# order here as in the intrinsic tables, and a second copy of these would drift the first
+# time an arm is added. MAIN_ARMS is the intrinsic main table's scheme set, which is also
+# the set this table shows: it excludes bnd_wpd_caps, the inside-the-markers placement
+# ablation that \bnds{wpdcapsin} denotes and that the appendix covers.
 from marker_experiments.make_intrinsic_table import (  # noqa: E402
     ARM_LABEL as SCHEME_LABEL,
-    ARM_ORDER as SCHEME_ORDER,
+    MAIN_ARMS,
     MISSING,
     PLAIN_LABEL,
 )
 # One directory holds every paper artifact: the inputs this reads and the .tex it writes.
 GENERATED = os.path.join(REPO, "marker_experiments", "paper", "generated")
-DEFAULT_OUT = os.path.join(GENERATED, "downstream_tables.tex")
 APPENDIX_OUT = os.path.join(GENERATED, "downstream_appendix.tex")
 MAIN_OUT = os.path.join(GENERATED, "table_downstream_main.tex")
 
 KNOWN_TRAINERS = ["bpe", "mingram"]
 TRAINER_LABEL = {"bpe": "BPE", "mingram": "MinGram"}
-MISSING = "--"
-
-# Presentation order, and the label each arm carries in the paper.
-ARM_ORDER = ["plain", "bnd_w", "bnd_wp", "bnd_wpd", "bnd_wpd_caps", "bnd_wpd_extcaps"]
-ARM_LABEL = {
-    "plain": "plain",
-    "bnd_w": r"\bnd{w}",
-    "bnd_wp": r"\bnd{wp}",
-    "bnd_wpd": r"\bnd{wpd}",
-    "bnd_wpd_caps": r"\bnd{wpd\_caps}",
-    "bnd_wpd_extcaps": r"\bnd{wpd\_extcaps}",
-}
-# Arms whose tokenization keeps CORE's prefix property; see core_prefix_check.py.
-CORE_SAFE = {"plain", "bnd_w"}
 
 app = cyclopts.App()
 
@@ -76,17 +69,6 @@ def _load_manifest(path, trainer="bpe", corpus="fineweb_en_5gb"):
         for v in json.load(open(path)).values()
         if v.get("trainer") == trainer and v.get("corpus") == corpus
     }
-
-
-def _load_text_stats(path):
-    """Per-arm tokenization statistics measured on the ClimbMix validation shard.
-
-    Written by measure_text_stats.py. Used for the text-coverage and tokens-per-byte
-    figures, which were previously typed into the caption by hand and were wrong.
-    """
-    if not os.path.exists(path):
-        return {}
-    return json.load(open(path)).get("arms", {})
 
 
 def _rel_sources(paths):
@@ -121,15 +103,6 @@ def _load_results(paths):
             f"`arm` does not distinguish them and the means would pool."
         )
     return by_arm
-
-
-def _num(value):
-    """Thousands separator LaTeX keeps at the right width inside math-free text."""
-    return f"{value:,}".replace(",", "{,}")
-
-
-def _tex_escape(text):
-    return text.replace("_", r"\_")
 
 
 def _mean_sd(rows, column):
@@ -212,56 +185,6 @@ def _lm_column(by_arm, schemes):
     return cells, own_ns
 
 
-def compression_table(manifest):
-    """Chars/token at the matched vocabulary, as a relative change against plain."""
-    base = manifest.get("plain", {}).get("eval_chars_per_token")
-    lines = []
-    for arm in ARM_ORDER:
-        info = manifest.get(arm)
-        if not info:
-            continue
-        cpt = info["eval_chars_per_token"]
-        if arm == "plain" or base is None:
-            rel = "---"
-        else:
-            pct = 100.0 * (cpt - base) / base
-            rel = f"${pct:+.2f}$"
-        lines.append(
-            f"{ARM_LABEL[arm]} & {_num(info['total_vocab'])} & {cpt:.4f} & {rel} & "
-            f"{info['roundtrip_failures']} \\\\"
-        )
-    return lines
-
-
-def downstream_table(by_arm):
-    """Validation bits-per-byte, and CORE where the arm admits it."""
-    lines = []
-    for arm in ARM_ORDER:
-        rows = by_arm.get(arm)
-        if not rows:
-            continue
-        # val_bpb_true, not val_bpb: the raw column divides by summed token byte length,
-        # which undercounts every arm that elides a character between two tokens, so it is
-        # not comparable across these tokenizers. See runner.measure_byte_factor.
-        val, val_sd, n = _mean_sd(rows, "val_bpb_true")
-        raw, _, _ = _mean_sd(rows, "val_bpb")
-        core, core_sd, n_core = _mean_sd(rows, "core")
-        val_cell = "---" if val is None else f"{val:.4f}"
-        if val is not None and n > 1:
-            val_cell += f" {{\\footnotesize $\\pm$ {val_sd:.4f}}}"
-        # Driven by the data, not by a hardcoded arm list: CORE_SAFE_ARMS is settable at
-        # submit time, and a hardcoded list would print n/a over a number we measured.
-        if core is None:
-            core_cell = r"\textit{n/a}" if arm not in CORE_SAFE else "---"
-        else:
-            core_cell = f"{core:.4f}"
-            if n_core > 1:
-                core_cell += f" {{\\footnotesize $\\pm$ {core_sd:.4f}}}"
-        raw_cell = "---" if raw is None else f"{raw:.4f}"
-        lines.append(f"{ARM_LABEL[arm]} & {n} & {val_cell} & {raw_cell} & {core_cell} \\\\")
-    return lines
-
-
 def appendix_tables(by_arm, by_arm_n32):
     """Two robustness checks, kept out of the main table because neither is the headline.
 
@@ -276,7 +199,7 @@ def appendix_tables(by_arm, by_arm_n32):
         r"\small",
         r"\begin{tabular}{lrrr}",
         r"\toprule",
-        r"Arm & $n$ seeds & bpb/byte & sd \\",
+        r"Scheme & $n$ seeds & bits per byte & sd \\",
         r"\midrule",
     ]
     rows = by_arm.get("bnd_wpd", [])
@@ -286,7 +209,8 @@ def appendix_tables(by_arm, by_arm_n32):
         if len(v) < 2:
             continue
         lines.append(
-            f"\\bnd{{wpd}} & {k} & {statistics.fmean(v):.4f} & {statistics.stdev(v):.4f} \\\\"
+            f"{SCHEME_LABEL['bnd_wpd']} & {k} & {statistics.fmean(v):.4f} & "
+            f"{statistics.stdev(v):.4f} \\\\"
         )
     first3 = [x for _, x in vals[:3]]
     allv = [x for _, x in vals]
@@ -297,8 +221,8 @@ def appendix_tables(by_arm, by_arm_n32):
         rf"\caption{{Seeds beyond three do not move the estimate. Doubling to "
         rf"{len(allv)} seeds shifts the mean by {shift:.2f} standard deviations, and the "
         r"standard deviation stays an order of magnitude below the difference against "
-        r"\texttt{plain} in Table~\ref{tab:downstream-lm}. The remaining arms are "
-        r"reported at three seeds on this basis.}",
+        r"\plainscheme{} in Table~\ref{tab:downstream-main}. Every scheme is reported at "
+        r"three seeds on this basis.}",
         r"\label{tab:downstream-seeds}",
         r"\end{table}",
         "",
@@ -311,7 +235,7 @@ def appendix_tables(by_arm, by_arm_n32):
             r"\small",
             r"\begin{tabular}{lrr}",
             r"\toprule",
-            r"Arm & 8 shards & 32 shards \\",
+            r"Scheme & 8 shards & 32 shards \\",
             r"\midrule",
         ]
         for arm in ("plain", "bnd_wpd"):
@@ -319,8 +243,9 @@ def appendix_tables(by_arm, by_arm_n32):
             b = [float(r["val_bpb_true"]) for r in by_arm_n32.get(arm, [])]
             if not (a and b):
                 continue
+            label = PLAIN_LABEL if arm == "plain" else SCHEME_LABEL[arm]
             lines.append(
-                f"{ARM_LABEL[arm]} & {statistics.fmean(a):.4f} & {statistics.fmean(b):.4f} \\\\"
+                f"{label} & {statistics.fmean(a):.4f} & {statistics.fmean(b):.4f} \\\\"
             )
         pa = [float(r["val_bpb_true"]) for r in by_arm.get("plain", []) if int(r["seed"]) < 3]
         wa = [float(r["val_bpb_true"]) for r in by_arm.get("bnd_wpd", []) if int(r["seed"]) < 3]
@@ -333,10 +258,10 @@ def appendix_tables(by_arm, by_arm_n32):
             r"\bottomrule",
             r"\end{tabular}",
             rf"\caption{{The result does not depend on repeating the training data. At 8 "
-            rf"shards every arm makes 3.4 to 3.6 passes over the same 2\,GB; at 32 shards the "
-            rf"run is single-epoch. Both arms improve by about 0.036 with four times the "
+            rf"shards every scheme makes 3.4 to 3.6 passes over the same 2\,GB; at 32 shards "
+            rf"the run is single-epoch. Both improve by about 0.036 with four times the "
             rf"unique text, and the difference between them is unchanged, {g8:+.4f} to "
-            rf"{g32:+.4f}. Seeds 0 to 2, bits-per-byte per true byte.}}",
+            rf"{g32:+.4f}. Seeds 0 to 2, bits per byte over true UTF-8 length.}}",
             r"\label{tab:downstream-shards}",
             r"\end{table}",
             "",
@@ -344,38 +269,40 @@ def appendix_tables(by_arm, by_arm_n32):
     return lines
 
 
-@app.command(name="main-table")
-def main_table(
+@app.default
+def main(
     manifest: str = os.path.join(GENERATED, "manifest.json"),
     results_bpe: str = ",".join([os.path.join(GENERATED, "results.tsv"),
                                  os.path.join(GENERATED, "results_extcaps.tsv")]),
     results_mingram: str = os.path.join(GENERATED, "results_mingram.tsv"),
+    results_n32: str = os.path.join(GENERATED, "results_n32.tsv"),
     corpus: str = "fineweb_en_5gb",
     out: str = MAIN_OUT,
+    appendix_out: str = APPENDIX_OUT,
 ) -> None:
-    """Write the single wide main table: compression and LM quality, both trainers.
+    """Write the downstream main table and the two appendix robustness tables.
 
-    One table rather than the four it replaces, because the argument is the join between
-    the two metrics and no single old table carried it. Rows and macros follow
-    make_intrinsic_table.py so the paper's two main tables are directly comparable.
+    One main table, both trainers, one row per scheme. Rows and macros come from
+    make_intrinsic_table.py so a scheme is named the same in every table in the paper.
 
     Args:
         manifest: Merged tokenizer manifest, read once per trainer.
         results_bpe: Comma-separated TSVs holding the BPE runs.
         results_mingram: TSV holding the MinGram runs.
-        corpus: Which tokenizer training corpus the compression column reports.
-        out: LaTeX file to write, \\input{} by the paper.
+        results_n32: TSV holding the single-epoch 32-shard runs, for the appendix.
+        corpus: Which tokenizer training corpus the tokenizers were trained on.
+        out: Main table, \\input{} by the paper.
+        appendix_out: Seed and shard tables.
     """
     sources = {"bpe": results_bpe, "mingram": results_mingram}
     man = {t: _load_manifest(manifest, trainer=t, corpus=corpus) for t in KNOWN_TRAINERS}
     res = {t: _load_results(sources[t]) for t in KNOWN_TRAINERS}
 
-    # Every scheme that has a pretraining run, in the intrinsic table's display order.
-    # Keyed on the runs and not the manifest: a tokenizer trained but never pretrained --
-    # bnd_wp, today -- would otherwise get a row of nothing but dashes now that the
-    # compression column, the only one it could have filled, is gone.
+    # The intrinsic main table's schemes, minus any that were never pretrained. Keyed on
+    # the runs as well as MAIN_ARMS because a tokenizer trained but not pretrained --
+    # bnd_wp, today -- would otherwise get a row of nothing but dashes.
     available = {a for t in KNOWN_TRAINERS for a in res[t]}
-    schemes = ["plain"] + [a for a in SCHEME_ORDER if a in available]
+    schemes = ["plain"] + [a for a in MAIN_ARMS if a in available]
 
     columns = {t: _lm_column(res[t], schemes) for t in KNOWN_TRAINERS}
 
@@ -467,142 +394,19 @@ def main_table(
     ]
     with open(out, "w") as f:
         f.write("\n".join(body))
-    print(f"[tex] {out}")
-    print(f"[tex] {len(rows)} scheme row(s), trainers {KNOWN_TRAINERS}, {n_note}")
 
-
-@app.default
-def main(
-    manifest: str = os.path.join(GENERATED, "manifest.json"),
-    results: str = ",".join([os.path.join(GENERATED, "results.tsv"),
-                             os.path.join(GENERATED, "results_extcaps.tsv")]),
-    text_stats: str = os.path.join(GENERATED, "text_stats.json"),
-    results_n32: str = os.path.join(GENERATED, "results_n32.tsv"),
-    trainer: str = "bpe",
-    out: str = DEFAULT_OUT,
-    appendix: bool = True,
-    appendix_out: str = APPENDIX_OUT,
-) -> None:
-    """Write the generated tables.
-
-    Args:
-        manifest: Merged tokenizer manifest.
-        results: One or more comma-separated TSVs from collect_results.py, all of one
-            trainer. Defaults to the main sweep plus the extcaps sweep, which ran under
-            its own OUT directory and so has its own file.
-        text_stats: JSON from measure_text_stats.py, for the text-coverage figures.
-        trainer: Which trainer's cells to report, in the compression table and the
-            caption. A separate table per trainer, because `arm` does not carry the
-            trainer and one table would pool two different tokenizers under one name.
-        out: LaTeX file to write, \\input{} by the paper.
-        appendix: Whether to write the seed and shard appendix tables. They cover the
-            BPE sweep only, so pass --no-appendix when generating for another trainer.
-        appendix_out: Where those appendix tables go.
-    """
-    # Distinct labels and captions per trainer. Two files defining \label{tab:downstream-lm}
-    # makes LaTeX resolve every \Cref to whichever it read last, silently.
-    suffix = "" if trainer == "bpe" else f"-{trainer}"
-    trainer_name = {"bpe": "BPE", "mingram": "MinGram"}.get(trainer, trainer)
-    man = _load_manifest(manifest, trainer=trainer)
-    res = _load_results(results)
-    res_n32 = _load_results(results_n32)
-    stats = _load_text_stats(text_stats)
-
-    # Measured, not asserted. At a fixed token budget the text an arm covers is
-    # proportional to its bytes per token, so this is the ratio of that against plain.
-    if stats and "plain" in stats:
-        parts = [
-            f"{ARM_LABEL[a]} {100 * stats[a]['text_coverage_vs_plain']:.1f}\\%"
-            for a in ARM_ORDER if a in stats and a != "plain"
-        ]
-        coverage_sentence = (
-            r"weight initialization and training data order, with one permutation per seed "
-            r"shared across arms so the arms stay paired. All arms train on the same number "
-            r"of tokens, so the "
-            r"amount of text each covers differs: " + ", ".join(parts)
-            + r" of what \texttt{plain} covers, measured on the ClimbMix validation shard."
-        )
-    else:
-        coverage_sentence = r"weight initialization and training data order."
-
-
-    comp = compression_table(man)
-    down = downstream_table(res)
-
-    corpus = next(iter(man.values()), {}).get("corpus", "fineweb\\_en\\_5gb")
-    vocab = next(iter(man.values()), {}).get("total_vocab")
-    n_seeds = sorted({r.get("seed") for rows in res.values() for r in rows} - {None, ""})
-
-    body = [
-        "% Generated by marker_experiments/downstream/make_tex_tables.py. Do not edit.",
-        f"% sources: {os.path.relpath(manifest, REPO)}, {_rel_sources(results)}",
-        "",
-        r"\begin{table}[t]",
-        r"\centering",
-        r"\small",
-        r"\begin{tabular}{lrrrr}",
-        r"\toprule",
-        r"Arm & Vocab & chars/token & $\Delta$ (\%) & RT fail \\",
-        r"\midrule",
-    ]
-    body += comp or [r"\multicolumn{5}{c}{\textit{no tokenizers trained yet}} \\"]
-    body += [
-        r"\bottomrule",
-        r"\end{tabular}",
-        rf"\caption{{Vocabulary-matched {trainer_name} tokenizers on {_tex_escape(corpus)}"
-        + (f", all at {_num(vocab)} total vocabulary" if vocab else "")
-        + r". Chars/token on the held-out FineWiki English slice (500 documents, "
-        r"3{,}602{,}925 characters); $\Delta$ relative to \texttt{plain}. RT fail is "
-        r"roundtrip failures.}",
-        rf"\label{{tab:downstream-compression{suffix}}}",
-        r"\end{table}",
-        "",
-        r"\begin{table}[t]",
-        r"\centering",
-        r"\small",
-        r"\begin{tabular}{lrrrr}",
-        r"\toprule",
-        r"Arm & $n$ & bpb/byte & raw bpb & CORE \\",
-        r"\midrule",
-    ]
-    body += down or [r"\multicolumn{5}{c}{\textit{no downstream runs finished yet}} \\"]
-    body += [
-        r"\bottomrule",
-        r"\end{tabular}",
-        rf"\caption{{nanochat depth-12 pretraining on ClimbMix, {trainer_name} tokenizers"
-        + (f", seeds {', '.join(n_seeds)}" if n_seeds else "")
-        + r". bpb/byte is summed loss over the true UTF-8 length of the evaluation text; "
-        r"raw bpb is nanochat's figure, which divides instead by the summed byte length of "
-        r"the emitted tokens and so is not comparable across these tokenizers "
-        r"(\S\ref{sec:downstream}). $n$ is runs averaged; $\pm$ is the sample standard "
-        r"deviation over those seeds, which vary "
-        + coverage_sentence
-        + r" CORE is \textit{n/a} for the arms whose tokenization does not satisfy the "
-        r"prefix property its language-modelling tasks assume.}",
-        rf"\label{{tab:downstream-lm{suffix}}}",
-        r"\end{table}",
-        "",
-    ]
-
-    os.makedirs(os.path.dirname(out), exist_ok=True)
-    with open(out, "w") as f:
-        f.write("\n".join(body))
-
-    if appendix:
-        app_lines = appendix_tables(res, res_n32)
-        with open(appendix_out, "w") as f:
-            f.write("\n".join(
-                ["% Generated by marker_experiments/downstream/make_tex_tables.py. Do not edit.",
-                 f"% sources: {_rel_sources(results)}, {os.path.relpath(results_n32, REPO)}",
-                 ""] + app_lines))
+    # The seed and shard checks cover the BPE sweep only, so they read that trainer's runs
+    # directly rather than the per-trainer split above.
+    with open(appendix_out, "w") as f:
+        f.write("\n".join(
+            ["% Generated by marker_experiments/downstream/make_tex_tables.py. Do not edit.",
+             r"% Requires booktabs and the paper's \bnds and \plainscheme macros.",
+             f"% sources: {_rel_sources(results_bpe)}, {os.path.relpath(results_n32, REPO)}",
+             ""] + appendix_tables(res["bpe"], _load_results(results_n32))))
 
     print(f"[tex] {out}")
-    if appendix:
-        print(f"[tex] {appendix_out}")
-    print(f"[tex] {len(comp)} tokenizer row(s), {len(down)} downstream row(s)")
-    missing = [a for a in ARM_ORDER if a in ARM_LABEL and a not in man and a != "bnd_wp"]
-    if missing:
-        print(f"[tex] not yet trained: {', '.join(missing)}")
+    print(f"[tex] {appendix_out}")
+    print(f"[tex] {len(rows)} scheme row(s), trainers {KNOWN_TRAINERS}, {n_note} paired seeds")
 
 
 if __name__ == "__main__":
