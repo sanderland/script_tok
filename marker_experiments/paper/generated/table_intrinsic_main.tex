@@ -13,10 +13,10 @@ Scheme & \multicolumn{3}{c}{BPE} & \multicolumn{3}{c}{MinGram} \\
 \bnds{w} & $-8.70$ & $-9.30$ & 6 & $-9.19$ & $-9.85$ & 6 \\
 \bnds{wcaps} & $-8.96$ & $-9.52$ & 6 & $-9.21$ & $-9.82$ & 6 \\
 \bnds{wp} & $-1.82$ & $-2.19$ & 6 & $-2.26$ & $-2.70$ & 6 \\
-\bnds{wpcaps} & $-1.89$ & $-2.21$ & 4 & $-1.95$ & $-2.29$ & 4 \\
-\bnds{wpd} & $\mathbf{+0.08}$ & $-0.29$ & 4 & $-0.50$ & $-0.99$ & 4 \\
-\bnds{wpdcaps} & $\mathbf{+0.13}$ & $-0.20$ & 3 & $-0.03$ & $-0.47$ & 3 \\
-\bnds{wpdcapsin} & $-0.41$ & $-0.72$ & 4 & $-0.19$ & $-0.65$ & 3 \\
+\bnds{wpcaps} & $-1.84$ & $-2.12$ & 5 & $-1.95$ & $-2.29$ & 4 \\
+\bnds{wpd} & $\mathbf{+0.22}$ & $-0.14$ & 5 & $-0.25$ & $-0.70$ & 5 \\
+\bnds{wpdcaps} & $-0.46$ & $-0.78$ & 4 & $-0.72$ & $-1.13$ & 4 \\
+\bnds{wpdcapsin} & $-0.41$ & $-0.72$ & 4 & $-0.84$ & $-1.26$ & 4 \\
 \bottomrule
 \end{tabular}
 \caption{Compression, trained on 5\,GB of FineWeb per language (the \texttt{quick} read-until-full sample, which is not uniform over the source), 34{,}685 matched total vocabulary, evaluated on held-out Goldfish. \plainscheme{} is the mean absolute baseline in characters per token, every other cell the mean percentage change against it, positive meaning better compression. Per-language numbers in Table~\ref{tab:intrinsic-quick}. Each mean covers the languages that have that scheme; $n$ is how many.}
