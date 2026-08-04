@@ -27,10 +27,9 @@ trained on another machine has percentages (characters cancel) and no absolute b
 Two layouts. `--layout languages` is the appendix table: every language, both corpora,
 fifteen columns of `\tiny` in a `table*`. `--layout mean` is the main-paper one: the
 compression means beside the two morphology metrics, MorphAlign and MorphScore, which come
-from `morphalign.json` and `morphscore.json` and cover `--morph-langs` rather than the full
-grid -- their gold segmentations exist for three languages and their scales differ enough
-between those that a mean over more than one says more about the language mix than the
-schemes.
+from `morphalign.json` and `morphscore.json`. Each covers its own language set rather than
+the full grid: MorphAlign has gold for three languages and uses all three, MorphScore has
+five but only its English gold is trusted.
 
 In both layouts the best cell in a **column** is bold and the runner-up underlined, ties
 sharing a place. The column is the comparison the table is for: one scheme against the
@@ -352,14 +351,15 @@ def body(cells, langs, trainers, arms):
     return blocks
 
 
-def mean_body(cells, langs, trainers, arms, morph_langs):
+def mean_body(cells, langs, trainers, arms, align_langs, score_langs):
     """The main-paper layout: one row per scheme, four columns per trainer, means only.
 
-    Compression is the mean over every language the grid has; the two morphology metrics
-    are over `morph_langs`, which is narrower because their gold segmentations are. They
-    live on scales that differ by language -- Finnish MorphAlign runs five times English --
-    so a mean over a language set that grows as the grid fills would move for reasons that
-    have nothing to do with the schemes.
+    Compression is the mean over every language the grid has. The two morphology metrics
+    get their own language sets, because what limits them is not the same thing: MorphAlign
+    has gold for three languages and is reported over all three, while MorphScore has five
+    but its non-English gold segmentations are not trusted -- a baseline scoring 0.70 on
+    English and 0.21 on German says more about the German gold than about the tokenizer --
+    so it is reported on English alone.
 
     The \\plainscheme row's compression is the absolute baseline, which no single language
     has but which gives the rest of the column its scale; its morphology cells are real
@@ -381,8 +381,8 @@ def mean_body(cells, langs, trainers, arms, morph_langs):
                 row_mean([chars_per_token(b, corpus) for b in bases])[0], digits=2, rank=0.0))
         # Two decimals on this row alone: it is the only one carrying a second figure, and
         # a third digit on both halves makes it much the widest cell in the table.
-        anchors += [morph_cell(s, morph_langs, "plain", tr, digits=2)
-                    for s in (aligned, morphed)]
+        anchors += [morph_cell(src, lgs, "plain", tr, digits=2)
+                    for src, lgs in ((aligned, align_langs), (morphed, score_langs))]
     rows.append((PLAIN_LABEL, anchors))
 
     for arm in arms:
@@ -390,7 +390,8 @@ def mean_body(cells, langs, trainers, arms, morph_langs):
         for tr in trainers:
             pairs = [deltas(cells, lg, arm, tr) for lg in langs]
             row += [delta_cell(row_mean([p[i] for p in pairs])[0]) for i in (0, 1)]
-            row += [morph_cell(s, morph_langs, arm, tr) for s in (aligned, morphed)]
+            row += [morph_cell(src, lgs, arm, tr)
+                    for src, lgs in ((aligned, align_langs), (morphed, score_langs))]
         rows.append((ARM_LABEL[arm], row))
     return [(None, rows)]
 
@@ -422,7 +423,8 @@ def main(
     setting: str | None = None,
     label: str | None = None,
     detail: str | None = None,
-    morph_langs: str = "en,de,fi",
+    morphalign_langs: str = "en,de,fi",
+    morphscore_langs: str = "en",
     arms: str | None = None,
 ) -> None:
     """Write the compression table for one grid.
@@ -439,12 +441,14 @@ def main(
             the FineWeb grid's description.
         label: LaTeX label. Defaults to `tab:intrinsic[-quick|-main]`.
         detail: Label the `mean` layout points at for the per-language numbers.
-        morph_langs: Comma-separated languages the `mean` layout's MorphAlign and
-            MorphScore columns cover. Both need gold segmentations: MorphAlign has en, de
-            and fi, MorphScore those plus ru and ko, so their intersection is the default.
-            The scales differ sharply by language -- Finnish MorphAlign runs five times
+        morphalign_langs: Comma-separated languages the MorphAlign column averages. Gold
+            exists for en, de and fi. The scales differ sharply -- Finnish runs five times
             English -- so the mean is dominated by Finnish and its absolute value means
             little; the ordering between schemes is the same on any of the three alone.
+        morphscore_langs: Comma-separated languages the MorphScore column averages. Gold
+            exists for en, de, fi, ru and ko, but only English is reported: the baseline
+            scores 0.70 there and 0.21 on German, which is a statement about the German
+            gold rather than about the tokenizer.
         arms: Comma-separated schemes to show. Defaults to everything the source has for
             the appendix layout and to MAIN_ARMS for the main one.
     """
@@ -480,9 +484,10 @@ def main(
         + ", 32k matched learned tokens, evaluated on held-out Goldfish"
     )
 
-    morphs = [x.strip() for x in morph_langs.split(",") if x.strip()]
+    split = lambda v: [x.strip() for x in v.split(",") if x.strip()]  # noqa: E731
+    align_langs, score_langs = split(morphalign_langs), split(morphscore_langs)
     if layout == "mean":
-        blocks = mean_body(cells, langs, trainers, arms, morphs)
+        blocks = mean_body(cells, langs, trainers, arms, align_langs, score_langs)
         columns = [TRAINER_LABEL[tr] for tr in trainers]
         # A middle header tier, because `train` and `eval` alone name the corpus and not
         # the quantity -- and beside two morphology metrics that is the ambiguous half.
@@ -542,12 +547,15 @@ def main(
                    for lg in langs for tr in trainers for arm in ["plain", *arms])
     coverage = (rf", averaged over all {len(langs)} languages"
                 if complete and layout == "mean" else "")
+    def listed(names):
+        labels = [LANG_LABEL[lg] for lg in names]
+        return labels[0] if len(labels) == 1 else ", ".join(labels[:-1]) + f" and {labels[-1]}"
+
     morph_note = (
-        r"Morphology is the mean over "
-        + ", ".join(LANG_LABEL[lg] for lg in morphs[:-1])
-        + rf" and {LANG_LABEL[morphs[-1]]}, higher better. Each word is segmented inside "
-        r"a carrier phrase; parenthesised is both metrics' own default of segmenting it "
-        r"alone, which no leading-space vocabulary can match. "
+        rf"MorphAlign is over {listed(align_langs)} and MorphScore over "
+        rf"{listed(score_langs)}, higher better. Each word is segmented inside a carrier "
+        r"phrase; parenthesised is both metrics' own default of segmenting it alone, "
+        r"which no leading-space vocabulary can match. "
     )
     caption = (
         r"\caption{Compression, " + setting + coverage + r". " + anchor

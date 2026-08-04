@@ -11,12 +11,12 @@ Scheme & \multicolumn{4}{c}{BPE} & \multicolumn{4}{c}{MinGram} \\
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9}
  & train & eval & MorphAlign & MorphScore & train & eval & MorphAlign & MorphScore \\
 \midrule
-\plainscheme & \textbf{4.04} & \textbf{4.10} & \textbf{0.64}\,(0.78) & \textbf{0.40}\,(0.15) & \textbf{4.11} & \textbf{4.17} & \textbf{0.78}\,(0.89) & \textbf{0.54}\,(0.26) \\
-\bnds{w} & $-8.70$ & $-9.30$ & 0.544 & 0.350 & $-9.19$ & $-9.85$ & 0.608 & 0.378 \\
-\bnds{wp} & $-1.82$ & $-2.19$ & 0.545 & 0.349 & $-2.26$ & $-2.70$ & 0.607 & 0.378 \\
-\bnds{wpd} & $\underline{-0.09}$ & $\underline{-0.47}$ & \underline{0.550} & 0.348 & $\underline{-0.52}$ & $-0.96$ & \underline{0.609} & 0.377 \\
-\bnds{wpdcaps} & $-0.40$ & $-0.73$ & 0.538 & \underline{0.352} & $-0.53$ & $\underline{-0.92}$ & 0.608 & \underline{0.398} \\
+\plainscheme & \textbf{4.04} & \textbf{4.10} & \textbf{0.64}\,(0.78) & \textbf{0.70}\,(0.19) & \textbf{4.11} & \textbf{4.17} & \textbf{0.78}\,(0.89) & \textbf{0.81}\,(0.32) \\
+\bnds{w} & $-8.70$ & $-9.30$ & 0.544 & 0.657 & $-9.19$ & $-9.85$ & 0.608 & 0.691 \\
+\bnds{wp} & $-1.82$ & $-2.19$ & 0.545 & 0.655 & $-2.26$ & $-2.70$ & 0.607 & 0.690 \\
+\bnds{wpd} & $\underline{-0.09}$ & $\underline{-0.47}$ & \underline{0.550} & 0.654 & $\underline{-0.52}$ & $-0.96$ & \underline{0.609} & 0.689 \\
+\bnds{wpdcaps} & $-0.40$ & $-0.73$ & 0.538 & \underline{0.659} & $-0.53$ & $\underline{-0.92}$ & 0.608 & \underline{0.709} \\
 \bottomrule
 \end{tabular}
-\caption{Compression, trained on 5\,GB of FineWeb per language (\texttt{quick} non-uniform sample), 32k matched learned tokens, evaluated on held-out Goldfish, averaged over all 6 languages. \plainscheme{} is characters per token, every other compression cell the percentage change against it, positive meaning better compression. Morphology is the mean over English, German and Finnish, higher better. Each word is segmented inside a carrier phrase; parenthesised is both metrics' own default of segmenting it alone, which no leading-space vocabulary can match. \textbf{Bold} is best in a column and \underline{underline} runner-up, counting \plainscheme{} as zero. Per-language numbers in Table~\ref{tab:intrinsic-quick}.}
+\caption{Compression, trained on 5\,GB of FineWeb per language (\texttt{quick} non-uniform sample), 32k matched learned tokens, evaluated on held-out Goldfish, averaged over all 6 languages. \plainscheme{} is characters per token, every other compression cell the percentage change against it, positive meaning better compression. MorphAlign is over English, German and Finnish and MorphScore over English, higher better. Each word is segmented inside a carrier phrase; parenthesised is both metrics' own default of segmenting it alone, which no leading-space vocabulary can match. \textbf{Bold} is best in a column and \underline{underline} runner-up, counting \plainscheme{} as zero. Per-language numbers in Table~\ref{tab:intrinsic-quick}.}
 \label{tab:intrinsic-main}
