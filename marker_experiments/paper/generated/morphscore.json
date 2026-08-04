@@ -571,6 +571,50 @@
     "lang": "de",
     "trainer": "mingram"
   },
+  "fineweb_de_5gb_quick_bnd_wpd_extcapsfix_bpe_v34685": {
+    "arm": "bnd_wpd_extcapsfix",
+    "credit_single_tok": {
+      "dropped": 165,
+      "precision": 0.11592413383037281,
+      "recall": 0.18082481494536481,
+      "scored": 31207,
+      "single_token_share": 0.07863620341590027,
+      "words": 31207
+    },
+    "exclude_single_tok": {
+      "dropped": 165,
+      "precision": 0.04047036637722828,
+      "recall": 0.11091016589573262,
+      "scored": 28753,
+      "single_token_share": 0.07863620341590027,
+      "words": 31207
+    },
+    "in_context": false,
+    "lang": "de",
+    "trainer": "bpe"
+  },
+  "fineweb_de_5gb_quick_bnd_wpd_extcapsfix_mingram_v34685": {
+    "arm": "bnd_wpd_extcapsfix",
+    "credit_single_tok": {
+      "dropped": 164,
+      "precision": 0.14546747018469014,
+      "recall": 0.2263842604460395,
+      "scored": 31208,
+      "single_token_share": 0.09375801076647014,
+      "words": 31208
+    },
+    "exclude_single_tok": {
+      "dropped": 164,
+      "precision": 0.05705921821383953,
+      "recall": 0.14634750017679088,
+      "scored": 28282,
+      "single_token_share": 0.09375801076647014,
+      "words": 31208
+    },
+    "in_context": false,
+    "lang": "de",
+    "trainer": "mingram"
+  },
   "fineweb_de_5gb_quick_bnd_wpd_mingram_v34685": {
     "arm": "bnd_wpd",
     "credit_single_tok": {
@@ -1272,6 +1316,50 @@
       "words": 4115
     },
     "in_context": true,
+    "lang": "en",
+    "trainer": "mingram"
+  },
+  "fineweb_en_5gb_quick_bnd_wpd_extcapsfix_bpe_v34685": {
+    "arm": "bnd_wpd_extcapsfix",
+    "credit_single_tok": {
+      "dropped": 6,
+      "precision": 0.6503645200486027,
+      "recall": 0.668408262454435,
+      "scored": 4115,
+      "single_token_share": 0.6369380315917376,
+      "words": 4115
+    },
+    "exclude_single_tok": {
+      "dropped": 6,
+      "precision": 0.03698125836680054,
+      "recall": 0.08668005354752342,
+      "scored": 1494,
+      "single_token_share": 0.6369380315917376,
+      "words": 4115
+    },
+    "in_context": false,
+    "lang": "en",
+    "trainer": "bpe"
+  },
+  "fineweb_en_5gb_quick_bnd_wpd_extcapsfix_mingram_v34685": {
+    "arm": "bnd_wpd_extcapsfix",
+    "credit_single_tok": {
+      "dropped": 6,
+      "precision": 0.7000688537869583,
+      "recall": 0.7184690157958687,
+      "scored": 4115,
+      "single_token_share": 0.6857837181044958,
+      "words": 4115
+    },
+    "exclude_single_tok": {
+      "dropped": 6,
+      "precision": 0.045462748130961586,
+      "recall": 0.10402165506573859,
+      "scored": 1293,
+      "single_token_share": 0.6857837181044958,
+      "words": 4115
+    },
+    "in_context": false,
     "lang": "en",
     "trainer": "mingram"
   },
@@ -1979,6 +2067,50 @@
     "lang": "fi",
     "trainer": "mingram"
   },
+  "fineweb_fi_5gb_quick_bnd_wpd_extcapsfix_bpe_v34685": {
+    "arm": "bnd_wpd_extcapsfix",
+    "credit_single_tok": {
+      "dropped": 146,
+      "precision": 0.22166583058055928,
+      "recall": 0.30456171735241505,
+      "scored": 10062,
+      "single_token_share": 0.167262969588551,
+      "words": 10062
+    },
+    "exclude_single_tok": {
+      "dropped": 146,
+      "precision": 0.06533018108385098,
+      "recall": 0.1648764769065521,
+      "scored": 8379,
+      "single_token_share": 0.167262969588551,
+      "words": 10062
+    },
+    "in_context": false,
+    "lang": "fi",
+    "trainer": "bpe"
+  },
+  "fineweb_fi_5gb_quick_bnd_wpd_extcapsfix_mingram_v34685": {
+    "arm": "bnd_wpd_extcapsfix",
+    "credit_single_tok": {
+      "dropped": 146,
+      "precision": 0.2676122721665357,
+      "recall": 0.362701252236136,
+      "scored": 10062,
+      "single_token_share": 0.19439475253428742,
+      "words": 10062
+    },
+    "exclude_single_tok": {
+      "dropped": 146,
+      "precision": 0.09088510764121423,
+      "recall": 0.20891931902294597,
+      "scored": 8106,
+      "single_token_share": 0.19439475253428742,
+      "words": 10062
+    },
+    "in_context": false,
+    "lang": "fi",
+    "trainer": "mingram"
+  },
   "fineweb_fi_5gb_quick_bnd_wpd_mingram_v34685": {
     "arm": "bnd_wpd",
     "credit_single_tok": {
@@ -2265,6 +2397,50 @@
     "lang": "ko",
     "trainer": "mingram"
   },
+  "fineweb_ko_5gb_quick_bnd_wpd_extcapsfix_bpe_v34685": {
+    "arm": "bnd_wpd_extcapsfix",
+    "credit_single_tok": {
+      "dropped": 0,
+      "precision": 0.5166666666666666,
+      "recall": 0.694006309148265,
+      "scored": 317,
+      "single_token_share": 0.3753943217665615,
+      "words": 317
+    },
+    "exclude_single_tok": {
+      "dropped": 0,
+      "precision": 0.22617845117845117,
+      "recall": 0.51010101010101,
+      "scored": 198,
+      "single_token_share": 0.3753943217665615,
+      "words": 317
+    },
+    "in_context": false,
+    "lang": "ko",
+    "trainer": "bpe"
+  },
+  "fineweb_ko_5gb_quick_bnd_wpd_extcapsfix_mingram_v34685": {
+    "arm": "bnd_wpd_extcapsfix",
+    "credit_single_tok": {
+      "dropped": 0,
+      "precision": 0.553838065194532,
+      "recall": 0.7129337539432177,
+      "scored": 317,
+      "single_token_share": 0.43217665615141954,
+      "words": 317
+    },
+    "exclude_single_tok": {
+      "dropped": 0,
+      "precision": 0.21425925925925923,
+      "recall": 0.49444444444444446,
+      "scored": 180,
+      "single_token_share": 0.43217665615141954,
+      "words": 317
+    },
+    "in_context": false,
+    "lang": "ko",
+    "trainer": "mingram"
+  },
   "fineweb_ko_5gb_quick_bnd_wpd_mingram_v34685": {
     "arm": "bnd_wpd",
     "credit_single_tok": {
@@ -2521,6 +2697,50 @@
       "dropped": 2,
       "precision": 0.11142925933889755,
       "recall": 0.26659573363782635,
+      "scored": 19267,
+      "single_token_share": 0.10689287535345107,
+      "words": 21573
+    },
+    "in_context": false,
+    "lang": "ru",
+    "trainer": "mingram"
+  },
+  "fineweb_ru_5gb_quick_bnd_wpd_extcapsfix_bpe_v34685": {
+    "arm": "bnd_wpd_extcapsfix",
+    "credit_single_tok": {
+      "dropped": 2,
+      "precision": 0.16934463567407523,
+      "recall": 0.28273768136096045,
+      "scored": 21573,
+      "single_token_share": 0.09372827145042414,
+      "words": 21573
+    },
+    "exclude_single_tok": {
+      "dropped": 2,
+      "precision": 0.08343674622253723,
+      "recall": 0.20855710705334765,
+      "scored": 19551,
+      "single_token_share": 0.09372827145042414,
+      "words": 21573
+    },
+    "in_context": false,
+    "lang": "ru",
+    "trainer": "bpe"
+  },
+  "fineweb_ru_5gb_quick_bnd_wpd_extcapsfix_mingram_v34685": {
+    "arm": "bnd_wpd_extcapsfix",
+    "credit_single_tok": {
+      "dropped": 2,
+      "precision": 0.20645749500220364,
+      "recall": 0.3451304871830529,
+      "scored": 21573,
+      "single_token_share": 0.10689287535345107,
+      "words": 21573
+    },
+    "exclude_single_tok": {
+      "dropped": 2,
+      "precision": 0.1114811615551222,
+      "recall": 0.2667514402865002,
       "scored": 19267,
       "single_token_share": 0.10689287535345107,
       "words": 21573

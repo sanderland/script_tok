@@ -79,29 +79,28 @@ LANG_ORDER = ["en", "de", "fi", "ru", "ar", "ko"]
 # Every arm the grid trains, in display order: each boundary scope followed by its
 # case-handling form. `_extcaps` puts the canonical case form outside the markers and is
 # the form that stays, so it gets the plain `caps` notation; `bnd_wpd_caps` puts it inside
-# them, exists only as the placement ablation, and is marked `in` until it is dropped.
-# `_extcapsfix` is `_extcaps` with the case test the scheme is supposed to apply; the two
-# agree on cased scripts and differ on Arabic and Korean, where `_extcaps` codes every span.
-ARM_ORDER = ["bnd_w", "bnd_w_extcaps", "bnd_w_extcapsfix",
-             "bnd_wp", "bnd_wp_extcaps", "bnd_wp_extcapsfix",
-             "bnd_wpd", "bnd_wpd_extcaps", "bnd_wpd_extcapsfix", "bnd_wpd_caps"]
+# them and exists only as the placement ablation.
+# The case-code arm is `_extcapsfix`, which tests `istitle() or isupper()` before coding a
+# span. `_extcaps` skipped that test, so it coded every span of a script with no case at
+# all -- 33,183 of 33,579 Arabic word spans -- and cost Arabic 2.3% of its tokens. It is
+# the same scheme wherever case exists, and the two are identical to the digit on en, de,
+# fi and ru, so `_extcapsfix` carries the plain `caps` notation and `_extcaps` is not
+# reported. `bnd_w_extcaps` and `bnd_wp_extcaps` still predate the fix and are still wrong
+# on Arabic and Korean; they stay only until their fixed cells are trained.
+ARM_ORDER = ["bnd_w", "bnd_w_extcaps", "bnd_wp", "bnd_wp_extcaps",
+             "bnd_wpd", "bnd_wpd_extcapsfix"]
 ARM_LABEL = {
     "bnd_w": r"\bnds{w}",
     "bnd_wp": r"\bnds{wp}",
     "bnd_wpd": r"\bnds{wpd}",
     "bnd_w_extcaps": r"\bnds{wcaps}",
     "bnd_wp_extcaps": r"\bnds{wpcaps}",
-    "bnd_wpd_extcaps": r"\bnds{wpdcaps}",
-    "bnd_w_extcapsfix": r"\bnds{wcapsfix}",
-    "bnd_wp_extcapsfix": r"\bnds{wpcapsfix}",
-    "bnd_wpd_extcapsfix": r"\bnds{wpdcapsfix}",
-    "bnd_wpd_caps": r"\bnds{wpdcapsin}",
+    "bnd_wpd_extcapsfix": r"\bnds{wpdcaps}",
 }
-# What the main table argues: the three boundary scopes, and case handling once. The other
-# three arms are the two controls that answer questions the scopes do not raise -- case
-# handling at the narrower scopes, and the inside-the-markers placement -- and they say
+# What the main table argues: the three boundary scopes, and case handling once. Case
+# handling at the narrower scopes answers a question the scopes do not raise and says
 # nothing the appendix does not. Kept out of the main table, kept in the appendix one.
-MAIN_ARMS = ["bnd_w", "bnd_wp", "bnd_wpd", "bnd_wpd_extcaps"]
+MAIN_ARMS = ["bnd_w", "bnd_wp", "bnd_wpd", "bnd_wpd_extcapsfix"]
 PLAIN_LABEL = r"\plainscheme"
 KNOWN_TRAINERS = ["bpe", "mingram"]
 TRAINER_LABEL = {"bpe": "BPE", "mingram": "MinGram"}
