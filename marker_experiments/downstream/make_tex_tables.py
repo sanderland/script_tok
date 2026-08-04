@@ -18,15 +18,33 @@ import csv
 import json
 import os
 import statistics
+import sys
 
 import cyclopts
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
+sys.path.insert(0, REPO)
+
+# Imported, not restated. The main table's whole point is that a scheme carries the same
+# name here as in table_intrinsic_quick, and a second copy of these would drift the first
+# time an arm is added. `bnd_wpd_extcaps` is \bnds{wpdcaps} and `bnd_wpd_caps` is
+# \bnds{wpdcapsin}; ARM_LABEL below, used by the older tables, disagrees with both.
+from marker_experiments.make_intrinsic_table import (  # noqa: E402
+    ARM_LABEL as SCHEME_LABEL,
+    ARM_ORDER as SCHEME_ORDER,
+    MISSING,
+    PLAIN_LABEL,
+)
 # One directory holds every paper artifact: the inputs this reads and the .tex it writes.
 GENERATED = os.path.join(REPO, "marker_experiments", "paper", "generated")
 DEFAULT_OUT = os.path.join(GENERATED, "downstream_tables.tex")
 APPENDIX_OUT = os.path.join(GENERATED, "downstream_appendix.tex")
+MAIN_OUT = os.path.join(GENERATED, "table_downstream_main.tex")
+
+KNOWN_TRAINERS = ["bpe", "mingram"]
+TRAINER_LABEL = {"bpe": "BPE", "mingram": "MinGram"}
+MISSING = "--"
 
 # Presentation order, and the label each arm carries in the paper.
 ARM_ORDER = ["plain", "bnd_w", "bnd_wp", "bnd_wpd", "bnd_wpd_caps", "bnd_wpd_extcaps"]
@@ -120,6 +138,72 @@ def _mean_sd(rows, column):
         return None, None, 0
     sd = statistics.stdev(vals) if len(vals) > 1 else 0.0
     return statistics.fmean(vals), sd, len(vals)
+
+
+def _paired_delta(by_arm, arm, column="val_bpb_true"):
+    """Per-seed difference against plain, over the seeds both arms ran.
+
+    Paired, not marginal. One data permutation per seed is shared across arms, so
+    differencing at equal seed cancels the seed effect; the sd of those differences is the
+    error bar the design licenses, and it runs about five times tighter than the sd of
+    either arm's own runs. Intersecting the seed sets matters: bnd_wpd has six BPE runs
+    against plain's three, and the three unpaired ones have nothing to difference against.
+    """
+    base = {int(r["seed"]): float(r[column]) for r in by_arm.get("plain", [])}
+    runs = {int(r["seed"]): float(r[column]) for r in by_arm.get(arm, [])}
+    seeds = sorted(set(base) & set(runs))
+    if not seeds:
+        return None, None, 0
+    diffs = [runs[s] - base[s] for s in seeds]
+    sd = statistics.stdev(diffs) if len(diffs) > 1 else 0.0
+    return statistics.fmean(diffs), sd, len(diffs)
+
+
+def _paired_p(by_arm, arm, column="val_bpb_true"):
+    """Two-sided paired t-test against plain over the shared seeds.
+
+    Paired rather than independent because the seeds are: differencing at equal seed is
+    what makes three runs per scheme enough to separate effects of this size. Returns None
+    where there is nothing to test -- plain against itself, or a scheme with one run.
+    """
+    from scipy import stats
+
+    base = {int(r["seed"]): float(r[column]) for r in by_arm.get("plain", [])}
+    runs = {int(r["seed"]): float(r[column]) for r in by_arm.get(arm, [])}
+    seeds = sorted(set(base) & set(runs))
+    if arm == "plain" or len(seeds) < 2:
+        return None
+    return float(stats.ttest_rel([runs[s] for s in seeds], [base[s] for s in seeds]).pvalue)
+
+
+def _lm_column(by_arm, schemes):
+    """One trainer's column: arm -> rendered cell, best emphasised and runner-up underlined.
+
+    Ranked on the rounded figure rather than the stored float, so two schemes that print
+    the same are placed the same; emphasising one of a pair of identical-looking numbers
+    reads as a typo. Lower bits-per-byte is better, so the rank is ascending, and plain is
+    ranked with the rest because every figure in the column is absolute and comparable.
+    """
+    stats_by_arm = {}
+    for arm in schemes:
+        val, sd, n = _mean_sd(by_arm.get(arm, []), "val_bpb_true")
+        if val is not None:
+            stats_by_arm[arm] = (val, sd, n)
+    places = sorted({round(v, 4) for v, _, _ in stats_by_arm.values()})
+
+    cells, own_ns = {}, {}
+    for arm, (val, sd, n) in stats_by_arm.items():
+        rank = places.index(round(val, 4))
+        num = f"{val:.4f}"
+        if rank == 0:
+            num = rf"\textbf{{{num}}}"
+        # Runner-up only where there is something to run up against. In a two-entry column
+        # second place is last place, and underlining it reads as praise for the loser.
+        elif rank == 1 and len(places) > 2:
+            num = rf"\underline{{{num}}}"
+        cells[arm] = num + (f" {{\\footnotesize $\\pm$ {sd:.4f}}}" if n > 1 else "")
+        own_ns[arm] = n
+    return cells, own_ns
 
 
 def compression_table(manifest):
@@ -252,6 +336,137 @@ def appendix_tables(by_arm, by_arm_n32):
             "",
         ]
     return lines
+
+
+@app.command(name="main-table")
+def main_table(
+    manifest: str = os.path.join(GENERATED, "manifest.json"),
+    results_bpe: str = ",".join([os.path.join(GENERATED, "results.tsv"),
+                                 os.path.join(GENERATED, "results_extcaps.tsv")]),
+    results_mingram: str = os.path.join(GENERATED, "results_mingram.tsv"),
+    corpus: str = "fineweb_en_5gb",
+    out: str = MAIN_OUT,
+) -> None:
+    """Write the single wide main table: compression and LM quality, both trainers.
+
+    One table rather than the four it replaces, because the argument is the join between
+    the two metrics and no single old table carried it. Rows and macros follow
+    make_intrinsic_table.py so the paper's two main tables are directly comparable.
+
+    Args:
+        manifest: Merged tokenizer manifest, read once per trainer.
+        results_bpe: Comma-separated TSVs holding the BPE runs.
+        results_mingram: TSV holding the MinGram runs.
+        corpus: Which tokenizer training corpus the compression column reports.
+        out: LaTeX file to write, \\input{} by the paper.
+    """
+    sources = {"bpe": results_bpe, "mingram": results_mingram}
+    man = {t: _load_manifest(manifest, trainer=t, corpus=corpus) for t in KNOWN_TRAINERS}
+    res = {t: _load_results(sources[t]) for t in KNOWN_TRAINERS}
+
+    # Every scheme that has a pretraining run, in the intrinsic table's display order.
+    # Keyed on the runs and not the manifest: a tokenizer trained but never pretrained --
+    # bnd_wp, today -- would otherwise get a row of nothing but dashes now that the
+    # compression column, the only one it could have filled, is gone.
+    available = {a for t in KNOWN_TRAINERS for a in res[t]}
+    schemes = ["plain"] + [a for a in SCHEME_ORDER if a in available]
+
+    columns = {t: _lm_column(res[t], schemes) for t in KNOWN_TRAINERS}
+
+    rows, paired_ns, own_ns, pvals = [], set(), {}, []
+    for arm in schemes:
+        cells = []
+        label = PLAIN_LABEL if arm == "plain" else SCHEME_LABEL[arm]
+        for t in KNOWN_TRAINERS:
+            cell_by_arm, n_by_arm = columns[t]
+            cells.append(cell_by_arm.get(arm, MISSING))
+            if arm in n_by_arm:
+                own_ns.setdefault(n_by_arm[arm], []).append(f"{label} under {TRAINER_LABEL[t]}")
+            p = _paired_p(res[t], arm)
+            if p is not None:
+                pvals.append(p)
+            _, _, n_paired = _paired_delta(res[t], arm)
+            if n_paired:
+                paired_ns.add(n_paired)
+        rows.append(f"{label} & " + " & ".join(cells) + r" \\")
+
+    # Every fact the columns dropped, recovered from the artifacts rather than typed, and
+    # emitted as a comment so it is available to the prose without occupying a column.
+    vocabs = {e["total_vocab"] for m in man.values() for e in m.values()}
+    rt = {e["roundtrip_failures"] for m in man.values() for e in m.values()}
+    core = {}
+    for t in KNOWN_TRAINERS:
+        for arm in schemes:
+            mean, sd, n = _mean_sd(res[t].get(arm, []), "core")
+            if mean is None:
+                continue
+            note = f"{mean:.4f} +- {sd:.4f} (n={n})"
+            # The paired difference, not just the two marginals: it is the only form in
+            # which CORE says anything, and what it says is that it cannot resolve these
+            # schemes at depth 12.
+            delta, dsd, dn = _paired_delta(res[t], arm, column="core")
+            if arm != "plain" and delta is not None and dn > 1:
+                note += f", paired vs plain {delta:+.4f} +- {dsd:.4f}"
+            core[f"{TRAINER_LABEL[t]} {arm}"] = note
+    # The usual run count, and every cell that departs from it named rather than folded
+    # into a range: "3 to 6 runs" would leave the reader unable to tell which cell is which.
+    usual = max(own_ns, key=lambda k: len(own_ns[k]))
+    odd = [f"{name} with {n}" for n, names in sorted(own_ns.items()) if n != usual
+           for name in names]
+    runs_note = f"{usual} runs per scheme" + (f", except {', '.join(odd)}" if odd else "")
+    n_note = (f"{sorted(paired_ns)[0]}" if len(paired_ns) == 1
+              else f"{min(paired_ns)} to {max(paired_ns)}")
+    # The tightest round bound the measured p-values actually support, so the caption
+    # cannot outlive the runs: a seed that weakened a scheme would loosen this, not
+    # silently leave a claim in the caption that the data no longer backs.
+    threshold = next(x for x in (0.001, 0.01, 0.05, 1.0) if max(pvals) < x)
+
+    body = [
+        "% Generated by marker_experiments/downstream/make_tex_tables.py main-table. Do not edit.",
+        r"% Requires booktabs and the paper's \bnds and \plainscheme macros, as table_intrinsic_main.",
+        f"% sources: {os.path.relpath(manifest, REPO)}, "
+        f"{_rel_sources(results_bpe)}, {_rel_sources(results_mingram)}",
+        r"\centering",
+        r"\small",
+        r"\begin{tabular}{l rr}",
+        r"\toprule",
+        r"Scheme & \multicolumn{2}{c}{bpb/byte $\downarrow$} \\",
+        r"\cmidrule(lr){2-3}",
+        r" & BPE & MinGram \\",
+        r"\midrule",
+        *rows,
+        r"\bottomrule",
+        r"\end{tabular}",
+        r"\caption{Language-modelling quality after nanochat depth-12 pretraining on "
+        rf"ClimbMix, for vocabulary-matched tokenizers trained on {_tex_escape(corpus)}. "
+        r"bpb/byte is validation loss summed over the true UTF-8 length of the evaluation "
+        r"text, so it is comparable across schemes that tokenize the same text into "
+        r"different numbers of tokens. Every figure is absolute, and $\pm$ is a scheme's "
+        rf"own sample standard deviation over {runs_note}. \textbf{{Bold}} is best in a "
+        r"column and \underline{underline} runner-up. Every scheme improves on "
+        rf"\plainscheme{{}} at $p<{threshold:g}$, by a two-sided paired $t$-test over the "
+        rf"{n_note} seeds both ran: one data permutation per seed is shared across "
+        r"schemes, so differencing at equal seed cancels it and leaves a spread several "
+        rf"times tighter than the $\pm$ above. {MISSING} is a configuration that was not "
+        r"pretrained. Compression for these same tokenizers is in "
+        r"Table~\ref{tab:intrinsic-main}.}",
+        r"\label{tab:downstream-main}",
+        "",
+        "% Not in the table. Put in the text if the argument needs it:",
+        f"%   vocabulary matched at {', '.join(f'{v:,}' for v in sorted(vocabs))} "
+        "across every scheme and trainer",
+        f"%   roundtrip failures: {', '.join(str(v) for v in sorted(rt))} "
+        "for every scheme and trainer",
+        "%   CORE, depth 12, n/a wherever a scheme breaks the prefix property its tasks assume:",
+        *[f"%     {k}: {v}" for k, v in sorted(core.items())],
+        "%   raw bpb (nanochat's own figure) divides by summed token byte length and is not",
+        "%     comparable across these tokenizers; see the appendix tables.",
+        "",
+    ]
+    with open(out, "w") as f:
+        f.write("\n".join(body))
+    print(f"[tex] {out}")
+    print(f"[tex] {len(rows)} scheme row(s), trainers {KNOWN_TRAINERS}, {n_note}")
 
 
 @app.default
