@@ -38,10 +38,12 @@ axis the boundary marker changes.
     uv run python marker_experiments/downstream/eval_goldfish.py --langs ko --force
 """
 
+import collections
 import concurrent.futures
 import glob
 import hashlib
 import json
+import math
 import os
 
 import cyclopts
@@ -157,15 +159,32 @@ def train_tokens(tokenizer) -> int:
     return total if total is not None else sum(t.current_count for t in tokenizer.tokens.values())
 
 
+def renyi_bits(freqs: collections.Counter, alpha: float) -> float:
+    """Renyi entropy of the token distribution, in bits.
+
+    Same definition as `Tokenizer.corpus_performance` and so as the hybrid paper's table,
+    reimplemented here only because that method takes a registered `PretokenizedCorpus`
+    and this slice is a list of documents.
+    """
+    n = sum(freqs.values())
+    ps = [c / n for c in freqs.values() if c]
+    if alpha == 1.0:
+        return -sum(p * math.log2(p) for p in ps)
+    return math.log2(sum(p**alpha for p in ps)) / (1.0 - alpha)
+
+
 def evaluate(args) -> tuple[str, dict]:
     key, path, lang, corpus = args
     tokenizer = load_tokenizer(path)
     docs = build_slice(lang)  # cached on disk by the parent before the pool starts
     chars = toks = fails = 0
+    words = sum(len(doc.split()) for doc in docs)
+    freqs = collections.Counter()
     for doc in docs:
         ids = tokenizer.encode(doc)
         chars += len(doc)
         toks += len(ids)
+        freqs.update(int(i) for i in ids)
         # Against the normalized text, which is all a round trip can return: the
         # pretokenizer applies NFC, so e.g. an Arabic shadda/fatha sequence comes back
         # canonically reordered. Comparing against the raw document counted that as a
@@ -181,6 +200,18 @@ def evaluate(args) -> tuple[str, dict]:
         "eval_chars": chars,
         "eval_tokens": toks,
         "eval_chars_per_token": chars / toks,
+        # Fertility. Whitespace words are not comparable across languages -- a Korean eojeol
+        # and an Arabic clitic host are not the same unit -- but the word count is a property
+        # of the slice, so within a language this is chars-per-word over chars-per-token and
+        # every arm is measured against the same denominator.
+        "eval_words": words,
+        "eval_tokens_per_word": toks / words,
+        # Renyi-3 efficiency (Zouhar et al. 2023; alpha and normalization as in Cognetta
+        # et al. 2024), matching the hybrid paper's appendix table.
+        "eval_nonzero_vocab": len(freqs),
+        "eval_shannon_bits": renyi_bits(freqs, 1.0),
+        "eval_renyi3_bits": renyi_bits(freqs, 3.0),
+        "eval_renyi3_efficiency": renyi_bits(freqs, 3.0) / math.log2(len(freqs)),
         "roundtrip_failures": fails,
         "slice_hash": slice_hash(docs),
     }
