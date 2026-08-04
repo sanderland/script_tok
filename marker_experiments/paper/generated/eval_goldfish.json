@@ -1259,6 +1259,18 @@
     "train_corpus": "fineweb_ko_5gb_quick",
     "train_tokens": 2225513156
   },
+  "fineweb_ko_5gb_quick_bnd_wpd_mingram_v34685": {
+    "eval_chars": 7923744,
+    "eval_chars_per_token": 2.2544491529040487,
+    "eval_corpus": "goldfish:kor_hang.txt",
+    "eval_docs": 37636,
+    "eval_tokens": 3514714,
+    "roundtrip_failures": 0,
+    "slice_hash": "cda3548bef457716",
+    "train_chars": 5000001608,
+    "train_corpus": "fineweb_ko_5gb_quick",
+    "train_tokens": 2217899434
+  },
   "fineweb_ko_5gb_quick_plain_bpe_v34685": {
     "eval_chars": 7923744,
     "eval_chars_per_token": 2.2956374815197242,
