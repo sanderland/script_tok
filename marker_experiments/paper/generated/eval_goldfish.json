@@ -911,6 +911,18 @@
     "train_corpus": "fineweb_fi_5gb_quick",
     "train_tokens": 1094207260
   },
+  "fineweb_fi_5gb_quick_bnd_wp_extcaps_mingram_v34685": {
+    "eval_chars": 8013043,
+    "eval_chars_per_token": 5.019593410730584,
+    "eval_corpus": "goldfish:fin_latn.txt",
+    "eval_docs": 29307,
+    "eval_tokens": 1596353,
+    "roundtrip_failures": 0,
+    "slice_hash": "1df047431ded0222",
+    "train_chars": 5000002676,
+    "train_corpus": "fineweb_fi_5gb_quick",
+    "train_tokens": 1066101134
+  },
   "fineweb_fi_5gb_quick_bnd_wp_mingram_v34685": {
     "eval_chars": 8013043,
     "eval_chars_per_token": 4.972715064273223,
@@ -1402,6 +1414,30 @@
     "train_chars": 5000045086,
     "train_corpus": "fineweb_ru_5gb_quick",
     "train_tokens": 1144076119
+  },
+  "fineweb_ru_5gb_quick_bnd_wpd_extcaps_bpe_v34685": {
+    "eval_chars": 8015461,
+    "eval_chars_per_token": 4.357173647981274,
+    "eval_corpus": "goldfish:rus_cyrl.txt",
+    "eval_docs": 27615,
+    "eval_tokens": 1839601,
+    "roundtrip_failures": 0,
+    "slice_hash": "0896372a26fffac9",
+    "train_chars": 5000045086,
+    "train_corpus": "fineweb_ru_5gb_quick",
+    "train_tokens": 1140169708
+  },
+  "fineweb_ru_5gb_quick_bnd_wpd_extcaps_mingram_v34685": {
+    "eval_chars": 8015461,
+    "eval_chars_per_token": 4.424735248786649,
+    "eval_corpus": "goldfish:rus_cyrl.txt",
+    "eval_docs": 27615,
+    "eval_tokens": 1811512,
+    "roundtrip_failures": 0,
+    "slice_hash": "0896372a26fffac9",
+    "train_chars": 5000045086,
+    "train_corpus": "fineweb_ru_5gb_quick",
+    "train_tokens": 1122634468
   },
   "fineweb_ru_5gb_quick_bnd_wpd_mingram_v34685": {
     "eval_chars": 8015461,
