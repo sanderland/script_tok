@@ -1,8 +1,10 @@
+import hashlib
 import json
 import heapq
 import os
 import random
 import re
+import shutil
 import tempfile
 from typing import Callable
 
@@ -45,6 +47,11 @@ FINEWEB_5GB_MAX_CHARS = 5_000_000_000
 FINEWEB_SOURCE_MAX_CHARS = 500_000_000_000
 FINEWEB_BLOCK_MAX_CHARS = 10_000_000
 FINEWEB_SAMPLE_SEED = 42
+# Worker processes used to pretokenize a corpus when the caller names no count.
+# Pretokenization is pure Python and scales with cores, so this cap is what makes a
+# 5 GB build take 8.6 hours on a 288-core node. It stays 16 to leave the behaviour of
+# existing callers unchanged; pass `num_workers` to use the machine you actually have.
+CORPUS_BUILD_DEFAULT_WORKERS = 16
 FINEWEB2_LANGUAGE_CONFIGS = {
     "de": "deu_Latn",
     "nl": "nld_Latn",
@@ -78,6 +85,83 @@ def _write_text_batch(path: str, texts: list[str]) -> None:
             f.write("\n")
 
 
+SAMPLE_CACHE_DIRNAME = "_sampled_text"
+
+
+def _sample_cache_key(dataset_name, sample_max_chars, block_max_chars, seed, text_transform, kwargs,
+                      method: str = "reservoir") -> str:
+    """Identity of a sampled block set: everything that decides which text is selected.
+
+    Deliberately excludes the pretokenizer. The reservoir sampler is seeded and the stream
+    order is fixed, so every pretokenizer of a given corpus selects the same documents and
+    differs only in how they are then encoded -- but the corpus cache is keyed by
+    pretokenizer hash, so without this each arm of a grid rescanned the whole source. On
+    FineWeb sample-10BT that is ~45 GB per arm.
+
+    `text_transform` is part of the key because it is applied before blocking, so the
+    cached blocks hold transformed text.
+    """
+    parts = [
+        dataset_name,
+        repr(sorted((k, str(v)) for k, v in kwargs.items())),
+        str(sample_max_chars),
+        str(block_max_chars),
+        str(seed),
+        getattr(text_transform, "__name__", repr(text_transform)),
+    ]
+    # Appended only for non-reservoir methods, so keys already published by 5 GB builds
+    # elsewhere stay valid and are not silently rescanned.
+    if method != "reservoir":
+        parts.append(method)
+    return hashlib.sha256("|".join(parts).encode()).hexdigest()[:12]
+
+
+def _read_sample_cache(cache_dir: str) -> list[str] | None:
+    """Ordered block paths for a complete cache, or None. A cache is complete only if it
+    has a manifest naming every block and all of them are present: a scan killed partway
+    must never be mistaken for a full sample."""
+    manifest_path = os.path.join(cache_dir, "manifest.json")
+    if not os.path.exists(manifest_path):
+        return None
+    with open(manifest_path) as f:
+        manifest = json.load(f)
+    paths = [os.path.join(cache_dir, name) for name in manifest["blocks"]]
+    if not all(os.path.exists(p) for p in paths):
+        return None
+    return paths
+
+
+def _write_sample_cache(cache_dir: str, staged_paths: list[str], stats: dict, logger) -> list[str]:
+    """Publish a finished sample. Blocks are copied into a sibling temp directory and the
+    whole directory is renamed into place, so a cache directory either does not exist or is
+    complete -- there is no window where a concurrent build sees half a sample."""
+    os.makedirs(os.path.dirname(cache_dir), exist_ok=True)
+    staging = tempfile.mkdtemp(prefix=f"{os.path.basename(cache_dir)}.partial.", dir=os.path.dirname(cache_dir))
+    try:
+        names = []
+        for i, src in enumerate(staged_paths):
+            name = f"block_{i:06d}.jsonl"
+            # Moved, not copied: the sample is gigabytes and both paths are under
+            # base_dir, so a copy would briefly double it on disk for no benefit. The
+            # source is a scratch directory that is about to be deleted anyway.
+            os.replace(src, os.path.join(staging, name))
+            names.append(name)
+        with open(os.path.join(staging, "manifest.json"), "w") as f:
+            json.dump({"blocks": names, **stats}, f, indent=2)
+        os.rename(staging, cache_dir)
+    except OSError:
+        # Losing the rename race is not a failure: a concurrent build published the same
+        # sample, and it is the same text, so use theirs and drop ours.
+        cached = _read_sample_cache(cache_dir)
+        shutil.rmtree(staging, ignore_errors=True)
+        if cached:
+            logger.info(f"Sampled text already cached in {cache_dir} by a concurrent build")
+            return cached
+        raise
+    logger.info(f"Cached sampled text in {cache_dir} ({len(staged_paths):,} blocks)")
+    return [os.path.join(cache_dir, n) for n in names]
+
+
 def _read_text_batches(paths: list[str]):
     for path in paths:
         texts = []
@@ -94,6 +178,7 @@ def create_merged_corpus(
     pretokenizer,
     base_dir: str,
     logger,
+    num_workers: int | None = None,
 ) -> PretokenizedCorpus:
     corpus = PretokenizedCorpus(corpus_name, base_dir, pretokenizer, dummy=True)
     if os.path.exists(corpus.metadata_path()):
@@ -101,7 +186,10 @@ def create_merged_corpus(
             f"Corpus {corpus_name} already exists at {corpus.metadata_path()}. Use a different name or delete the existing corpus."
         )
 
-    source_corpora = [load_corpus_by_name(name, pretokenizer, base_dir=base_dir) for name in source_corpus_names]
+    source_corpora = [
+        load_corpus_by_name(name, pretokenizer, base_dir=base_dir, num_workers=num_workers)
+        for name in source_corpus_names
+    ]
     logger.info(f"Merging {len(source_corpora)} corpora into {corpus_name}")
 
     merged = (
@@ -140,6 +228,108 @@ def create_merged_corpus(
     return PretokenizedCorpus(corpus_name, base_dir, pretokenizer)
 
 
+# Documents held in the shuffle buffer of a quick sample. Large enough that the sample is
+# not simply the head of one shard, small enough to stay in memory.
+QUICK_SHUFFLE_BUFFER = 10_000
+
+
+def create_streaming_quick_corpus(
+    dataset_name: str,
+    corpus_name: str,
+    pretokenizer,
+    base_dir: str,
+    logger,
+    sample_max_chars: int,
+    text_transform: Callable | None = None,
+    block_max_chars: int | None = None,
+    seed: int | None = None,
+    num_workers: int | None = None,
+    shuffle_buffer: int = QUICK_SHUFFLE_BUFFER,
+    sample_cache: bool = True,
+    **kwargs,
+) -> PretokenizedCorpus:
+    """Sample by reading until full, letting the dataset do the shuffling.
+
+    `create_streaming_sampled_corpus` reservoir-samples, which is uniform over the whole
+    source but has to READ the whole source to be so: ~45 GB on FineWeb sample-10BT for a
+    5 GB sample, about 1.9 hours before a single merge is learned. This reads only as much
+    as it keeps.
+
+    The sample is therefore NOT uniform over the source. `IterableDataset.shuffle` shuffles
+    shard order and draws through a buffer, so the sample spans shards rather than being
+    the head of one file, but it is still drawn from the first documents each shard offers.
+    That is the trade: use it to iterate, and the reservoir path for anything reported as a
+    result. The two write to different corpus names so both can exist at once.
+    """
+    num_cpus = num_workers or min(os.cpu_count() or 4, CORPUS_BUILD_DEFAULT_WORKERS)
+    block_max_chars = block_max_chars or FINEWEB_BLOCK_MAX_CHARS
+    seed = FINEWEB_SAMPLE_SEED if seed is None else seed
+
+    cache_dir = None
+    if sample_cache:
+        key = _sample_cache_key(dataset_name, sample_max_chars, block_max_chars, seed,
+                                text_transform, kwargs, method=f"quick{shuffle_buffer}")
+        cache_dir = os.path.join(base_dir, SAMPLE_CACHE_DIRNAME, f"{corpus_name.replace(':', '_')}_{key}")
+        cached = _read_sample_cache(cache_dir)
+        if cached:
+            logger.info(f"Reusing cached quick sample for {corpus_name} from {cache_dir}")
+            return PretokenizedCorpus.from_text_batches(
+                name=corpus_name, base_path=base_dir, pretokenizer=pretokenizer,
+                text_batches=_read_text_batches(cached), num_workers=num_cpus,
+            )
+
+    dataset = load_dataset(dataset_name, streaming=True, columns=["text"], **kwargs)
+    dataset = dataset.shuffle(seed=seed, buffer_size=shuffle_buffer)
+
+    temp_root = os.path.join(base_dir, "_tmp")
+    os.makedirs(temp_root, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=f"{corpus_name.replace(':', '_')}_", dir=temp_root) as temp_dir:
+        paths, cur, cur_chars, total, docs = [], [], 0, 0, 0
+
+        def flush_block():
+            nonlocal cur, cur_chars
+            if not cur:
+                return
+            path = os.path.join(temp_dir, f"block_{len(paths):06d}.jsonl")
+            _write_text_batch(path, cur)
+            paths.append(path)
+            cur, cur_chars = [], 0
+
+        for doc in dataset:
+            text = doc["text"]
+            if text_transform is not None:
+                text = text_transform(text)
+            if not text:
+                continue
+            cur.append(text)
+            cur_chars += len(text)
+            total += len(text)
+            docs += 1
+            if cur_chars >= block_max_chars:
+                flush_block()
+            if total >= sample_max_chars:
+                break
+        flush_block()
+        logger.info(f"Quick sample: {total:,} chars over {docs:,} documents in {len(paths):,} blocks "
+                    f"(source read only until full)")
+        if cache_dir is not None:
+            paths = _write_sample_cache(
+                cache_dir, paths,
+                {"dataset": dataset_name, "dataset_kwargs": {k: str(v) for k, v in kwargs.items()},
+                 "sample_max_chars": sample_max_chars, "block_max_chars": block_max_chars,
+                 "seed": seed, "method": "quick", "shuffle_buffer": shuffle_buffer,
+                 "text_transform": getattr(text_transform, "__name__", repr(text_transform)),
+                 "selected_chars": total, "documents": docs},
+                logger,
+            )
+        corpus = PretokenizedCorpus.from_text_batches(
+            name=corpus_name, base_path=base_dir, pretokenizer=pretokenizer,
+            text_batches=_read_text_batches(paths), num_workers=num_cpus,
+        )
+    logger.info(f"Created quick corpus {corpus_name} with pretokenizer {pretokenizer.hash()}")
+    return corpus
+
+
 def create_streaming_sampled_corpus(
     dataset_name: str,
     corpus_name: str,
@@ -151,13 +341,43 @@ def create_streaming_sampled_corpus(
     text_transform: Callable | None = None,
     block_max_chars: int | None = None,
     seed: int | None = None,
+    num_workers: int | None = None,
+    sample_cache: bool = True,
     **kwargs,
 ) -> PretokenizedCorpus:
-    num_cpus = min(os.cpu_count() or 4, 16)
+    num_cpus = num_workers or min(os.cpu_count() or 4, CORPUS_BUILD_DEFAULT_WORKERS)
     if block_max_chars is None:
         block_max_chars = FINEWEB_BLOCK_MAX_CHARS
     if seed is None:
         seed = FINEWEB_SAMPLE_SEED
+
+    # The sampled TEXT does not depend on the pretokenizer, but the corpus cache is keyed
+    # by pretokenizer hash, so every arm of a grid used to rescan the entire source --
+    # ~45 GB per arm on FineWeb sample-10BT, and the scan does not parallelize. Cache the
+    # selected blocks so the scan is paid once per (dataset, sample size, seed).
+    cache_dir = None
+    if sample_cache:
+        key = _sample_cache_key(dataset_name, sample_max_chars, block_max_chars, seed, text_transform, kwargs)
+        cache_dir = os.path.join(base_dir, SAMPLE_CACHE_DIRNAME, f"{corpus_name.replace(':', '_')}_{key}")
+        cached_paths = _read_sample_cache(cache_dir)
+        if cached_paths:
+            logger.info(
+                f"Reusing cached sampled text for {corpus_name} from {cache_dir} "
+                f"({len(cached_paths):,} blocks); source not rescanned"
+            )
+            corpus = PretokenizedCorpus.from_text_batches(
+                name=corpus_name,
+                base_path=base_dir,
+                pretokenizer=pretokenizer,
+                text_batches=_read_text_batches(cached_paths),
+                num_workers=num_cpus,
+            )
+            logger.info(
+                f"Created streaming corpus {corpus_name} with pretokenizer "
+                f"{pretokenizer.hash()} in {corpus.dir_path()}"
+            )
+            return corpus
+
     dataset = load_dataset(
         dataset_name,
         streaming=True,
@@ -225,6 +445,22 @@ def create_streaming_sampled_corpus(
             f"accepted {accepted_blocks:,} candidate blocks, selected {len(block_paths):,} blocks "
             f"for {selected_chars:,} chars"
         )
+        if cache_dir is not None:
+            block_paths = _write_sample_cache(
+                cache_dir,
+                block_paths,
+                {
+                    "dataset": dataset_name,
+                    "dataset_kwargs": {k: str(v) for k, v in kwargs.items()},
+                    "sample_max_chars": sample_max_chars,
+                    "block_max_chars": block_max_chars,
+                    "seed": seed,
+                    "text_transform": getattr(text_transform, "__name__", repr(text_transform)),
+                    "selected_chars": selected_chars,
+                    "scanned_chars": scanned_chars,
+                },
+                logger,
+            )
         corpus = PretokenizedCorpus.from_text_batches(
             name=corpus_name,
             base_path=base_dir,
@@ -246,9 +482,10 @@ def create_huggingface_corpus(
     subsample: int | None = None,
     max_chars: int | None = None,
     text_transform: Callable | None = None,
+    num_workers: int | None = None,
     **kwargs,
 ) -> PretokenizedCorpus:
-    num_cpus = min(os.cpu_count() or 4, 16)
+    num_cpus = num_workers or min(os.cpu_count() or 4, CORPUS_BUILD_DEFAULT_WORKERS)
     dataset = load_dataset(dataset_name, **kwargs)
     if subsample:
         dataset = dataset.select(range(0, len(dataset), subsample))
@@ -286,6 +523,7 @@ def load_corpus_by_name(
     corpus_name,
     pretokenizer,
     base_dir: str = PretokenizedCorpus.DEFAULT_BASE_PATH,
+    num_workers: int | None = None,
 ) -> PretokenizedCorpus:  # little hardcoded dataset registry
     logger = create_logger("corpus")
     try:
@@ -311,6 +549,7 @@ def load_corpus_by_name(
             corpus_name=corpus_name,
             base_dir=base_dir,
             pretokenizer=pretokenizer,
+            num_workers=num_workers,
             logger=logger,
             split="train",
             data_files=[f"{corpus_name.removeprefix('smol_')}.txt"],
@@ -328,6 +567,7 @@ def load_corpus_by_name(
             corpus_name=corpus_name,
             base_dir=base_dir,
             pretokenizer=pretokenizer,
+            num_workers=num_workers,
             logger=logger,
             split="train",
             data_files=[f"{lang_script}.txt"],
@@ -339,6 +579,7 @@ def load_corpus_by_name(
             corpus_name=corpus_name,
             base_dir=base_dir,
             pretokenizer=pretokenizer,
+            num_workers=num_workers,
             logger=logger,
             name=FLORES_PLUS_LANGUAGE_CONFIGS[lang_key],
             split="dev+devtest",
@@ -352,6 +593,7 @@ def load_corpus_by_name(
             logger=logger,
             pretokenizer=pretokenizer,
             split="train",
+            num_workers=num_workers,
         )
     elif corpus_name.startswith("finewiki_"):
         # Format: finewiki_{lang}_1gb
@@ -369,10 +611,18 @@ def load_corpus_by_name(
             split="train",
             max_chars=max_chars,
             text_transform=normalize_whitespace,
+            num_workers=num_workers,
         )
-    elif corpus_name.startswith("fineweb_") and (corpus_name.endswith("_5gb") or corpus_name.endswith("_1gb")):
-        size_suffix = corpus_name.rsplit("_", 1)[1]  # "5gb" or "1gb" (1gb is for wiki-vs-web size control)
-        lang_code = corpus_name.removeprefix("fineweb_").removesuffix(f"_{size_suffix}")
+    elif corpus_name.startswith("fineweb_") and any(
+        corpus_name.endswith(sfx) for sfx in ("_5gb", "_1gb", "_5gb_quick", "_1gb_quick")
+    ):
+        # <lang>_<size>[_quick]. The quick variant is a separate corpus name on purpose:
+        # it draws a different, non-uniform sample, so it must never share a cache or a
+        # tokenizer path with the reservoir build.
+        quick = corpus_name.endswith("_quick")
+        stem = corpus_name.removesuffix("_quick")
+        size_suffix = stem.rsplit("_", 1)[1]
+        lang_code = stem.removeprefix("fineweb_").removesuffix(f"_{size_suffix}")
         sample_max = FINEWEB_5GB_MAX_CHARS if size_suffix == "5gb" else FINEWIKI_1GB_MAX_CHARS
         if lang_code == "en":
             dataset_name = "HuggingFaceFW/fineweb"
@@ -380,17 +630,20 @@ def load_corpus_by_name(
         else:
             dataset_name = "HuggingFaceFW/fineweb-2"
             dataset_kwargs = {"name": FINEWEB2_LANGUAGE_CONFIGS[lang_code], "split": "train"}
-        return create_streaming_sampled_corpus(
+        common = dict(
             dataset_name=dataset_name,
             corpus_name=corpus_name,
             base_dir=base_dir,
             logger=logger,
             pretokenizer=pretokenizer,
-            source_max_chars=FINEWEB_SOURCE_MAX_CHARS,
             sample_max_chars=sample_max,
             text_transform=normalize_whitespace,
+            num_workers=num_workers,
             **dataset_kwargs,
         )
+        if quick:
+            return create_streaming_quick_corpus(**common)
+        return create_streaming_sampled_corpus(source_max_chars=FINEWEB_SOURCE_MAX_CHARS, **common)
     elif corpus_name == "finewiki:hybrid6":
         return create_merged_corpus(
             corpus_name=corpus_name,
@@ -398,6 +651,7 @@ def load_corpus_by_name(
             pretokenizer=pretokenizer,
             base_dir=base_dir,
             logger=logger,
+            num_workers=num_workers,
         )
     elif corpus_name == "fineweb:hybrid6":
         return create_merged_corpus(
@@ -406,6 +660,7 @@ def load_corpus_by_name(
             pretokenizer=pretokenizer,
             base_dir=base_dir,
             logger=logger,
+            num_workers=num_workers,
         )
     elif corpus_name == "swift":
         with open("tests/data/taylorswift.txt", "r") as f:
@@ -418,7 +673,7 @@ def load_corpus_by_name(
     elif corpus_name.startswith("toksuite_"):
         # Format: toksuite_{subset}_1pct or toksuite_all_1pct
         # Dataset: toksuite/toksuite_pretraining_data
-        num_cpus = min(os.cpu_count() or 4, 16)
+        num_cpus = num_workers or min(os.cpu_count() or 4, CORPUS_BUILD_DEFAULT_WORKERS)
         suffix = corpus_name.removeprefix("toksuite_")
 
         if suffix == "all_1pct":
@@ -452,6 +707,7 @@ def load_corpus_by_name(
                 name=hf_subset,
                 split="train",
                 subsample=100,  # 1% subsample
+                num_workers=num_workers,
             )
     else:
         raise ValueError(f"Unknown dataset: {corpus_name}")

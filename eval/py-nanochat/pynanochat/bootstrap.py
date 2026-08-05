@@ -47,6 +47,57 @@ def _override_seed():
     torch.cuda.manual_seed = lambda *_a, **_k: _c(s)
 
 
+def _shuffle_data_order():
+    """Make the seed move the data order, not only the weight initialization.
+
+    `_document_batches` contains no RNG: parquet files in sorted order, row groups in
+    rank-strided index order. Every seed of a run configuration therefore reads the
+    identical document sequence and ends at the identical position, so the spread across
+    seeds measures initialization variance alone and understates run-to-run variance.
+
+    The permutation is derived from the seed only, never from the tokenizer, so seed s
+    draws the same order in every arm of a comparison. That keeps the arms paired, which
+    is what makes a paired comparison valid, while letting the seed spread include order
+    variance.
+
+    Opt-in via PYNANOCHAT_SHUFFLE_DATA_ORDER, because it changes what a given seed means:
+    experiments whose published numbers were produced without it would not reproduce.
+    """
+    seed = os.environ.get("PYNANOCHAT_SEED")
+    if seed is None or os.environ.get("PYNANOCHAT_SHUFFLE_DATA_ORDER") != "1":
+        return
+    import random
+
+    import nanochat.dataloader as dl
+
+    original = dl._document_batches
+
+    def shuffled(split, resume_state_dict, tokenizer_batch_size):
+        # Only the training stream is permuted. The validation split must stay fixed, or
+        # each seed would be scored on a different sample of text.
+        if split != "train":
+            yield from original(split, resume_state_dict, tokenizer_batch_size)
+            return
+        rng = random.Random(int(seed))
+        pf_list = dl.list_parquet_files()[:-1]
+        order = list(range(len(pf_list)))
+        rng.shuffle(order)
+        real_list = dl.list_parquet_files
+
+        def permuted_list(*a, **k):
+            files = real_list(*a, **k)
+            train, val = files[:-1], files[-1:]
+            return [train[i] for i in order] + val
+
+        dl.list_parquet_files = permuted_list
+        try:
+            yield from original(split, resume_state_dict, tokenizer_batch_size)
+        finally:
+            dl.list_parquet_files = real_list
+
+    dl._document_batches = shuffled
+
+
 def _maybe_patch_pretok_loader():
     """If PYNANOCHAT_PRETOK_DIR is set, swap base_train's TRAINING loader for the pre-tokenized
     one (eval's bpb loader stays on-the-fly = canonical). Must run before base_train imports it."""
@@ -61,6 +112,7 @@ def _maybe_patch_pretok_loader():
 
 def main():
     _override_seed()
+    _shuffle_data_order()
     adapter = load_adapter()
     inject(adapter)
     _maybe_patch_pretok_loader()

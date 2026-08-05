@@ -1,0 +1,4 @@
+method	arm	variant	trainer	seed	val_bpb_true	train_bpb_true	val_bpb	train_bpb	byte_factor	depth	vocab_size	tokenizer_id	log
+bnd_wpd_caps_bpe	bnd_wpd_caps		bpe	0	0.879587190979435	0.7576745998851696	1.04396	0.899265	0.8425487480166243	12	34686	bnd_wpd_caps_bpe_d12_s0	bnd_wpd_caps_bpe_d12_s0.log
+bnd_wpd_caps_bpe	bnd_wpd_caps		bpe	1	0.8787623357551267	0.7547753896432444	1.042981	0.895824	0.8425487480166243	12	34686	bnd_wpd_caps_bpe_d12_s1	bnd_wpd_caps_bpe_d12_s1.log
+bnd_wpd_caps_bpe	bnd_wpd_caps		bpe	2	0.8795197870795937	0.7582289969613646	1.04388	0.899923	0.8425487480166243	12	34686	bnd_wpd_caps_bpe_d12_s2	bnd_wpd_caps_bpe_d12_s2.log

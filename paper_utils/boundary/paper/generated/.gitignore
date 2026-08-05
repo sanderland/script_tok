@@ -1,0 +1,9 @@
+# Build output: every .tex here is rewritten by make_intrinsic_table.py,
+# make_tex_tables.py or make_example_table.py from the JSON and TSV caches beside it,
+# which ARE tracked.
+*.tex
+# One fragment per trained cell, written by train_multilang.py so that languages running
+# on different machines never write the same path. merge_manifests.py folds them into
+# manifest.json, which is tracked and holds exactly their union -- so tracking both would
+# be committing the same 60 entries twice, once whole and once in pieces.
+manifest_parts/
