@@ -4,7 +4,7 @@ This repository provides tools for tokenization, focused on SCRIPT encoding, but
 It contains implementations for **BPE**, **Unigram**, **MinGram**, **PathPiece**, and **ConvexTok** tokenization algorithms.
 
 For details of the methods, see the papers:
-* Explicit Boundary Markers for Subword Vocabularies (arXiv link soon)
+* [Explicit Boundary Markers for Subword Vocabularies](https://arxiv.org/abs/2608.08847)
 * [MinGram: A Minimalist Unigram Tokenizer with High Compression and Competitive Morphological Alignment](https://arxiv.org/abs/2606.27019)
 * [Which Pieces Does Unigram Tokenization Really Need?](https://arxiv.org/abs/2512.12641)
 * [BPE Stays on SCRIPT: Structured Encoding for Robust Multilingual Pretokenization](https://arxiv.org/abs/2505.24689)
@@ -87,8 +87,8 @@ The `paper_utils/` directory contains scripts to reproduce paper results from sc
   - `run_all_experiments.sh`: Train the active tokenizer set and regenerate paper tables/figures.
   - `build_token_usage_counts.py`: Rebuild the rare-token count parquet used by downstream tables.
 
-- **`paper_utils/boundary/`**: Boundary-marker pretokenization paper reproduction
-  - Paper: Explicit Boundary Markers for Subword Vocabularies (arXiv link soon)
+- **`paper_utils/boundary/`**: Boundary-marker paper reproduction
+  - Paper: [Explicit Boundary Markers for Subword Vocabularies](https://arxiv.org/abs/2608.08847)
   - `run_all_experiments.sh`: Regenerate every paper table. The default run reads the
     measurement caches committed under `paper/generated/`, so it needs no GPU and no
     trained tokenizer; `GRID=1` retrains the tokenizer grid and `DOWNSTREAM=1` reruns the
