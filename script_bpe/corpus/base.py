@@ -6,7 +6,7 @@ from typing import Iterable, Literal
 import polars as pl
 
 from script_bpe.pretokenize import Pretokenizer
-from script_bpe.utils import PROJECT_ROOT, token_array, TokenSeq
+from script_bpe.utils import PROJECT_ROOT, shutdown_pool, token_array, TokenSeq
 
 
 class PretokenizedCorpus:
@@ -93,7 +93,11 @@ class PretokenizedCorpus:
             chunks=0,
             chunks_skipped=0,
         )
-        with pool:
+        # Not `with pool:`. That exits via Pool.terminate(), whose join can block forever
+        # when the forkserver leaves an exited worker unreaped, and it does so *after* the
+        # loop below has already collected every result, so the corpus is lost at the last
+        # step. shutdown_pool bounds the wait and escalates. See WORKER_JOIN_TIMEOUT_S.
+        try:
             for texts in text_batches:
                 if not texts:
                     continue
@@ -105,9 +109,22 @@ class PretokenizedCorpus:
                 ]
                 for result in results:
                     part_chunk_counts, part_metadata = result.get()
-                    total_chunk_counts += part_chunk_counts
+                    # update(), not `+=`. Counter.__iadd__ follows the update with
+                    # _keep_positive(), which rescans the whole accumulated counter, so
+                    # each merge costs O(len(total_chunk_counts)) and the phase is
+                    # quadratic in the number of merges (blocks * workers). On
+                    # fineweb_en_5gb the total reaches 4.7M entries: measured 8.6 hours at
+                    # 16 workers, and it gets worse as workers go up, since more workers
+                    # means more parts to merge. Counts here are only ever positive, so
+                    # dropping the non-positive scan changes nothing but the cost.
+                    total_chunk_counts.update(part_chunk_counts)
                     for k, v in part_metadata.items():
                         metadata[k] += v
+        except BaseException:
+            pool.terminate()
+            pool.join()
+            raise
+        shutdown_pool(pool)
 
         flattened_data: list[dict[str, int | bytes]] = [
             dict(

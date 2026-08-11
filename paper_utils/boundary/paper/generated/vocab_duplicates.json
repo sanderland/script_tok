@@ -1,0 +1,542 @@
+{
+  "fineweb_ar_5gb_quick_bnd_w_bpe_v34685": {
+    "arm": "bnd_w",
+    "case_slots": 778,
+    "either_slots": 778,
+    "lang": "ar",
+    "space_slots": 0,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_ar_5gb_quick_bnd_w_mingram_v34685": {
+    "arm": "bnd_w",
+    "case_slots": 815,
+    "either_slots": 815,
+    "lang": "ar",
+    "space_slots": 0,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_ar_5gb_quick_bnd_wp_bpe_v34685": {
+    "arm": "bnd_wp",
+    "case_slots": 770,
+    "either_slots": 770,
+    "lang": "ar",
+    "space_slots": 0,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_ar_5gb_quick_bnd_wp_mingram_v34685": {
+    "arm": "bnd_wp",
+    "case_slots": 816,
+    "either_slots": 816,
+    "lang": "ar",
+    "space_slots": 0,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_ar_5gb_quick_bnd_wpd_bpe_v34685": {
+    "arm": "bnd_wpd",
+    "case_slots": 766,
+    "either_slots": 766,
+    "lang": "ar",
+    "space_slots": 0,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_ar_5gb_quick_bnd_wpd_caps_bpe_v34685": {
+    "arm": "bnd_wpd_caps",
+    "case_slots": 619,
+    "either_slots": 620,
+    "lang": "ar",
+    "space_slots": 0,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_ar_5gb_quick_bnd_wpd_caps_mingram_v34685": {
+    "arm": "bnd_wpd_caps",
+    "case_slots": 652,
+    "either_slots": 653,
+    "lang": "ar",
+    "space_slots": 0,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_ar_5gb_quick_bnd_wpd_mingram_v34685": {
+    "arm": "bnd_wpd",
+    "case_slots": 806,
+    "either_slots": 806,
+    "lang": "ar",
+    "space_slots": 0,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_ar_5gb_quick_plain_bpe_v34685": {
+    "arm": "plain",
+    "case_slots": 715,
+    "either_slots": 7452,
+    "lang": "ar",
+    "space_slots": 7060,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_ar_5gb_quick_plain_mingram_v34685": {
+    "arm": "plain",
+    "case_slots": 765,
+    "either_slots": 7639,
+    "lang": "ar",
+    "space_slots": 7214,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_de_5gb_quick_bnd_w_bpe_v34685": {
+    "arm": "bnd_w",
+    "case_slots": 8736,
+    "either_slots": 8736,
+    "lang": "de",
+    "space_slots": 0,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_de_5gb_quick_bnd_w_mingram_v34685": {
+    "arm": "bnd_w",
+    "case_slots": 8843,
+    "either_slots": 8843,
+    "lang": "de",
+    "space_slots": 0,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_de_5gb_quick_bnd_wp_bpe_v34685": {
+    "arm": "bnd_wp",
+    "case_slots": 8701,
+    "either_slots": 8701,
+    "lang": "de",
+    "space_slots": 0,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_de_5gb_quick_bnd_wp_mingram_v34685": {
+    "arm": "bnd_wp",
+    "case_slots": 8812,
+    "either_slots": 8812,
+    "lang": "de",
+    "space_slots": 0,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_de_5gb_quick_bnd_wpd_bpe_v34685": {
+    "arm": "bnd_wpd",
+    "case_slots": 8601,
+    "either_slots": 8601,
+    "lang": "de",
+    "space_slots": 0,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_de_5gb_quick_bnd_wpd_caps_bpe_v34685": {
+    "arm": "bnd_wpd_caps",
+    "case_slots": 8030,
+    "either_slots": 8031,
+    "lang": "de",
+    "space_slots": 0,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_de_5gb_quick_bnd_wpd_caps_mingram_v34685": {
+    "arm": "bnd_wpd_caps",
+    "case_slots": 7958,
+    "either_slots": 7959,
+    "lang": "de",
+    "space_slots": 0,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_de_5gb_quick_bnd_wpd_mingram_v34685": {
+    "arm": "bnd_wpd",
+    "case_slots": 8729,
+    "either_slots": 8729,
+    "lang": "de",
+    "space_slots": 0,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_de_5gb_quick_plain_bpe_v34685": {
+    "arm": "plain",
+    "case_slots": 10508,
+    "either_slots": 16451,
+    "lang": "de",
+    "space_slots": 9228,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_de_5gb_quick_plain_mingram_v34685": {
+    "arm": "plain",
+    "case_slots": 10777,
+    "either_slots": 16962,
+    "lang": "de",
+    "space_slots": 9498,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_en_5gb_quick_bnd_w_bpe_v34685": {
+    "arm": "bnd_w",
+    "case_slots": 12626,
+    "either_slots": 12628,
+    "lang": "en",
+    "space_slots": 2,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_en_5gb_quick_bnd_w_mingram_v34685": {
+    "arm": "bnd_w",
+    "case_slots": 13205,
+    "either_slots": 13207,
+    "lang": "en",
+    "space_slots": 2,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_en_5gb_quick_bnd_wp_bpe_v34685": {
+    "arm": "bnd_wp",
+    "case_slots": 12557,
+    "either_slots": 12559,
+    "lang": "en",
+    "space_slots": 2,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_en_5gb_quick_bnd_wp_mingram_v34685": {
+    "arm": "bnd_wp",
+    "case_slots": 13125,
+    "either_slots": 13127,
+    "lang": "en",
+    "space_slots": 2,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_en_5gb_quick_bnd_wpd_bpe_v34685": {
+    "arm": "bnd_wpd",
+    "case_slots": 12418,
+    "either_slots": 12420,
+    "lang": "en",
+    "space_slots": 2,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_en_5gb_quick_bnd_wpd_caps_bpe_v34685": {
+    "arm": "bnd_wpd_caps",
+    "case_slots": 11638,
+    "either_slots": 11641,
+    "lang": "en",
+    "space_slots": 2,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_en_5gb_quick_bnd_wpd_caps_mingram_v34685": {
+    "arm": "bnd_wpd_caps",
+    "case_slots": 11704,
+    "either_slots": 11707,
+    "lang": "en",
+    "space_slots": 2,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_en_5gb_quick_bnd_wpd_mingram_v34685": {
+    "arm": "bnd_wpd",
+    "case_slots": 13009,
+    "either_slots": 13011,
+    "lang": "en",
+    "space_slots": 2,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_en_5gb_quick_plain_bpe_v34685": {
+    "arm": "plain",
+    "case_slots": 12971,
+    "either_slots": 15951,
+    "lang": "en",
+    "space_slots": 8770,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_en_5gb_quick_plain_mingram_v34685": {
+    "arm": "plain",
+    "case_slots": 13740,
+    "either_slots": 16793,
+    "lang": "en",
+    "space_slots": 9182,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_fi_5gb_quick_bnd_w_bpe_v34685": {
+    "arm": "bnd_w",
+    "case_slots": 8855,
+    "either_slots": 8855,
+    "lang": "fi",
+    "space_slots": 0,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_fi_5gb_quick_bnd_w_mingram_v34685": {
+    "arm": "bnd_w",
+    "case_slots": 9065,
+    "either_slots": 9065,
+    "lang": "fi",
+    "space_slots": 0,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_fi_5gb_quick_bnd_wp_bpe_v34685": {
+    "arm": "bnd_wp",
+    "case_slots": 8834,
+    "either_slots": 8834,
+    "lang": "fi",
+    "space_slots": 0,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_fi_5gb_quick_bnd_wp_mingram_v34685": {
+    "arm": "bnd_wp",
+    "case_slots": 9022,
+    "either_slots": 9022,
+    "lang": "fi",
+    "space_slots": 0,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_fi_5gb_quick_bnd_wpd_bpe_v34685": {
+    "arm": "bnd_wpd",
+    "case_slots": 8752,
+    "either_slots": 8752,
+    "lang": "fi",
+    "space_slots": 0,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_fi_5gb_quick_bnd_wpd_caps_bpe_v34685": {
+    "arm": "bnd_wpd_caps",
+    "case_slots": 8058,
+    "either_slots": 8059,
+    "lang": "fi",
+    "space_slots": 0,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_fi_5gb_quick_bnd_wpd_caps_mingram_v34685": {
+    "arm": "bnd_wpd_caps",
+    "case_slots": 7731,
+    "either_slots": 7732,
+    "lang": "fi",
+    "space_slots": 0,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_fi_5gb_quick_bnd_wpd_mingram_v34685": {
+    "arm": "bnd_wpd",
+    "case_slots": 8937,
+    "either_slots": 8937,
+    "lang": "fi",
+    "space_slots": 0,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_fi_5gb_quick_plain_bpe_v34685": {
+    "arm": "plain",
+    "case_slots": 8278,
+    "either_slots": 12693,
+    "lang": "fi",
+    "space_slots": 9226,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_fi_5gb_quick_plain_mingram_v34685": {
+    "arm": "plain",
+    "case_slots": 8758,
+    "either_slots": 13361,
+    "lang": "fi",
+    "space_slots": 9510,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_ko_5gb_quick_bnd_w_bpe_v34685": {
+    "arm": "bnd_w",
+    "case_slots": 1250,
+    "either_slots": 1250,
+    "lang": "ko",
+    "space_slots": 0,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_ko_5gb_quick_bnd_w_mingram_v34685": {
+    "arm": "bnd_w",
+    "case_slots": 1240,
+    "either_slots": 1240,
+    "lang": "ko",
+    "space_slots": 0,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_ko_5gb_quick_bnd_wp_bpe_v34685": {
+    "arm": "bnd_wp",
+    "case_slots": 1240,
+    "either_slots": 1240,
+    "lang": "ko",
+    "space_slots": 0,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_ko_5gb_quick_bnd_wp_mingram_v34685": {
+    "arm": "bnd_wp",
+    "case_slots": 1228,
+    "either_slots": 1228,
+    "lang": "ko",
+    "space_slots": 0,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_ko_5gb_quick_bnd_wpd_bpe_v34685": {
+    "arm": "bnd_wpd",
+    "case_slots": 1225,
+    "either_slots": 1225,
+    "lang": "ko",
+    "space_slots": 0,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_ko_5gb_quick_bnd_wpd_caps_bpe_v34685": {
+    "arm": "bnd_wpd_caps",
+    "case_slots": 969,
+    "either_slots": 970,
+    "lang": "ko",
+    "space_slots": 0,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_ko_5gb_quick_bnd_wpd_caps_mingram_v34685": {
+    "arm": "bnd_wpd_caps",
+    "case_slots": 952,
+    "either_slots": 953,
+    "lang": "ko",
+    "space_slots": 0,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_ko_5gb_quick_bnd_wpd_mingram_v34685": {
+    "arm": "bnd_wpd",
+    "case_slots": 1220,
+    "either_slots": 1220,
+    "lang": "ko",
+    "space_slots": 0,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_ko_5gb_quick_plain_bpe_v34685": {
+    "arm": "plain",
+    "case_slots": 1230,
+    "either_slots": 14075,
+    "lang": "ko",
+    "space_slots": 13442,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_ko_5gb_quick_plain_mingram_v34685": {
+    "arm": "plain",
+    "case_slots": 1227,
+    "either_slots": 14014,
+    "lang": "ko",
+    "space_slots": 13380,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_ru_5gb_quick_bnd_w_bpe_v34685": {
+    "arm": "bnd_w",
+    "case_slots": 7794,
+    "either_slots": 7794,
+    "lang": "ru",
+    "space_slots": 0,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_ru_5gb_quick_bnd_w_mingram_v34685": {
+    "arm": "bnd_w",
+    "case_slots": 7786,
+    "either_slots": 7786,
+    "lang": "ru",
+    "space_slots": 0,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_ru_5gb_quick_bnd_wp_bpe_v34685": {
+    "arm": "bnd_wp",
+    "case_slots": 7755,
+    "either_slots": 7755,
+    "lang": "ru",
+    "space_slots": 0,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_ru_5gb_quick_bnd_wp_mingram_v34685": {
+    "arm": "bnd_wp",
+    "case_slots": 7763,
+    "either_slots": 7763,
+    "lang": "ru",
+    "space_slots": 0,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_ru_5gb_quick_bnd_wpd_bpe_v34685": {
+    "arm": "bnd_wpd",
+    "case_slots": 7680,
+    "either_slots": 7680,
+    "lang": "ru",
+    "space_slots": 0,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_ru_5gb_quick_bnd_wpd_caps_bpe_v34685": {
+    "arm": "bnd_wpd_caps",
+    "case_slots": 7219,
+    "either_slots": 7220,
+    "lang": "ru",
+    "space_slots": 0,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_ru_5gb_quick_bnd_wpd_caps_mingram_v34685": {
+    "arm": "bnd_wpd_caps",
+    "case_slots": 6186,
+    "either_slots": 6187,
+    "lang": "ru",
+    "space_slots": 0,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_ru_5gb_quick_bnd_wpd_mingram_v34685": {
+    "arm": "bnd_wpd",
+    "case_slots": 7670,
+    "either_slots": 7670,
+    "lang": "ru",
+    "space_slots": 0,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  },
+  "fineweb_ru_5gb_quick_plain_bpe_v34685": {
+    "arm": "plain",
+    "case_slots": 6028,
+    "either_slots": 9393,
+    "lang": "ru",
+    "space_slots": 6688,
+    "trainer": "bpe",
+    "vocab_size": 34685
+  },
+  "fineweb_ru_5gb_quick_plain_mingram_v34685": {
+    "arm": "plain",
+    "case_slots": 6083,
+    "either_slots": 9333,
+    "lang": "ru",
+    "space_slots": 6382,
+    "trainer": "mingram",
+    "vocab_size": 34685
+  }
+}

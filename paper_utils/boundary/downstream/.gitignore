@@ -1,0 +1,7 @@
+# The pretokenized-corpus cache is large and rebuildable.
+corpora/
+# Trained tokenizers: the matched grid is ~100 MB and rebuilds from the corpus with
+# train_multilang.py, which skips any cell whose file already exists. What the paper
+# needs in git is the small JSON/TSV caches under ../paper/generated/, which is what
+# lets both main tables regenerate without a GPU or a single trained tokenizer.
+tokenizers/

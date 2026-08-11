@@ -4,9 +4,10 @@ This repository provides tools for tokenization, focused on SCRIPT encoding, but
 It contains implementations for **BPE**, **Unigram**, **MinGram**, **PathPiece**, and **ConvexTok** tokenization algorithms.
 
 For details of the methods, see the papers:
-* [BPE Stays on SCRIPT: Structured Encoding for Robust Multilingual Pretokenization](https://arxiv.org/abs/2505.24689)
-* [Which Pieces Does Unigram Tokenization Really Need?](https://arxiv.org/abs/2512.12641)
+* Explicit Boundary Markers for Subword Vocabularies (arXiv link soon)
 * [MinGram: A Minimalist Unigram Tokenizer with High Compression and Competitive Morphological Alignment](https://arxiv.org/abs/2606.27019)
+* [Which Pieces Does Unigram Tokenization Really Need?](https://arxiv.org/abs/2512.12641)
+* [BPE Stays on SCRIPT: Structured Encoding for Robust Multilingual Pretokenization](https://arxiv.org/abs/2505.24689)
 
 ## Overview
 
@@ -85,6 +86,20 @@ The `paper_utils/` directory contains scripts to reproduce paper results from sc
   - Paper: [MinGram: A Minimalist Unigram Tokenizer with High Compression and Competitive Morphological Alignment](https://arxiv.org/abs/2606.27019)
   - `run_all_experiments.sh`: Train the active tokenizer set and regenerate paper tables/figures.
   - `build_token_usage_counts.py`: Rebuild the rare-token count parquet used by downstream tables.
+
+- **`paper_utils/boundary/`**: Boundary-marker pretokenization paper reproduction
+  - Paper: Explicit Boundary Markers for Subword Vocabularies (arXiv link soon)
+  - `run_all_experiments.sh`: Regenerate every paper table. The default run reads the
+    measurement caches committed under `paper/generated/`, so it needs no GPU and no
+    trained tokenizer; `GRID=1` retrains the tokenizer grid and `DOWNSTREAM=1` reruns the
+    LM sweep.
+  - `boundary_pretokenizer.py`: `BoundaryScriptPretokenizer`, which delimits word spans
+    with a single `<|>` atomic token and elides the space between two delimited spans.
+    Optional `<^>`/`<^^>` case codes place a title- or upper-case span's code outside its
+    markers, so `The` is `the` plus one code.
+  - `make_intrinsic_table.py` / `downstream/make_tex_tables.py`: the two main tables.
+  - The grid trains on the `quick` corpus sample (`fineweb_<lang>_5gb_quick`), which reads
+    until its character budget is full instead of reservoir-sampling the whole source.
 
 ## Sources
 

@@ -51,6 +51,8 @@ def cli(
     max_per_task: int | None = None,
     tokenizer_id: str | None = None,
     base_dir: str | None = None,
+    eval_modes: str = "core,bpb",
+    shuffle_data_order: bool = False,
 ) -> None:
     """Pretrain a nanochat base model on a script_bpe tokenizer and score CORE + bpb.
 
@@ -70,11 +72,35 @@ def cli(
         max_per_task: Cap examples per CORE task (eval speed).
         tokenizer_id: Model tag / checkpoint dir name (defaults to the tokenizer file stem).
         base_dir: NANOCHAT_BASE_DIR for data, tokenizer, checkpoints (defaults to ~/.cache/nanochat).
+        eval_modes: What base_eval scores: "core,bpb", "bpb", or "core". Use "bpb" for a
+            tokenizer whose pretokenizer marks a character from its right neighbour
+            (bnd_wp, bnd_wpd and their _caps forms). CORE's language_modeling tasks
+            assert that encode(context) is a prefix of encode(context + continuation);
+            those tokenizers break it, base_eval raises, and the run reports nothing at
+            all, bpb included.
+        shuffle_data_order: Let the seed permute the training document order too, not only
+            the weight initialization, so a spread over seeds includes data-order variance.
+            Off by default: it changes what a given seed means, so numbers measured without
+            it do not reproduce with it.
     """
     import importlib
     import os
 
     import pynanochat as png
+
+    # Checked before the tokenizer is even loaded: this pretrains a model, so a machine
+    # with no GPU cannot run it at all and should say so here rather than several minutes
+    # in, from inside torch.
+    import torch
+
+    if not torch.cuda.is_available():
+        raise SystemExit(
+            "run_downstream_eval.py needs CUDA: it pretrains a nanochat model.\n"
+            "  no GPU visible. Prerequisites: `uv sync --extra downstream` and the\n"
+            "  vendored nanochat clone under eval/py-nanochat/vendor/nanochat.\n"
+            "  Paper tables regenerate from the committed result TSVs without it:\n"
+            "    uv run python paper_utils/boundary/downstream/make_tex_tables.py"
+        )
 
     dotted = TOKENIZER_CLASSES.get(tokenizer_class, tokenizer_class)
     module_name, _, cls_name = dotted.rpartition(".")
@@ -126,6 +152,8 @@ def cli(
         seed=seed,
         disable_compile=smoke,
         base_dir=base_dir,
+        eval_modes=eval_modes,
+        shuffle_data_order=shuffle_data_order,
     )
 
     print("\n" + "=" * 60)
@@ -137,6 +165,9 @@ def cli(
     print(f"  CORE metric  : {result.core_metric}")
     print(f"  val bpb      : {result.val_bpb}")
     print(f"  train bpb    : {result.train_bpb}")
+    print(f"  byte factor  : {result.byte_factor}")
+    print(f"  val bpb/byte : {result.val_bpb_per_true_byte}")
+    print(f"  train bpb/byte: {result.train_bpb_per_true_byte}")
     print(f"  artifact_dir : {result.artifact_dir}")
     if result.core_per_task:
         print("  per-task CORE (centered):")

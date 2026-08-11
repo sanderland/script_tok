@@ -10,7 +10,7 @@ from script_bpe.tokenizers.bpe.tokenizer import BPETokenizer, MergeRule, Token
 from script_bpe.corpus import PretokenizedCorpus
 from script_bpe.pretokenize import Pretokenizer
 from script_bpe.tokenizers.base import BaseTrainer, TrainerConfig
-from script_bpe.utils import TokenSeq, mp_ctx, token_array
+from script_bpe.utils import TokenSeq, join_workers, mp_ctx, token_array
 
 
 class BPETrainerConfig(TrainerConfig):
@@ -234,8 +234,12 @@ class BPETrainer(BaseTrainer):
                 tokens[token_id].original_count += token.original_count
                 tokens[token_id].current_count += token.current_count
 
-        for p in workers:
-            p.join()
+        # Every worker's FINAL_STATE is already folded into `tokens` above, so a worker
+        # that will not exit costs nothing to kill. A plain join() here can block forever
+        # when the forkserver leaves an exited worker unreaped. See WORKER_JOIN_TIMEOUT_S.
+        stuck = join_workers(workers, logger=logger)
+        if stuck:
+            logger.warning(f"{stuck} of {cfg.num_workers} workers did not exit; results already collected")
 
         logger.info(f"Done! {len(merge_rules)} merge rules created, tokenizer has {len(tokens)} total tokens")
         return BPETokenizer(
