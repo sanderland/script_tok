@@ -1,0 +1,1087 @@
+{
+  "alpha3.0/fineweb_en_5gb/eng_latn_300mb/bpe/bpe_n32768.model.json.gz": {
+    "renyi_bits": 6.267636107379527,
+    "renyi_eff": 0.4161526336859204,
+    "shannon_bits": 11.03808756394968,
+    "nonzero_vocab": 34181,
+    "bytes_per_token": 4.49373385699467
+  },
+  "alpha3.0/fineweb_de_5gb/deu_latn_300mb/bpe/bpe_n32768.model.json.gz": {
+    "renyi_bits": 6.473630972790978,
+    "renyi_eff": 0.4300185149692448,
+    "shannon_bits": 11.67146799169585,
+    "nonzero_vocab": 34025,
+    "bytes_per_token": 4.680668971956594
+  },
+  "alpha3.0/fineweb_fi_5gb/fin_latn_300mb/bpe/bpe_n32768.model.json.gz": {
+    "renyi_bits": 6.7085111236236195,
+    "renyi_eff": 0.4459916175114188,
+    "shannon_bits": 12.443330778760375,
+    "nonzero_vocab": 33731,
+    "bytes_per_token": 5.262390239388127
+  },
+  "alpha3.0/fineweb_ru_5gb/rus_cyrl_300mb/bpe/bpe_n32768.model.json.gz": {
+    "renyi_bits": 6.117116226141349,
+    "renyi_eff": 0.406499524646046,
+    "shannon_bits": 12.045399994191497,
+    "nonzero_vocab": 33883,
+    "bytes_per_token": 7.815643325161678
+  },
+  "alpha3.0/fineweb_ar_5gb/arb_arab_300mb/bpe/bpe_n32768.model.json.gz": {
+    "renyi_bits": 7.3474032684666515,
+    "renyi_eff": 0.48805436431764915,
+    "shannon_bits": 12.464968983146413,
+    "nonzero_vocab": 34029,
+    "bytes_per_token": 7.189467433689507
+  },
+  "alpha3.0/fineweb_ko_5gb/kor_hang_300mb/bpe/bpe_n32768.model.json.gz": {
+    "renyi_bits": 7.04940344574206,
+    "renyi_eff": 0.46797059829174786,
+    "shannon_bits": 12.58853697423096,
+    "nonzero_vocab": 34249,
+    "bytes_per_token": 5.361314355259848
+  },
+  "alpha3.0/fineweb_en_5gb/eng_latn_300mb/unigram/corpus_long_n32768_6746a31be63768c7.model.json.gz": {
+    "renyi_bits": 6.19454076318666,
+    "renyi_eff": 0.41128548858194136,
+    "shannon_bits": 10.82914978673827,
+    "nonzero_vocab": 34193,
+    "bytes_per_token": 4.494606095703219
+  },
+  "alpha3.0/fineweb_de_5gb/deu_latn_300mb/unigram/corpus_long_n32768_296955b9121f2cec.model.json.gz": {
+    "renyi_bits": 6.312677668577544,
+    "renyi_eff": 0.41931519489884256,
+    "shannon_bits": 11.305420338385078,
+    "nonzero_vocab": 34035,
+    "bytes_per_token": 4.702189400719343
+  },
+  "alpha3.0/fineweb_fi_5gb/fin_latn_300mb/unigram/corpus_long_n32768_82a98136a14541af.model.json.gz": {
+    "renyi_bits": 6.445864730363498,
+    "renyi_eff": 0.42853903227915857,
+    "shannon_bits": 11.967163496279213,
+    "nonzero_vocab": 33724,
+    "bytes_per_token": 5.322799740168828
+  },
+  "alpha3.0/fineweb_ru_5gb/rus_cyrl_300mb/unigram/corpus_long_n32768_ab2f5c32185971d3.model.json.gz": {
+    "renyi_bits": 6.020397260468581,
+    "renyi_eff": 0.400058697120208,
+    "shannon_bits": 11.547723354607768,
+    "nonzero_vocab": 33895,
+    "bytes_per_token": 7.718587995090715
+  },
+  "alpha3.0/fineweb_ar_5gb/arb_arab_300mb/unigram/corpus_long_n32768_292bce757ca1383c.model.json.gz": {
+    "renyi_bits": 7.086178653604905,
+    "renyi_eff": 0.47069843244905774,
+    "shannon_bits": 12.06176493665235,
+    "nonzero_vocab": 34032,
+    "bytes_per_token": 7.1233925090427
+  },
+  "alpha3.0/fineweb_ko_5gb/kor_hang_300mb/unigram/corpus_long_n32768_ac4daa0b8820a2b3.model.json.gz": {
+    "renyi_bits": 6.566033319376952,
+    "renyi_eff": 0.4358896641829955,
+    "shannon_bits": 12.11004251826262,
+    "nonzero_vocab": 34243,
+    "bytes_per_token": 5.26087817716619
+  },
+  "alpha3.0/fineweb_en_5gb/eng_latn_300mb/fsp/corpus_long_n32768_5ea754f096ae45e5.model.json.gz": {
+    "renyi_bits": 6.208485134252911,
+    "renyi_eff": 0.4122552326825711,
+    "shannon_bits": 10.927415517811408,
+    "nonzero_vocab": 34155,
+    "bytes_per_token": 4.509255158028329
+  },
+  "alpha3.0/fineweb_de_5gb/deu_latn_300mb/fsp/corpus_long_n32768_6f273455d8fe931c.model.json.gz": {
+    "renyi_bits": 6.358506640009973,
+    "renyi_eff": 0.42239266640394674,
+    "shannon_bits": 11.479606023101066,
+    "nonzero_vocab": 34007,
+    "bytes_per_token": 4.736231663233913
+  },
+  "alpha3.0/fineweb_fi_5gb/fin_latn_300mb/fsp/corpus_long_n32768_32ca895bf081f5b4.model.json.gz": {
+    "renyi_bits": 6.555400959900529,
+    "renyi_eff": 0.43582254530352604,
+    "shannon_bits": 12.222083405078488,
+    "nonzero_vocab": 33723,
+    "bytes_per_token": 5.38549456784846
+  },
+  "alpha3.0/fineweb_ru_5gb/rus_cyrl_300mb/fsp/corpus_long_n32768_a1dce71fd1fa2a36.model.json.gz": {
+    "renyi_bits": 6.056195263730535,
+    "renyi_eff": 0.4024500171753735,
+    "shannon_bits": 11.790718948299101,
+    "nonzero_vocab": 33884,
+    "bytes_per_token": 7.800519909270142
+  },
+  "alpha3.0/fineweb_ar_5gb/arb_arab_300mb/fsp/corpus_long_n32768_97005c5f295f3645.model.json.gz": {
+    "renyi_bits": 7.212128184651508,
+    "renyi_eff": 0.47909295195971385,
+    "shannon_bits": 12.272830277035155,
+    "nonzero_vocab": 34011,
+    "bytes_per_token": 7.202633282289632
+  },
+  "alpha3.0/fineweb_ko_5gb/kor_hang_300mb/fsp/corpus_long_n32768_0e67c95039e428e0.model.json.gz": {
+    "renyi_bits": 6.798946040306432,
+    "renyi_eff": 0.45137064151050427,
+    "shannon_bits": 12.386023601429939,
+    "nonzero_vocab": 34228,
+    "bytes_per_token": 5.3349218205750235
+  },
+  "alpha3.0/fineweb_en_5gb/eng_latn_300mb/bpe_init/bpe_init_1.25_n32768_345d9cee96e8530b.model.json.gz": {
+    "renyi_bits": 6.207511232206196,
+    "renyi_eff": 0.4121582084787635,
+    "shannon_bits": 10.928148390073746,
+    "nonzero_vocab": 34183,
+    "bytes_per_token": 4.516254065199597
+  },
+  "alpha3.0/fineweb_de_5gb/deu_latn_300mb/bpe_init/bpe_init_1.25_n32768_caec5bf92336105a.model.json.gz": {
+    "renyi_bits": 6.369153456951628,
+    "renyi_eff": 0.42308204872285043,
+    "shannon_bits": 11.52195049888283,
+    "nonzero_vocab": 34022,
+    "bytes_per_token": 4.7600877710645335
+  },
+  "alpha3.0/fineweb_fi_5gb/fin_latn_300mb/bpe_init/bpe_init_1.25_n32768_f3d4db28e40623e6.model.json.gz": {
+    "renyi_bits": 6.566730536513498,
+    "renyi_eff": 0.4365708027714967,
+    "shannon_bits": 12.30455378927736,
+    "nonzero_vocab": 33727,
+    "bytes_per_token": 5.4024124099222774
+  },
+  "alpha3.0/fineweb_ru_5gb/rus_cyrl_300mb/bpe_init/bpe_init_1.25_n32768_16331b0485091aca.model.json.gz": {
+    "renyi_bits": 6.046291226834512,
+    "renyi_eff": 0.4017907312128497,
+    "shannon_bits": 11.901265591023568,
+    "nonzero_vocab": 33885,
+    "bytes_per_token": 7.87398945486102
+  },
+  "alpha3.0/fineweb_ar_5gb/arb_arab_300mb/bpe_init/bpe_init_1.25_n32768_cb72e708e8905caf.model.json.gz": {
+    "renyi_bits": 7.227119306368321,
+    "renyi_eff": 0.4800563405275022,
+    "shannon_bits": 12.348011096157856,
+    "nonzero_vocab": 34035,
+    "bytes_per_token": 7.251727035789474
+  },
+  "alpha3.0/fineweb_en_5gb/eng_latn_fishfood/bpe/bpe_n32768.model.json.gz": {
+    "renyi_bits": 6.26458351444651,
+    "renyi_eff": 0.41570489228944,
+    "shannon_bits": 11.038615847190867,
+    "nonzero_vocab": 34392,
+    "bytes_per_token": 4.4973809238179605
+  },
+  "alpha3.0/fineweb_de_5gb/deu_latn_fishfood/bpe/bpe_n32768.model.json.gz": {
+    "renyi_bits": 6.474524253968966,
+    "renyi_eff": 0.4296887901483089,
+    "shannon_bits": 11.67151003335364,
+    "nonzero_vocab": 34348,
+    "bytes_per_token": 4.677987771022571
+  },
+  "alpha3.0/fineweb_fi_5gb/fin_latn_fishfood/bpe/bpe_n32768.model.json.gz": {
+    "renyi_bits": 6.7086051052002045,
+    "renyi_eff": 0.445275981595232,
+    "shannon_bits": 12.444723545901331,
+    "nonzero_vocab": 34306,
+    "bytes_per_token": 5.263988465998158
+  },
+  "alpha3.0/fineweb_ru_5gb/rus_cyrl_fishfood/bpe/bpe_n32768.model.json.gz": {
+    "renyi_bits": 6.1145928499501805,
+    "renyi_eff": 0.4057597271013709,
+    "shannon_bits": 12.045082513814313,
+    "nonzero_vocab": 34385,
+    "bytes_per_token": 7.812145561682246
+  },
+  "alpha3.0/fineweb_ar_5gb/arb_arab_fishfood/bpe/bpe_n32768.model.json.gz": {
+    "renyi_bits": 7.346529508730153,
+    "renyi_eff": 0.48752368184015055,
+    "shannon_bits": 12.467506300190548,
+    "nonzero_vocab": 34375,
+    "bytes_per_token": 7.191561578981498
+  },
+  "alpha3.0/fineweb_ko_5gb/kor_hang_fishfood/bpe/bpe_n32768.model.json.gz": {
+    "renyi_bits": 7.045816430238398,
+    "renyi_eff": 0.46752638666005375,
+    "shannon_bits": 12.58996304095355,
+    "nonzero_vocab": 34407,
+    "bytes_per_token": 5.3625170179294
+  },
+  "alpha3.0/fineweb_en_5gb/eng_latn_fishfood/unigram/corpus_long_n32768_6746a31be63768c7.model.json.gz": {
+    "renyi_bits": 6.192315718770068,
+    "renyi_eff": 0.41091392541257615,
+    "shannon_bits": 10.830541664518071,
+    "nonzero_vocab": 34388,
+    "bytes_per_token": 4.498709765228439
+  },
+  "alpha3.0/fineweb_de_5gb/deu_latn_fishfood/unigram/corpus_long_n32768_296955b9121f2cec.model.json.gz": {
+    "renyi_bits": 6.31325824233536,
+    "renyi_eff": 0.41898736518589036,
+    "shannon_bits": 11.305688465765131,
+    "nonzero_vocab": 34347,
+    "bytes_per_token": 4.699705448679966
+  },
+  "alpha3.0/fineweb_fi_5gb/fin_latn_fishfood/unigram/corpus_long_n32768_82a98136a14541af.model.json.gz": {
+    "renyi_bits": 6.447536170319617,
+    "renyi_eff": 0.4279466355056296,
+    "shannon_bits": 11.969390739862451,
+    "nonzero_vocab": 34307,
+    "bytes_per_token": 5.325281527697601
+  },
+  "alpha3.0/fineweb_ru_5gb/rus_cyrl_fishfood/unigram/corpus_long_n32768_ab2f5c32185971d3.model.json.gz": {
+    "renyi_bits": 6.0174572705461955,
+    "renyi_eff": 0.3993127722245839,
+    "shannon_bits": 11.547546381395197,
+    "nonzero_vocab": 34386,
+    "bytes_per_token": 7.714811883563101
+  },
+  "alpha3.0/fineweb_ar_5gb/arb_arab_fishfood/unigram/corpus_long_n32768_292bce757ca1383c.model.json.gz": {
+    "renyi_bits": 7.0840893523007065,
+    "renyi_eff": 0.47011179599725783,
+    "shannon_bits": 12.064166834469654,
+    "nonzero_vocab": 34372,
+    "bytes_per_token": 7.125174108100925
+  },
+  "alpha3.0/fineweb_ko_5gb/kor_hang_fishfood/unigram/corpus_long_n32768_ac4daa0b8820a2b3.model.json.gz": {
+    "renyi_bits": 6.563158264873838,
+    "renyi_eff": 0.4355055782860354,
+    "shannon_bits": 12.110765273233572,
+    "nonzero_vocab": 34402,
+    "bytes_per_token": 5.261478039188591
+  },
+  "alpha3.0/fineweb_en_5gb/eng_latn_fishfood/fsp/corpus_long_n32768_5ea754f096ae45e5.model.json.gz": {
+    "renyi_bits": 6.2059475041345245,
+    "renyi_eff": 0.4118609601958202,
+    "shannon_bits": 10.928560790728218,
+    "nonzero_vocab": 34351,
+    "bytes_per_token": 4.513508142010536
+  },
+  "alpha3.0/fineweb_de_5gb/deu_latn_fishfood/fsp/corpus_long_n32768_6f273455d8fe931c.model.json.gz": {
+    "renyi_bits": 6.359133657083361,
+    "renyi_eff": 0.42206490206981767,
+    "shannon_bits": 11.479930724493757,
+    "nonzero_vocab": 34319,
+    "bytes_per_token": 4.733702986147055
+  },
+  "alpha3.0/fineweb_fi_5gb/fin_latn_fishfood/fsp/corpus_long_n32768_32ca895bf081f5b4.model.json.gz": {
+    "renyi_bits": 6.556107532154566,
+    "renyi_eff": 0.4351760000219419,
+    "shannon_bits": 12.224106223611704,
+    "nonzero_vocab": 34288,
+    "bytes_per_token": 5.387712842668809
+  },
+  "alpha3.0/fineweb_ru_5gb/rus_cyrl_fishfood/fsp/corpus_long_n32768_a1dce71fd1fa2a36.model.json.gz": {
+    "renyi_bits": 6.053124374424563,
+    "renyi_eff": 0.40168967410477197,
+    "shannon_bits": 11.789934737643911,
+    "nonzero_vocab": 34377,
+    "bytes_per_token": 7.796466213517516
+  },
+  "alpha3.0/fineweb_ar_5gb/arb_arab_fishfood/fsp/corpus_long_n32768_97005c5f295f3645.model.json.gz": {
+    "renyi_bits": 7.210811960515089,
+    "renyi_eff": 0.4785519845199572,
+    "shannon_bits": 12.27533883440416,
+    "nonzero_vocab": 34349,
+    "bytes_per_token": 7.204590423558572
+  },
+  "alpha3.0/fineweb_ko_5gb/kor_hang_fishfood/fsp/corpus_long_n32768_0e67c95039e428e0.model.json.gz": {
+    "renyi_bits": 6.7960010040056655,
+    "renyi_eff": 0.45099754917081186,
+    "shannon_bits": 12.387454282158984,
+    "nonzero_vocab": 34369,
+    "bytes_per_token": 5.33622254870153
+  },
+  "alpha3.0/fineweb_en_5gb/eng_latn_fishfood/bpe_init/bpe_init_1.25_n32768_345d9cee96e8530b.model.json.gz": {
+    "renyi_bits": 6.204992028683946,
+    "renyi_eff": 0.41176428046323393,
+    "shannon_bits": 10.928674545134667,
+    "nonzero_vocab": 34380,
+    "bytes_per_token": 4.520097252156172
+  },
+  "alpha3.0/fineweb_de_5gb/deu_latn_fishfood/bpe_init/bpe_init_1.25_n32768_caec5bf92336105a.model.json.gz": {
+    "renyi_bits": 6.369813090512528,
+    "renyi_eff": 0.4227477705590268,
+    "shannon_bits": 11.522201842332235,
+    "nonzero_vocab": 34341,
+    "bytes_per_token": 4.757665826070072
+  },
+  "alpha3.0/fineweb_fi_5gb/fin_latn_fishfood/bpe_init/bpe_init_1.25_n32768_f3d4db28e40623e6.model.json.gz": {
+    "renyi_bits": 6.567091040681413,
+    "renyi_eff": 0.43588558103324737,
+    "shannon_bits": 12.306154185949167,
+    "nonzero_vocab": 34304,
+    "bytes_per_token": 5.404474387593268
+  },
+  "alpha3.0/fineweb_ru_5gb/rus_cyrl_fishfood/bpe_init/bpe_init_1.25_n32768_16331b0485091aca.model.json.gz": {
+    "renyi_bits": 6.0433200535246705,
+    "renyi_eff": 0.4010357018905636,
+    "shannon_bits": 11.900557368767528,
+    "nonzero_vocab": 34380,
+    "bytes_per_token": 7.869943353385982
+  },
+  "alpha3.0/fineweb_ar_5gb/arb_arab_fishfood/bpe_init/bpe_init_1.25_n32768_cb72e708e8905caf.model.json.gz": {
+    "renyi_bits": 7.225633723724351,
+    "renyi_eff": 0.47950090616696445,
+    "shannon_bits": 12.350119366735296,
+    "nonzero_vocab": 34375,
+    "bytes_per_token": 7.253499634732481
+  },
+  "alpha3.0/fineweb_ko_5gb/kor_hang_fishfood/bpe_init/bpe_init_1.25_n32768_9e62dc91ba09f7f8.model.json.gz": {
+    "renyi_bits": 6.8145256235444664,
+    "renyi_eff": 0.4521865939072153,
+    "shannon_bits": 12.407264374288527,
+    "nonzero_vocab": 34401,
+    "bytes_per_token": 5.357721765773742
+  },
+  "alpha3.0/fineweb_en_5gb/eng_latn_fishfood/fsp_bpe_init/bpe_init_1.25_n32768_75f820c08fda791f.model.json.gz": {
+    "renyi_bits": 6.206642103346141,
+    "renyi_eff": 0.4119622120042113,
+    "shannon_bits": 10.938859450678786,
+    "nonzero_vocab": 34303,
+    "bytes_per_token": 4.520503847995634
+  },
+  "alpha3.0/fineweb_de_5gb/deu_latn_fishfood/fsp_bpe_init/bpe_init_1.25_n32768_09177413a31e1a9c.model.json.gz": {
+    "renyi_bits": 6.371672418291472,
+    "renyi_eff": 0.422943166210567,
+    "shannon_bits": 11.528557289147297,
+    "nonzero_vocab": 34280,
+    "bytes_per_token": 4.75652549690467
+  },
+  "alpha3.0/fineweb_fi_5gb/fin_latn_fishfood/fsp_bpe_init/bpe_init_1.25_n32768_cf3e6ff724b90c9a.model.json.gz": {
+    "renyi_bits": 6.57179431480957,
+    "renyi_eff": 0.43625137357919846,
+    "shannon_bits": 12.312902662090856,
+    "nonzero_vocab": 34260,
+    "bytes_per_token": 5.400027960570175
+  },
+  "alpha3.0/fineweb_ru_5gb/rus_cyrl_fishfood/fsp_bpe_init/bpe_init_1.25_n32768_6647864ad17143fe.model.json.gz": {
+    "renyi_bits": 6.0461019713937185,
+    "renyi_eff": 0.40128293844596946,
+    "shannon_bits": 11.933035081404588,
+    "nonzero_vocab": 34324,
+    "bytes_per_token": 7.875167733848072
+  },
+  "alpha3.0/fineweb_ar_5gb/arb_arab_fishfood/fsp_bpe_init/bpe_init_1.25_n32768_65b7f6bab06eec1d.model.json.gz": {
+    "renyi_bits": 7.231855502434231,
+    "renyi_eff": 0.4799980894027821,
+    "shannon_bits": 12.379548026596654,
+    "nonzero_vocab": 34312,
+    "bytes_per_token": 7.260248613281536
+  },
+  "alpha3.0/fineweb_ko_5gb/kor_hang_fishfood/fsp_bpe_init/bpe_init_1.25_n32768_f78f412f74e830dc.model.json.gz": {
+    "renyi_bits": 6.833047020514439,
+    "renyi_eff": 0.4535394692376908,
+    "shannon_bits": 12.442785866061254,
+    "nonzero_vocab": 34303,
+    "bytes_per_token": 5.3606040976654326
+  },
+  "alpha3.0/fineweb_en_5gb/eng_latn_fishfood/mingram/mingram_f1.25_em2_p0.0_n32768_533c99cfeaa3f797.model.json.gz": {
+    "renyi_bits": 6.238980600360546,
+    "renyi_eff": 0.41400824045911755,
+    "shannon_bits": 10.991689003753297,
+    "nonzero_vocab": 34390,
+    "bytes_per_token": 4.536773426447716
+  },
+  "alpha3.0/fineweb_de_5gb/deu_latn_fishfood/mingram/mingram_f1.25_em2_p0.0_n32768_963099f2da5e535a.model.json.gz": {
+    "renyi_bits": 6.414842392547324,
+    "renyi_eff": 0.4257279389996946,
+    "shannon_bits": 11.58016266993061,
+    "nonzero_vocab": 34348,
+    "bytes_per_token": 4.7723632245729215
+  },
+  "alpha3.0/fineweb_fi_5gb/fin_latn_fishfood/mingram/mingram_f1.25_em2_p0.0_n32768_fa20358850f9ad9b.model.json.gz": {
+    "renyi_bits": 6.638606537472744,
+    "renyi_eff": 0.4406286769254845,
+    "shannon_bits": 12.3552035068247,
+    "nonzero_vocab": 34307,
+    "bytes_per_token": 5.415292218567313
+  },
+  "alpha3.0/fineweb_ru_5gb/rus_cyrl_fishfood/mingram/mingram_f1.25_em2_p0.0_n32768_4b6429334f730969.model.json.gz": {
+    "renyi_bits": 6.08278840866878,
+    "renyi_eff": 0.4036503324638014,
+    "shannon_bits": 11.984179792032846,
+    "nonzero_vocab": 34384,
+    "bytes_per_token": 7.900392874761548
+  },
+  "alpha3.0/fineweb_ar_5gb/arb_arab_fishfood/mingram/mingram_f1.25_em2_p0.0_n32768_222abc52fd94ac5f.model.json.gz": {
+    "renyi_bits": 7.287273878793869,
+    "renyi_eff": 0.4835900670019887,
+    "shannon_bits": 12.427951168542522,
+    "nonzero_vocab": 34376,
+    "bytes_per_token": 7.282873291128011
+  },
+  "alpha3.0/fineweb_ko_5gb/kor_hang_fishfood/mingram/mingram_f1.25_em2_p0.0_n32768_c697487ac48fb96d.model.json.gz": {
+    "renyi_bits": 6.965218066630909,
+    "renyi_eff": 0.4621718390722964,
+    "shannon_bits": 12.527418234963575,
+    "nonzero_vocab": 34412,
+    "bytes_per_token": 5.387430265061381
+  },
+  "alpha3.0/fineweb_en_5gb/eng_latn_fishfood/pathpiece_bpe/pathpiece_bpe_iv262144_L1024_pb0.2_n32768_e9ed8e7824da782d.model.json.gz": {
+    "renyi_bits": 6.236870759905753,
+    "renyi_eff": 0.41387053933238765,
+    "shannon_bits": 11.025887780628114,
+    "nonzero_vocab": 34388,
+    "bytes_per_token": 4.55095102668957
+  },
+  "alpha3.0/fineweb_de_5gb/deu_latn_fishfood/pathpiece_bpe/pathpiece_bpe_iv262144_L1024_pb0.2_n32768_aee088e8add6eb59.model.json.gz": {
+    "renyi_bits": 6.405922401221831,
+    "renyi_eff": 0.42514306535836566,
+    "shannon_bits": 11.651889415423618,
+    "nonzero_vocab": 34342,
+    "bytes_per_token": 4.798607413202134
+  },
+  "alpha3.0/fineweb_fi_5gb/fin_latn_fishfood/pathpiece_bpe/pathpiece_bpe_iv262144_L1024_pb0.2_n32768_cc8a59ab1ef577af.model.json.gz": {
+    "renyi_bits": 6.614563734835632,
+    "renyi_eff": 0.43906474317796634,
+    "shannon_bits": 12.471013962012439,
+    "nonzero_vocab": 34281,
+    "bytes_per_token": 5.47549940380228
+  },
+  "alpha3.0/fineweb_ru_5gb/rus_cyrl_fishfood/pathpiece_bpe/pathpiece_bpe_iv262144_L1024_pb0.2_n32768_6a22d89e6c2924af.model.json.gz": {
+    "renyi_bits": 6.075591787159677,
+    "renyi_eff": 0.4031738913944317,
+    "shannon_bits": 12.059047580934624,
+    "nonzero_vocab": 34383,
+    "bytes_per_token": 7.919573905978744
+  },
+  "alpha3.0/fineweb_ar_5gb/arb_arab_fishfood/pathpiece_bpe/pathpiece_bpe_iv262144_L1024_pb0.2_n32768_35f129652e0c8fd8.model.json.gz": {
+    "renyi_bits": 7.28922019760741,
+    "renyi_eff": 0.48373000538846117,
+    "shannon_bits": 12.554836508370416,
+    "nonzero_vocab": 34368,
+    "bytes_per_token": 7.309724947880123
+  },
+  "alpha3.0/fineweb_ko_5gb/kor_hang_fishfood/pathpiece_bpe/pathpiece_bpe_iv262144_L1024_pb0.2_n32768_cff48d7ee970e10c.model.json.gz": {
+    "renyi_bits": 6.960395775056565,
+    "renyi_eff": 0.4618749931577762,
+    "shannon_bits": 12.638354936804015,
+    "nonzero_vocab": 34394,
+    "bytes_per_token": 5.405275378163745
+  },
+  "alpha3.0/fineweb_en_5gb/eng_latn_fishfood/convextok/n32768_cmin50_mp200000_L32_det.json.gz": {
+    "renyi_bits": 6.237015706278947,
+    "renyi_eff": 0.41388246232722425,
+    "shannon_bits": 11.016946538841376,
+    "nonzero_vocab": 34386,
+    "bytes_per_token": 4.5523372442811425
+  },
+  "alpha3.0/fineweb_de_5gb/deu_latn_fishfood/convextok/n32768_cmin50_mp200000_L32_det.json.gz": {
+    "renyi_bits": 6.4219459814072,
+    "renyi_eff": 0.42621363582198873,
+    "shannon_bits": 11.60750338047778,
+    "nonzero_vocab": 34336,
+    "bytes_per_token": 4.774736735403729
+  },
+  "alpha3.0/fineweb_fi_5gb/fin_latn_fishfood/convextok/n32768_cmin50_mp200000_L32_det.json.gz": {
+    "renyi_bits": 6.6407540714155795,
+    "renyi_eff": 0.4408216936972847,
+    "shannon_bits": 12.36323785519977,
+    "nonzero_vocab": 34266,
+    "bytes_per_token": 5.42046432812865
+  },
+  "alpha3.0/fineweb_ru_5gb/rus_cyrl_fishfood/convextok/n32768_cmin50_mp200000_L32_det.json.gz": {
+    "renyi_bits": 6.087373324648501,
+    "renyi_eff": 0.40396133400475864,
+    "shannon_bits": 11.962362562475844,
+    "nonzero_vocab": 34378,
+    "bytes_per_token": 7.89095545748714
+  },
+  "alpha3.0/fineweb_ar_5gb/arb_arab_fishfood/convextok/n32768_cmin50_mp200000_L32_det.json.gz": {
+    "renyi_bits": 7.306107379988337,
+    "renyi_eff": 0.48485338045353327,
+    "shannon_bits": 12.46529459466459,
+    "nonzero_vocab": 34366,
+    "bytes_per_token": 7.262772751033237
+  },
+  "alpha3.0/fineweb_ko_5gb/kor_hang_fishfood/convextok/n32768_cmin50_mp200000_L32_det.json.gz": {
+    "renyi_bits": 7.044491981470706,
+    "renyi_eff": 0.4674814453152458,
+    "shannon_bits": 12.44723556133014,
+    "nonzero_vocab": 34374,
+    "bytes_per_token": 5.302532368561689
+  },
+  "alpha3.0/fineweb_en_5gb/fineweb_en_5gb/bpe/bpe_n32768.model.json.gz": {
+    "renyi_bits": 6.2559896761608975,
+    "renyi_eff": 0.4151982402081944,
+    "shannon_bits": 10.971050034615091,
+    "nonzero_vocab": 34337,
+    "bytes_per_token": 4.362325855992661
+  },
+  "alpha3.0/fineweb_de_5gb/fineweb_de_5gb/bpe/bpe_n32768.model.json.gz": {
+    "renyi_bits": 6.49426771441575,
+    "renyi_eff": 0.4310255275854926,
+    "shannon_bits": 11.624278219692453,
+    "nonzero_vocab": 34326,
+    "bytes_per_token": 4.620931246277348
+  },
+  "alpha3.0/fineweb_fi_5gb/fineweb_fi_5gb/bpe/bpe_n32768.model.json.gz": {
+    "renyi_bits": 6.594770132259022,
+    "renyi_eff": 0.43770199347620287,
+    "shannon_bits": 12.444260996172519,
+    "nonzero_vocab": 34321,
+    "bytes_per_token": 4.812718391690229
+  },
+  "alpha3.0/fineweb_ru_5gb/fineweb_ru_5gb/bpe/bpe_n32768.model.json.gz": {
+    "renyi_bits": 6.152179888409453,
+    "renyi_eff": 0.4083302202969045,
+    "shannon_bits": 11.980937116454042,
+    "nonzero_vocab": 34318,
+    "bytes_per_token": 7.84626274579771
+  },
+  "alpha3.0/fineweb_ar_5gb/fineweb_ar_5gb/bpe/bpe_n32768.model.json.gz": {
+    "renyi_bits": 7.087095249079169,
+    "renyi_eff": 0.4703283061161686,
+    "shannon_bits": 12.342066877798809,
+    "nonzero_vocab": 34359,
+    "bytes_per_token": 7.308557345515187
+  },
+  "alpha3.0/fineweb_ko_5gb/fineweb_ko_5gb/bpe/bpe_n32768.model.json.gz": {
+    "renyi_bits": 6.728253441682701,
+    "renyi_eff": 0.44641719314240363,
+    "shannon_bits": 12.414844406527196,
+    "nonzero_vocab": 34437,
+    "bytes_per_token": 5.243528768031058
+  },
+  "alpha3.0/fineweb_en_5gb/fineweb_en_5gb/unigram/corpus_long_n32768_6746a31be63768c7.model.json.gz": {
+    "renyi_bits": 6.187749979498219,
+    "renyi_eff": 0.41067388112905073,
+    "shannon_bits": 10.774791651008336,
+    "nonzero_vocab": 34333,
+    "bytes_per_token": 4.369197883914081
+  },
+  "alpha3.0/fineweb_de_5gb/fineweb_de_5gb/unigram/corpus_long_n32768_296955b9121f2cec.model.json.gz": {
+    "renyi_bits": 6.348885388655709,
+    "renyi_eff": 0.42137883162912654,
+    "shannon_bits": 11.271373503133672,
+    "nonzero_vocab": 34324,
+    "bytes_per_token": 4.64825889858876
+  },
+  "alpha3.0/fineweb_fi_5gb/fineweb_fi_5gb/unigram/corpus_long_n32768_82a98136a14541af.model.json.gz": {
+    "renyi_bits": 6.355917367896707,
+    "renyi_eff": 0.42185025531161285,
+    "shannon_bits": 11.960967147405304,
+    "nonzero_vocab": 34320,
+    "bytes_per_token": 4.890580336055998
+  },
+  "alpha3.0/fineweb_ru_5gb/fineweb_ru_5gb/unigram/corpus_long_n32768_ab2f5c32185971d3.model.json.gz": {
+    "renyi_bits": 6.069915184804519,
+    "renyi_eff": 0.4028713017598695,
+    "shannon_bits": 11.505348284365349,
+    "nonzero_vocab": 34317,
+    "bytes_per_token": 7.767590028994548
+  },
+  "alpha3.0/fineweb_ar_5gb/fineweb_ar_5gb/unigram/corpus_long_n32768_292bce757ca1383c.model.json.gz": {
+    "renyi_bits": 6.943810692953688,
+    "renyi_eff": 0.4608257844624449,
+    "shannon_bits": 11.985062406135532,
+    "nonzero_vocab": 34354,
+    "bytes_per_token": 7.2641001063252295
+  },
+  "alpha3.0/fineweb_ko_5gb/fineweb_ko_5gb/unigram/corpus_long_n32768_ac4daa0b8820a2b3.model.json.gz": {
+    "renyi_bits": 6.427320244142453,
+    "renyi_eff": 0.42645156924279437,
+    "shannon_bits": 11.967840326282579,
+    "nonzero_vocab": 34436,
+    "bytes_per_token": 5.155167885902541
+  },
+  "alpha3.0/fineweb_en_5gb/fineweb_en_5gb/fsp/corpus_long_n32768_5ea754f096ae45e5.model.json.gz": {
+    "renyi_bits": 6.2010378520356495,
+    "renyi_eff": 0.41159827688448564,
+    "shannon_bits": 10.871578704675336,
+    "nonzero_vocab": 34296,
+    "bytes_per_token": 4.381870617258951
+  },
+  "alpha3.0/fineweb_de_5gb/fineweb_de_5gb/fsp/corpus_long_n32768_6f273455d8fe931c.model.json.gz": {
+    "renyi_bits": 6.389468048423626,
+    "renyi_eff": 0.4241054645516011,
+    "shannon_bits": 11.440215671443296,
+    "nonzero_vocab": 34296,
+    "bytes_per_token": 4.677895210368745
+  },
+  "alpha3.0/fineweb_fi_5gb/fineweb_fi_5gb/fsp/corpus_long_n32768_32ca895bf081f5b4.model.json.gz": {
+    "renyi_bits": 6.462644730706083,
+    "renyi_eff": 0.42895663049650734,
+    "shannon_bits": 12.23612989291281,
+    "nonzero_vocab": 34301,
+    "bytes_per_token": 4.95208687739254
+  },
+  "alpha3.0/fineweb_ru_5gb/fineweb_ru_5gb/fsp/corpus_long_n32768_a1dce71fd1fa2a36.model.json.gz": {
+    "renyi_bits": 6.10400142607085,
+    "renyi_eff": 0.40514384308225193,
+    "shannon_bits": 11.73430829543215,
+    "nonzero_vocab": 34308,
+    "bytes_per_token": 7.832134348133359
+  },
+  "alpha3.0/fineweb_ar_5gb/fineweb_ar_5gb/fsp/corpus_long_n32768_97005c5f295f3645.model.json.gz": {
+    "renyi_bits": 7.006766998774318,
+    "renyi_eff": 0.465033696824761,
+    "shannon_bits": 12.166313054507524,
+    "nonzero_vocab": 34331,
+    "bytes_per_token": 7.323763195853522
+  },
+  "alpha3.0/fineweb_ko_5gb/fineweb_ko_5gb/fsp/corpus_long_n32768_0e67c95039e428e0.model.json.gz": {
+    "renyi_bits": 6.569426143981028,
+    "renyi_eff": 0.4359287693689633,
+    "shannon_bits": 12.223511717108037,
+    "nonzero_vocab": 34396,
+    "bytes_per_token": 5.221159975695767
+  },
+  "alpha3.0/fineweb_en_5gb/fineweb_en_5gb/bpe_init/bpe_init_1.25_n32768_345d9cee96e8530b.model.json.gz": {
+    "renyi_bits": 6.1998286465801105,
+    "renyi_eff": 0.41148471009727816,
+    "shannon_bits": 10.870093767114707,
+    "nonzero_vocab": 34325,
+    "bytes_per_token": 4.387643254917041
+  },
+  "alpha3.0/fineweb_de_5gb/fineweb_de_5gb/bpe_init/bpe_init_1.25_n32768_caec5bf92336105a.model.json.gz": {
+    "renyi_bits": 6.396950071830753,
+    "renyi_eff": 0.4245760168651796,
+    "shannon_bits": 11.478976822546217,
+    "nonzero_vocab": 34318,
+    "bytes_per_token": 4.700752382872731
+  },
+  "alpha3.0/fineweb_fi_5gb/fineweb_fi_5gb/bpe_init/bpe_init_1.25_n32768_f3d4db28e40623e6.model.json.gz": {
+    "renyi_bits": 6.476954321075058,
+    "renyi_eff": 0.429887228952237,
+    "shannon_bits": 12.321567998689641,
+    "nonzero_vocab": 34317,
+    "bytes_per_token": 4.962375493476113
+  },
+  "alpha3.0/fineweb_ru_5gb/fineweb_ru_5gb/bpe_init/bpe_init_1.25_n32768_16331b0485091aca.model.json.gz": {
+    "renyi_bits": 6.090878264651788,
+    "renyi_eff": 0.40426717181516086,
+    "shannon_bits": 11.847428370736695,
+    "nonzero_vocab": 34313,
+    "bytes_per_token": 7.912704365011493
+  },
+  "alpha3.0/fineweb_ar_5gb/fineweb_ar_5gb/bpe_init/bpe_init_1.25_n32768_cb72e708e8905caf.model.json.gz": {
+    "renyi_bits": 7.0068655370897135,
+    "renyi_eff": 0.4650065295245206,
+    "shannon_bits": 12.235428676767343,
+    "nonzero_vocab": 34357,
+    "bytes_per_token": 7.3738512761644195
+  },
+  "alpha3.0/fineweb_ko_5gb/fineweb_ko_5gb/bpe_init/bpe_init_1.25_n32768_9e62dc91ba09f7f8.model.json.gz": {
+    "renyi_bits": 6.577130681134481,
+    "renyi_eff": 0.436401171147656,
+    "shannon_bits": 12.240300705445431,
+    "nonzero_vocab": 34428,
+    "bytes_per_token": 5.23950427942568
+  },
+  "alpha3.0/fineweb_en_5gb/fineweb_en_5gb/fsp_bpe_init/bpe_init_1.25_n32768_75f820c08fda791f.model.json.gz": {
+    "renyi_bits": 6.201544684061433,
+    "renyi_eff": 0.4116871326825191,
+    "shannon_bits": 10.8802260068066,
+    "nonzero_vocab": 34248,
+    "bytes_per_token": 4.387777517246033
+  },
+  "alpha3.0/fineweb_de_5gb/fineweb_de_5gb/fsp_bpe_init/bpe_init_1.25_n32768_09177413a31e1a9c.model.json.gz": {
+    "renyi_bits": 6.398803340965841,
+    "renyi_eff": 0.42477138267157777,
+    "shannon_bits": 11.484914181884246,
+    "nonzero_vocab": 34257,
+    "bytes_per_token": 4.699447484395432
+  },
+  "alpha3.0/fineweb_fi_5gb/fineweb_fi_5gb/fsp_bpe_init/bpe_init_1.25_n32768_cf3e6ff724b90c9a.model.json.gz": {
+    "renyi_bits": 6.480716681282746,
+    "renyi_eff": 0.4301897930631031,
+    "shannon_bits": 12.328171695746208,
+    "nonzero_vocab": 34273,
+    "bytes_per_token": 4.958343627233112
+  },
+  "alpha3.0/fineweb_ru_5gb/fineweb_ru_5gb/fsp_bpe_init/bpe_init_1.25_n32768_6647864ad17143fe.model.json.gz": {
+    "renyi_bits": 6.094405419394203,
+    "renyi_eff": 0.40456568453536584,
+    "shannon_bits": 11.876178412365375,
+    "nonzero_vocab": 34256,
+    "bytes_per_token": 7.913732569136194
+  },
+  "alpha3.0/fineweb_ar_5gb/fineweb_ar_5gb/fsp_bpe_init/bpe_init_1.25_n32768_65b7f6bab06eec1d.model.json.gz": {
+    "renyi_bits": 7.010247380533646,
+    "renyi_eff": 0.4653127306747121,
+    "shannon_bits": 12.259126702894704,
+    "nonzero_vocab": 34294,
+    "bytes_per_token": 7.376104720167162
+  },
+  "alpha3.0/fineweb_ko_5gb/fineweb_ko_5gb/fsp_bpe_init/bpe_init_1.25_n32768_f78f412f74e830dc.model.json.gz": {
+    "renyi_bits": 6.587944200628083,
+    "renyi_eff": 0.4372379717103452,
+    "shannon_bits": 12.272952664653463,
+    "nonzero_vocab": 34330,
+    "bytes_per_token": 5.242746118511164
+  },
+  "alpha3.0/fineweb_en_5gb/fineweb_en_5gb/mingram/mingram_f1.25_em2_p0.0_n32768_533c99cfeaa3f797.model.json.gz": {
+    "renyi_bits": 6.230596623069462,
+    "renyi_eff": 0.41351295114877457,
+    "shannon_bits": 10.926393582303447,
+    "nonzero_vocab": 34337,
+    "bytes_per_token": 4.400724828430075
+  },
+  "alpha3.0/fineweb_de_5gb/fineweb_de_5gb/mingram/mingram_f1.25_em2_p0.0_n32768_963099f2da5e535a.model.json.gz": {
+    "renyi_bits": 6.43746964073016,
+    "renyi_eff": 0.4272558308694443,
+    "shannon_bits": 11.53471653610359,
+    "nonzero_vocab": 34326,
+    "bytes_per_token": 4.714264224177049
+  },
+  "alpha3.0/fineweb_fi_5gb/fineweb_fi_5gb/mingram/mingram_f1.25_em2_p0.0_n32768_fa20358850f9ad9b.model.json.gz": {
+    "renyi_bits": 6.516029843119169,
+    "renyi_eff": 0.4324759157157638,
+    "shannon_bits": 12.365813702145104,
+    "nonzero_vocab": 34321,
+    "bytes_per_token": 4.970659220427652
+  },
+  "alpha3.0/fineweb_ru_5gb/fineweb_ru_5gb/mingram/mingram_f1.25_em2_p0.0_n32768_4b6429334f730969.model.json.gz": {
+    "renyi_bits": 6.122367718919711,
+    "renyi_eff": 0.40635267177184137,
+    "shannon_bits": 11.919351827106437,
+    "nonzero_vocab": 34317,
+    "bytes_per_token": 7.93407289573084
+  },
+  "alpha3.0/fineweb_ar_5gb/fineweb_ar_5gb/mingram/mingram_f1.25_em2_p0.0_n32768_222abc52fd94ac5f.model.json.gz": {
+    "renyi_bits": 7.049442622501128,
+    "renyi_eff": 0.4678295255217388,
+    "shannon_bits": 12.297425718542026,
+    "nonzero_vocab": 34359,
+    "bytes_per_token": 7.392965605776551
+  },
+  "alpha3.0/fineweb_ko_5gb/fineweb_ko_5gb/mingram/mingram_f1.25_em2_p0.0_n32768_c697487ac48fb96d.model.json.gz": {
+    "renyi_bits": 6.68010710792412,
+    "renyi_eff": 0.44322023732450533,
+    "shannon_bits": 12.352413725093156,
+    "nonzero_vocab": 34439,
+    "bytes_per_token": 5.26722269353125
+  },
+  "alpha3.0/fineweb_en_5gb/fineweb_en_5gb/pathpiece_bpe/pathpiece_bpe_iv262144_L1024_pb0.2_n32768_e9ed8e7824da782d.model.json.gz": {
+    "renyi_bits": 6.227893856748556,
+    "renyi_eff": 0.4133335736436597,
+    "shannon_bits": 10.959462198847,
+    "nonzero_vocab": 34337,
+    "bytes_per_token": 4.414590724510495
+  },
+  "alpha3.0/fineweb_de_5gb/fineweb_de_5gb/pathpiece_bpe/pathpiece_bpe_iv262144_L1024_pb0.2_n32768_aee088e8add6eb59.model.json.gz": {
+    "renyi_bits": 6.428006108089406,
+    "renyi_eff": 0.4266277347809124,
+    "shannon_bits": 11.603732631306812,
+    "nonzero_vocab": 34326,
+    "bytes_per_token": 4.740595126613988
+  },
+  "alpha3.0/fineweb_fi_5gb/fineweb_fi_5gb/pathpiece_bpe/pathpiece_bpe_iv262144_L1024_pb0.2_n32768_cc8a59ab1ef577af.model.json.gz": {
+    "renyi_bits": 6.48974534136227,
+    "renyi_eff": 0.43073138503678743,
+    "shannon_bits": 12.489498112752958,
+    "nonzero_vocab": 34321,
+    "bytes_per_token": 5.0302641252841775
+  },
+  "alpha3.0/fineweb_ru_5gb/fineweb_ru_5gb/pathpiece_bpe/pathpiece_bpe_iv262144_L1024_pb0.2_n32768_6a22d89e6c2924af.model.json.gz": {
+    "renyi_bits": 6.113568774631284,
+    "renyi_eff": 0.40576753765743045,
+    "shannon_bits": 11.989695111450795,
+    "nonzero_vocab": 34318,
+    "bytes_per_token": 7.960335660715563
+  },
+  "alpha3.0/fineweb_ar_5gb/fineweb_ar_5gb/pathpiece_bpe/pathpiece_bpe_iv262144_L1024_pb0.2_n32768_35f129652e0c8fd8.model.json.gz": {
+    "renyi_bits": 7.045060394669829,
+    "renyi_eff": 0.46753870315792506,
+    "shannon_bits": 12.412450439957453,
+    "nonzero_vocab": 34359,
+    "bytes_per_token": 7.425795089805848
+  },
+  "alpha3.0/fineweb_ko_5gb/fineweb_ko_5gb/pathpiece_bpe/pathpiece_bpe_iv262144_L1024_pb0.2_n32768_cff48d7ee970e10c.model.json.gz": {
+    "renyi_bits": 6.6761930506619525,
+    "renyi_eff": 0.4429605424782084,
+    "shannon_bits": 12.459981006876676,
+    "nonzero_vocab": 34439,
+    "bytes_per_token": 5.285020261462133
+  },
+  "alpha3.0/fineweb_en_5gb/fineweb_en_5gb/convextok/n32768_cmin50_mp200000_L32_det.json.gz": {
+    "renyi_bits": 6.228418318219234,
+    "renyi_eff": 0.4133683811626862,
+    "shannon_bits": 10.949662867624909,
+    "nonzero_vocab": 34337,
+    "bytes_per_token": 4.4148370245151565
+  },
+  "alpha3.0/fineweb_de_5gb/fineweb_de_5gb/convextok/n32768_cmin50_mp200000_L32_det.json.gz": {
+    "renyi_bits": 6.442770936997899,
+    "renyi_eff": 0.4276088715284292,
+    "shannon_bits": 11.56050799147886,
+    "nonzero_vocab": 34325,
+    "bytes_per_token": 4.7176371621979225
+  },
+  "alpha3.0/fineweb_fi_5gb/fineweb_fi_5gb/convextok/n32768_cmin50_mp200000_L32_det.json.gz": {
+    "renyi_bits": 6.519741441680406,
+    "renyi_eff": 0.432729502854171,
+    "shannon_bits": 12.364514674853694,
+    "nonzero_vocab": 34315,
+    "bytes_per_token": 4.971516962750592
+  },
+  "alpha3.0/fineweb_ru_5gb/fineweb_ru_5gb/convextok/n32768_cmin50_mp200000_L32_det.json.gz": {
+    "renyi_bits": 6.123072939224998,
+    "renyi_eff": 0.4064153579833989,
+    "shannon_bits": 11.90214118123185,
+    "nonzero_vocab": 34303,
+    "bytes_per_token": 7.937745481495209
+  },
+  "alpha3.0/fineweb_ar_5gb/fineweb_ar_5gb/convextok/n32768_cmin50_mp200000_L32_det.json.gz": {
+    "renyi_bits": 7.062338552814427,
+    "renyi_eff": 0.46868535161788644,
+    "shannon_bits": 12.328497440970612,
+    "nonzero_vocab": 34359,
+    "bytes_per_token": 7.3740616634664615
+  },
+  "alpha3.0/fineweb_ko_5gb/fineweb_ko_5gb/convextok/n32768_cmin50_mp200000_L32_det.json.gz": {
+    "renyi_bits": 6.729505174425096,
+    "renyi_eff": 0.4464977630294395,
+    "shannon_bits": 12.293288880346116,
+    "nonzero_vocab": 34439,
+    "bytes_per_token": 5.202792140906771
+  },
+  "alpha3.0/fineweb_en_5gb/eng_latn_fishfood/bpe_init/bpe_init_1.15_n32768_ddecc876b8230ccc.model.json.gz": {
+    "renyi_bits": 6.206645862541629,
+    "renyi_eff": 0.41188091149975237,
+    "shannon_bits": 10.941262423875681,
+    "nonzero_vocab": 34374,
+    "bytes_per_token": 4.52202903742349
+  },
+  "alpha3.0/fineweb_de_5gb/deu_latn_fishfood/bpe_init/bpe_init_1.15_n32768_84bcb55feaf86b4a.model.json.gz": {
+    "renyi_bits": 6.374338795369544,
+    "renyi_eff": 0.42305402782916085,
+    "shannon_bits": 11.541324590939384,
+    "nonzero_vocab": 34336,
+    "bytes_per_token": 4.757751769062396
+  },
+  "alpha3.0/fineweb_fi_5gb/fin_latn_fishfood/bpe_init/bpe_init_1.15_n32768_372755733e27f310.model.json.gz": {
+    "renyi_bits": 6.570048558935492,
+    "renyi_eff": 0.43609040614597616,
+    "shannon_bits": 12.319055288127075,
+    "nonzero_vocab": 34297,
+    "bytes_per_token": 5.403370020222832
+  },
+  "alpha3.0/fineweb_ru_5gb/rus_cyrl_fishfood/bpe_init/bpe_init_1.15_n32768_1469abfe606825ea.model.json.gz": {
+    "renyi_bits": 6.04577641966814,
+    "renyi_eff": 0.4012042932920095,
+    "shannon_bits": 11.942041353764028,
+    "nonzero_vocab": 34375,
+    "bytes_per_token": 7.881344223874876
+  },
+  "alpha3.0/fineweb_ar_5gb/arb_arab_fishfood/bpe_init/bpe_init_1.15_n32768_5358a57e781d8201.model.json.gz": {
+    "renyi_bits": 7.23164111240525,
+    "renyi_eff": 0.47990490970768196,
+    "shannon_bits": 12.381524065589536,
+    "nonzero_vocab": 34371,
+    "bytes_per_token": 7.262884046349062
+  },
+  "alpha3.0/fineweb_ko_5gb/kor_hang_fishfood/bpe_init/bpe_init_1.15_n32768_47e1789927425e1d.model.json.gz": {
+    "renyi_bits": 6.833818851274177,
+    "renyi_eff": 0.45347186881585594,
+    "shannon_bits": 12.447174594967064,
+    "nonzero_vocab": 34397,
+    "bytes_per_token": 5.365972473305795
+  },
+  "alpha3.0/fineweb_en_5gb/eng_latn_fishfood/fsp_bpe_init/bpe_init_1.15_n32768_f6a13682effae861.model.json.gz": {
+    "renyi_bits": 6.207127217411499,
+    "renyi_eff": 0.41199556128130926,
+    "shannon_bits": 10.9413948383085,
+    "nonzero_vocab": 34302,
+    "bytes_per_token": 4.5209469741443185
+  },
+  "alpha3.0/fineweb_de_5gb/deu_latn_fishfood/fsp_bpe_init/bpe_init_1.15_n32768_60d5910c00a82c33.model.json.gz": {
+    "renyi_bits": 6.374742883724422,
+    "renyi_eff": 0.42314225157054547,
+    "shannon_bits": 11.538988580765228,
+    "nonzero_vocab": 34284,
+    "bytes_per_token": 4.755432348715312
+  },
+  "alpha3.0/fineweb_fi_5gb/fin_latn_fishfood/fsp_bpe_init/bpe_init_1.15_n32768_b95a3d8554420960.model.json.gz": {
+    "renyi_bits": 6.572422421637949,
+    "renyi_eff": 0.4362930688078543,
+    "shannon_bits": 12.31791914962071,
+    "nonzero_vocab": 34260,
+    "bytes_per_token": 5.399855560961209
+  },
+  "alpha3.0/fineweb_ru_5gb/rus_cyrl_fishfood/fsp_bpe_init/bpe_init_1.15_n32768_8ca276f6d6138e8e.model.json.gz": {
+    "renyi_bits": 6.046821416570213,
+    "renyi_eff": 0.40133180799437607,
+    "shannon_bits": 11.94217936782354,
+    "nonzero_vocab": 34323,
+    "bytes_per_token": 7.87755088796014
+  },
+  "alpha3.0/fineweb_ar_5gb/arb_arab_fishfood/fsp_bpe_init/bpe_init_1.15_n32768_5adfd446fb786bf4.model.json.gz": {
+    "renyi_bits": 7.232481252748448,
+    "renyi_eff": 0.4800396221678057,
+    "shannon_bits": 12.382426876889369,
+    "nonzero_vocab": 34312,
+    "bytes_per_token": 7.2606831275547155
+  },
+  "alpha3.0/fineweb_ko_5gb/kor_hang_fishfood/fsp_bpe_init/bpe_init_1.15_n32768_5a0a9bf288fb3cb4.model.json.gz": {
+    "renyi_bits": 6.838682373071293,
+    "renyi_eff": 0.4539173139874734,
+    "shannon_bits": 12.450062428471991,
+    "nonzero_vocab": 34300,
+    "bytes_per_token": 5.364101755223276
+  },
+  "alpha3.0/fineweb_en_5gb/eng_latn_fishfood/mingram/mingram_f1.15_em2_p0.0_n32768_6a46f861edc5191c.model.json.gz": {
+    "renyi_bits": 6.239329540520402,
+    "renyi_eff": 0.41403139554018953,
+    "shannon_bits": 10.994336853441373,
+    "nonzero_vocab": 34390,
+    "bytes_per_token": 4.537506594103479
+  },
+  "alpha3.0/fineweb_de_5gb/deu_latn_fishfood/mingram/mingram_f1.15_em2_p0.0_n32768_aac46b87b375d558.model.json.gz": {
+    "renyi_bits": 6.416683272247737,
+    "renyi_eff": 0.42585011096789666,
+    "shannon_bits": 11.58736451559501,
+    "nonzero_vocab": 34348,
+    "bytes_per_token": 4.770740555308169
+  },
+  "alpha3.0/fineweb_fi_5gb/fin_latn_fishfood/mingram/mingram_f1.15_em2_p0.0_n32768_fb93ba30bb17809d.model.json.gz": {
+    "renyi_bits": 6.639324709198835,
+    "renyi_eff": 0.4406763446183485,
+    "shannon_bits": 12.362206907801438,
+    "nonzero_vocab": 34307,
+    "bytes_per_token": 5.416148907536058
+  },
+  "alpha3.0/fineweb_ru_5gb/rus_cyrl_fishfood/mingram/mingram_f1.15_em2_p0.0_n32768_c9f8c1982244754f.model.json.gz": {
+    "renyi_bits": 6.08288327212645,
+    "renyi_eff": 0.4036566275481697,
+    "shannon_bits": 11.992123340064632,
+    "nonzero_vocab": 34384,
+    "bytes_per_token": 7.902286497498867
+  },
+  "alpha3.0/fineweb_ar_5gb/arb_arab_fishfood/mingram/mingram_f1.15_em2_p0.0_n32768_b9cf3c9511dd5eeb.model.json.gz": {
+    "renyi_bits": 7.2876511416637255,
+    "renyi_eff": 0.4836151025062865,
+    "shannon_bits": 12.431905336846569,
+    "nonzero_vocab": 34376,
+    "bytes_per_token": 7.283749948038861
+  },
+  "alpha3.0/fineweb_ko_5gb/kor_hang_fishfood/mingram/mingram_f1.15_em2_p0.0_n32768_989b5a0600b3223d.model.json.gz": {
+    "renyi_bits": 6.9688273501450855,
+    "renyi_eff": 0.46241261676260936,
+    "shannon_bits": 12.534391276151913,
+    "nonzero_vocab": 34411,
+    "bytes_per_token": 5.39076028439992
+  },
+  "alpha3.0/fineweb_en_5gb/fineweb_en_5gb/bpe_init/bpe_init_1.15_n32768_ddecc876b8230ccc.model.json.gz": {
+    "renyi_bits": 6.201472415006696,
+    "renyi_eff": 0.4116006973077159,
+    "shannon_bits": 10.882404766959722,
+    "nonzero_vocab": 34319,
+    "bytes_per_token": 4.3893631464167875
+  },
+  "alpha3.0/fineweb_de_5gb/fineweb_de_5gb/bpe_init/bpe_init_1.15_n32768_84bcb55feaf86b4a.model.json.gz": {
+    "renyi_bits": 6.401121232678947,
+    "renyi_eff": 0.42485879125168086,
+    "shannon_bits": 11.496977928893726,
+    "nonzero_vocab": 34313,
+    "bytes_per_token": 4.7008015436791775
+  },
+  "alpha3.0/fineweb_fi_5gb/fineweb_fi_5gb/bpe_init/bpe_init_1.15_n32768_372755733e27f310.model.json.gz": {
+    "renyi_bits": 6.481379152748144,
+    "renyi_eff": 0.4301893163914913,
+    "shannon_bits": 12.332585885158917,
+    "nonzero_vocab": 34310,
+    "bytes_per_token": 4.957116145128293
+  },
+  "alpha3.0/fineweb_ru_5gb/fineweb_ru_5gb/bpe_init/bpe_init_1.15_n32768_1469abfe606825ea.model.json.gz": {
+    "renyi_bits": 6.093434669955297,
+    "renyi_eff": 0.4044424906606612,
+    "shannon_bits": 11.88516346565167,
+    "nonzero_vocab": 34308,
+    "bytes_per_token": 7.921116822136218
+  },
+  "alpha3.0/fineweb_ar_5gb/fineweb_ar_5gb/bpe_init/bpe_init_1.15_n32768_5358a57e781d8201.model.json.gz": {
+    "renyi_bits": 7.009593101690198,
+    "renyi_eff": 0.4651927285166826,
+    "shannon_bits": 12.2617324453654,
+    "nonzero_vocab": 34353,
+    "bytes_per_token": 7.379582845176447
+  },
+  "alpha3.0/fineweb_ko_5gb/fineweb_ko_5gb/bpe_init/bpe_init_1.15_n32768_47e1789927425e1d.model.json.gz": {
+    "renyi_bits": 6.58780627115774,
+    "renyi_eff": 0.43711437217276705,
+    "shannon_bits": 12.276803952308086,
+    "nonzero_vocab": 34424,
+    "bytes_per_token": 5.24713250317647
+  },
+  "alpha3.0/fineweb_en_5gb/fineweb_en_5gb/fsp_bpe_init/bpe_init_1.15_n32768_f6a13682effae861.model.json.gz": {
+    "renyi_bits": 6.201956424027876,
+    "renyi_eff": 0.41171561723820904,
+    "shannon_bits": 10.882594873598089,
+    "nonzero_vocab": 34247,
+    "bytes_per_token": 4.3883173113590095
+  },
+  "alpha3.0/fineweb_de_5gb/fineweb_de_5gb/fsp_bpe_init/bpe_init_1.15_n32768_60d5910c00a82c33.model.json.gz": {
+    "renyi_bits": 6.401260222220607,
+    "renyi_eff": 0.4249297261444825,
+    "shannon_bits": 11.494915334090463,
+    "nonzero_vocab": 34261,
+    "bytes_per_token": 4.699058488638544
+  },
+  "alpha3.0/fineweb_fi_5gb/fineweb_fi_5gb/fsp_bpe_init/bpe_init_1.15_n32768_b95a3d8554420960.model.json.gz": {
+    "renyi_bits": 6.483190009869324,
+    "renyi_eff": 0.4303539725458924,
+    "shannon_bits": 12.331154217995625,
+    "nonzero_vocab": 34273,
+    "bytes_per_token": 4.9539702702473845
+  },
+  "alpha3.0/fineweb_ru_5gb/fineweb_ru_5gb/fsp_bpe_init/bpe_init_1.15_n32768_8ca276f6d6138e8e.model.json.gz": {
+    "renyi_bits": 6.094581208359868,
+    "renyi_eff": 0.4045773539564716,
+    "shannon_bits": 11.884893898412212,
+    "nonzero_vocab": 34256,
+    "bytes_per_token": 7.9168568857477055
+  },
+  "alpha3.0/fineweb_ar_5gb/fineweb_ar_5gb/fsp_bpe_init/bpe_init_1.15_n32768_5adfd446fb786bf4.model.json.gz": {
+    "renyi_bits": 7.0104764991698385,
+    "renyi_eff": 0.4653279386713017,
+    "shannon_bits": 12.262197442797975,
+    "nonzero_vocab": 34294,
+    "bytes_per_token": 7.376809456043038
+  },
+  "alpha3.0/fineweb_ko_5gb/fineweb_ko_5gb/fsp_bpe_init/bpe_init_1.15_n32768_5a0a9bf288fb3cb4.model.json.gz": {
+    "renyi_bits": 6.591348378982213,
+    "renyi_eff": 0.43746756564143274,
+    "shannon_bits": 12.279519050135104,
+    "nonzero_vocab": 34327,
+    "bytes_per_token": 5.2456050401461045
+  },
+  "alpha3.0/fineweb_en_5gb/fineweb_en_5gb/mingram/mingram_f1.15_em2_p0.0_n32768_6a46f861edc5191c.model.json.gz": {
+    "renyi_bits": 6.230969981878376,
+    "renyi_eff": 0.413537730269018,
+    "shannon_bits": 10.928950986771927,
+    "nonzero_vocab": 34337,
+    "bytes_per_token": 4.401389232749196
+  },
+  "alpha3.0/fineweb_de_5gb/fineweb_de_5gb/mingram/mingram_f1.15_em2_p0.0_n32768_aac46b87b375d558.model.json.gz": {
+    "renyi_bits": 6.438847823482478,
+    "renyi_eff": 0.427347301066555,
+    "shannon_bits": 11.541248335427662,
+    "nonzero_vocab": 34326,
+    "bytes_per_token": 4.713191338033009
+  },
+  "alpha3.0/fineweb_fi_5gb/fineweb_fi_5gb/mingram/mingram_f1.15_em2_p0.0_n32768_fb93ba30bb17809d.model.json.gz": {
+    "renyi_bits": 6.5185269511235635,
+    "renyi_eff": 0.43264165146235223,
+    "shannon_bits": 12.37039920617369,
+    "nonzero_vocab": 34321,
+    "bytes_per_token": 4.966970737270202
+  },
+  "alpha3.0/fineweb_ru_5gb/fineweb_ru_5gb/mingram/mingram_f1.15_em2_p0.0_n32768_c9f8c1982244754f.model.json.gz": {
+    "renyi_bits": 6.1221519569904235,
+    "renyi_eff": 0.4063383512604873,
+    "shannon_bits": 11.926999907654523,
+    "nonzero_vocab": 34317,
+    "bytes_per_token": 7.936755928851816
+  },
+  "alpha3.0/fineweb_ar_5gb/fineweb_ar_5gb/mingram/mingram_f1.15_em2_p0.0_n32768_b9cf3c9511dd5eeb.model.json.gz": {
+    "renyi_bits": 7.049495517035712,
+    "renyi_eff": 0.4678330358169979,
+    "shannon_bits": 12.301480777784366,
+    "nonzero_vocab": 34359,
+    "bytes_per_token": 7.394247252124816
+  },
+  "alpha3.0/fineweb_ko_5gb/fineweb_ko_5gb/mingram/mingram_f1.15_em2_p0.0_n32768_989b5a0600b3223d.model.json.gz": {
+    "renyi_bits": 6.681377753984901,
+    "renyi_eff": 0.4433045437644345,
+    "shannon_bits": 12.358832526017903,
+    "nonzero_vocab": 34439,
+    "bytes_per_token": 5.270339324140341
+  }
+}
