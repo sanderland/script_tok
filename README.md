@@ -35,6 +35,11 @@ This repository provides tools for SCRIPT encoding-based pre-tokenization with B
 - **`analysis/`**: Evaluation utilities
   - Compression metrics, morphological scoring, experiment tracking
 
+- **`ngram/`**: N-gram bits-per-byte evaluation ([details](script_bpe/ngram/README.md))
+  - Fits a modified Kneser-Ney model over a tokenizer's own token stream and reports
+    held-out bits per true UTF-8 byte. CPU only, minutes per tokenizer -- a middle
+    ground between compression-style intrinsic metrics and the GPU pretraining eval.
+
 ## Usage
 
 ### Installation
