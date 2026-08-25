@@ -115,3 +115,20 @@ def test_short_source_is_an_error_not_a_silent_truncation(tmp_path):
     path.write_text(json.dumps("only a little text"), encoding="utf-8")
     with pytest.raises(ValueError, match="short of the requested"):
         take_split(f"file:{path}", eval_chars=1000, train_chars=1000)
+
+
+def test_per_document_bits_partition_the_total(tiny_model):
+    """doc_bits must be an exact partition of the total, one entry per held-out document.
+
+    The paired significance test between two tokenizers rests on this: it compares the same
+    documents scored by each arm, so a misaligned split would silently pair up unrelated
+    documents and manufacture (or hide) a difference.
+    """
+    eval_docs = _docs(25, seed=5)
+    r = evaluate_ngram_bpb(tiny_model, eval_docs=eval_docs, train_docs=_docs(200, seed=2),
+                           orders=[3], tokenizer_id="split")[0]
+    assert len(r.doc_bits) == len(eval_docs)
+    assert len(r.doc_bytes) == len(eval_docs)
+    assert sum(r.doc_bits) == pytest.approx(r.bits, rel=1e-9)
+    assert sum(r.doc_bytes) == r.eval_bytes
+    assert all(b > 0 for b in r.doc_bits)

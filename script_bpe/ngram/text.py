@@ -16,6 +16,11 @@ Three source specs:
                             both a hand-downloaded FineWeb shard and nanochat's own data
                             directory, and is the practical way to read a Hub dataset whose
                             file list is too large for `load_dataset` to enumerate quickly.
+                            An `hf://datasets/...` path is read straight off the Hub by
+                            ranged request, fetching only the row groups actually consumed:
+                            a FineWeb-2 language shard is 4.8 GB, and this eval wants the
+                            first ~30 MB of it, so downloading the file would cost 150x the
+                            text it needs.
     hf:<dataset>[/<config>][#<split>]     streamed from the Hub. Convenient, but on a
                             repo with tens of thousands of shards the streaming resolver
                             can take longer to list files than the eval takes to run; reach
@@ -72,19 +77,33 @@ def _iter_parquet(spec: str) -> Iterator[str]:
     shard is ~2 GB and the caller normally wants a slice off the front, so materializing
     the column would cost more memory than the n-gram counting it feeds.
     """
+    import contextlib
+
     import pyarrow.parquet as pq
 
     pattern, _, column = spec.partition("#")
-    paths = sorted(glob.glob(pattern)) if any(c in pattern for c in "*?[") else [pattern]
-    if not paths:
-        raise FileNotFoundError(f"no parquet files match {pattern!r}")
     column = column or "text"
+    remote = pattern.startswith("hf://")
+    if remote:
+        paths = [pattern.removeprefix("hf://")]
+    else:
+        paths = sorted(glob.glob(pattern)) if any(c in pattern for c in "*?[") else [pattern]
+        if not paths:
+            raise FileNotFoundError(f"no parquet files match {pattern!r}")
+
     for path in paths:
-        parquet = pq.ParquetFile(path)
-        if column not in parquet.schema_arrow.names:
-            raise ValueError(f"{path} has no column {column!r}; found {parquet.schema_arrow.names}")
-        for batch in parquet.iter_batches(batch_size=2048, columns=[column]):
-            yield from batch.column(0).to_pylist()
+        with contextlib.ExitStack() as stack:
+            if remote:
+                from huggingface_hub import HfFileSystem
+
+                handle = stack.enter_context(HfFileSystem().open(path, "rb"))
+            else:
+                handle = path
+            parquet = pq.ParquetFile(handle)
+            if column not in parquet.schema_arrow.names:
+                raise ValueError(f"{path} has no column {column!r}; found {parquet.schema_arrow.names}")
+            for batch in parquet.iter_batches(batch_size=2048, columns=[column]):
+                yield from batch.column(0).to_pylist()
 
 
 def _iter_hf(spec: str) -> Iterator[str]:

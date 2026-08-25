@@ -24,11 +24,13 @@ bag of chunks with sequence order discarded.
 
 import csv
 import sys
+
+import numpy as np
 from pathlib import Path
 
 from cyclopts import App
 
-from paper_utils.hybrid.build_token_usage_counts import tokenizer_specs
+from paper_utils.hybrid.build_token_usage_counts import TokenizerSpec, tokenizer_specs
 from paper_utils.hybrid.utils import REPO_ROOT
 from script_bpe.corpus.base import PretokenizedCorpus
 from script_bpe.ngram import evaluate_ngram_bpb
@@ -56,6 +58,7 @@ def cli(
     text_source: str | None = None,
     orders: str = "1,2,3,4,5",
     methods: str | None = None,
+    extra: list[str] | None = None,
     eval_chars: int = DEFAULT_EVAL_CHARS,
     train_chars: int = DEFAULT_TRAIN_CHARS,
     skip_chars: int = 0,
@@ -71,6 +74,9 @@ def cli(
         text_source: Text for the n-gram LM (sampled:/file:/hf:). Defaults to sampled:<corpus>.
         orders: Comma-separated n-gram orders.
         methods: Comma-separated subset of arm names; default is all nine.
+        extra: Extra tokenizers outside the standard arms, as name=path. Repeatable.
+            For variants the paper's spec list doesn't name (a second PathPiece
+            setting, a retrained arm) so they land in the same TSV as the rest.
         eval_chars: Characters of held-out text. Taken from the front of the source.
         train_chars: Characters of LM training text, taken after the held-out slice.
         skip_chars: Discard this much text off the front first. Use it for a replicate on
@@ -88,6 +94,11 @@ def cli(
     specs = [s for s in tokenizer_specs(corpus) if wanted is None or s.name in wanted]
     if wanted and len(specs) != len(wanted):
         raise SystemExit(f"unknown arm(s): {wanted - {s.name for s in specs}}")
+    for item in extra or []:
+        name, sep, path = item.partition("=")
+        if not sep:
+            raise SystemExit(f"--extra expects name=path, got {item!r}")
+        specs.append(TokenizerSpec(name=name, path=Path(path)))
     missing = [s for s in specs if not Path(s.path).exists()]
     if missing:
         raise SystemExit(
@@ -105,6 +116,8 @@ def cli(
     logger.info(f"{len(eval_docs):,} eval docs / {len(train_docs):,} train docs")
 
     rows = []
+    doc_bits: dict[str, "np.ndarray"] = {}
+    doc_bytes = None
     for spec in specs:
         cls = detect_tokenizer_model_class(str(spec.path))
         model = cls.load(str(spec.path))
@@ -122,6 +135,9 @@ def cli(
             logger=logger,
         )
         rows.extend({"corpus": corpus, "text_source": source, **r.as_row()} for r in results)
+        for r in results:
+            doc_bits[f"{spec.name}|{r.order}"] = np.asarray(r.doc_bits)
+            doc_bytes = np.asarray(r.doc_bytes)
 
     out_path = Path(out) if out else RESULTS_DIR / f"ngram_bpb_{corpus}{'_' + tag if tag else ''}.tsv"
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -130,6 +146,15 @@ def cli(
         writer.writeheader()
         writer.writerows(rows)
     logger.info(f"wrote {len(rows)} rows to {out_path}")
+
+    # Per-document bits alongside the TSV. Every arm scores the same held-out documents, so
+    # storing them per document is what lets arm_significance.py run a *paired* bootstrap --
+    # the only way to ask whether two arms really differ, given the metric is deterministic
+    # and so has no seed-to-seed spread to quote.
+    if doc_bits and doc_bytes is not None:
+        bits_path = out_path.with_name(out_path.stem + "_docbits.npz")
+        np.savez_compressed(bits_path, doc_bytes=doc_bytes, **doc_bits)
+        logger.info(f"wrote per-document bits for {len(doc_bits)} (arm, order) pairs to {bits_path}")
 
 
 if __name__ == "__main__":

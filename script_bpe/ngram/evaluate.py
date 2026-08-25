@@ -82,10 +82,20 @@ class NgramResult:
     oov_token_rate: float      # eval tokens whose id never occurred in training
     roundtrip_ok: bool
     ngram_types: dict = field(default_factory=dict)
+    # Bits and bytes per held-out document. The metric is deterministic given the text, so
+    # there is no seed to average over the way the downstream sweep does -- the only honest
+    # way to ask whether two tokenizers differ is to resample the documents. Keeping the
+    # per-document split makes that a paired test: the same documents scored by both arms,
+    # which removes document difficulty (by far the largest source of variance) from the
+    # comparison. Excluded from `as_row`; written alongside the TSV instead.
+    doc_bits: list[float] = field(default_factory=list, repr=False)
+    doc_bytes: list[int] = field(default_factory=list, repr=False)
 
     def as_row(self) -> dict:
         row = asdict(self)
         row["ngram_types"] = ",".join(f"{k}:{v}" for k, v in sorted(self.ngram_types.items()))
+        row.pop("doc_bits", None)
+        row.pop("doc_bytes", None)
         return row
 
 
@@ -224,6 +234,10 @@ def evaluate_ngram_bpb(
         eval_stream, eval_mask, eval_pos = build_stream(eval_ids, order, geom.bos_id, geom.eos_id)
         log2p = lm.log2_probs(eval_stream, eval_mask, eval_pos)
         bits = float(-log2p.sum())
+        # Split the scored positions back out per document. Each contributes its tokens
+        # plus one EOS, in stream order, so the boundaries are a cumulative sum.
+        per_doc = np.add.reduceat(-log2p, np.concatenate([[0], np.cumsum(
+            [len(a) + 1 for a in eval_ids[:-1]])])) if eval_ids else np.zeros(0)
         # Scored positions include one EOS per document; those cost bits and add no bytes.
         # The document count is identical across tokenizers, so it does not shift rankings.
         results.append(NgramResult(
@@ -241,6 +255,8 @@ def evaluate_ngram_bpb(
             tokens_per_byte=eval_tokens / eval_bytes,
             oov_token_rate=oov,
             roundtrip_ok=roundtrip_ok,
+            doc_bits=[float(b) for b in per_doc],
+            doc_bytes=[len(d.encode("utf-8")) for d in eval_docs],
             ngram_types={k + 1: len(t) for k, t in enumerate(lm.tables)},
         ))
         logger.info(f"{tokenizer_id} n={order}: bpb={results[-1].bpb:.4f} "
