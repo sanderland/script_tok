@@ -20,6 +20,12 @@ Scoring against the real text sidesteps that entirely -- there is no factor to m
 nothing to get wrong. It does mean a *lossy* tokenizer would be flattered by having less
 to predict against an unchanged denominator, so `roundtrip_ok` is reported alongside.
 
+**Do not compare bpb across scripts.** The denominator is UTF-8 bytes, and a Cyrillic
+character costs two of them where a Latin one costs one, so Russian scores ~1.20 against
+English's ~1.97 on the same tokenizer family -- a difference in encoding width, not in
+predictability. Rankings *within* a language are unaffected, since every arm is divided by
+the same denominator, and that is the only comparison this metric supports.
+
 What this metric is not: a substitute for training a model. Context here is measured in
 tokens, so a trigram over a high-compression vocabulary sees several times more bytes of
 history than one over a byte-level vocabulary. That mirrors how a fixed-context

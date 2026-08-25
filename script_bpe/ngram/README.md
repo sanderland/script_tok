@@ -43,6 +43,9 @@ knowing:
   long tokens.
 - **An n-gram cannot see inside a token.** Whatever compositional structure a transformer
   recovers from subword pieces is invisible here.
+- **bpb is not comparable across scripts.** UTF-8 gives Cyrillic two bytes per character
+  and Hangul three, so the same tokenizer family scores ~1.20 on Russian and ~1.97 on
+  English purely from encoding width. Compare arms within a language, never across.
 - **Rankings can move with the training-corpus size**, because a larger vocabulary means
   sparser counts. Check stability across at least two budgets before trusting an order.
 - **`PretokenizedCorpus` is unusable as a source.** It stores a `Counter` of chunks, so
