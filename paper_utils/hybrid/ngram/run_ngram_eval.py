@@ -58,6 +58,7 @@ def cli(
     methods: str | None = None,
     eval_chars: int = DEFAULT_EVAL_CHARS,
     train_chars: int = DEFAULT_TRAIN_CHARS,
+    skip_chars: int = 0,
     num_workers: int = 8,
     tag: str | None = None,
     corpora_dir: str = PretokenizedCorpus.DEFAULT_BASE_PATH,
@@ -72,6 +73,8 @@ def cli(
         methods: Comma-separated subset of arm names; default is all nine.
         eval_chars: Characters of held-out text. Taken from the front of the source.
         train_chars: Characters of LM training text, taken after the held-out slice.
+        skip_chars: Discard this much text off the front first. Use it for a replicate on
+            disjoint text, to check whether a ranking survives a different sample.
         num_workers: Processes for tokenizer encoding, which dominates wall-clock.
         tag: Suffix for the output filename, to keep runs on different text sources apart.
         corpora_dir: Where the registry keeps corpora and the sampled-text cache.
@@ -95,9 +98,10 @@ def cli(
             "  uv run bash paper_utils/hybrid/run_all_experiments.sh"
         )
 
-    logger.info(f"reading text from {source}: {eval_chars:,} eval + {train_chars:,} train chars")
+    skipping = f", after skipping {skip_chars:,}" if skip_chars else ""
+    logger.info(f"reading text from {source}: {eval_chars:,} eval + {train_chars:,} train chars{skipping}")
     eval_docs, train_docs = take_split(source, eval_chars=eval_chars, train_chars=train_chars,
-                                       base_dir=corpora_dir)
+                                       skip_chars=skip_chars, base_dir=corpora_dir)
     logger.info(f"{len(eval_docs):,} eval docs / {len(train_docs):,} train docs")
 
     rows = []
@@ -114,7 +118,7 @@ def cli(
             tokenizer_class=f"{cls.__module__}.{cls.__name__}",
             num_workers=num_workers,
             cache_dir=str(RESULTS_DIR / "encoded"),
-            spec=f"{source}:{eval_chars}:{train_chars}",
+            spec=f"{source}:{eval_chars}:{train_chars}:{skip_chars}",
             logger=logger,
         )
         rows.extend({"corpus": corpus, "text_source": source, **r.as_row()} for r in results)

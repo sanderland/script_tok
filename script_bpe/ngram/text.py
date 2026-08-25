@@ -12,7 +12,14 @@ Three source specs:
                             in order. Free if the corpus was ever built on this machine.
     file:<path>             .jsonl (one JSON string per line, the block-cache format) or
                             .txt (one document per line).
-    hf:<dataset>[/<config>][#<split>]     streamed from the Hub.
+    parquet:<path-or-glob>[#<column>]     parquet shards, `text` column by default. Covers
+                            both a hand-downloaded FineWeb shard and nanochat's own data
+                            directory, and is the practical way to read a Hub dataset whose
+                            file list is too large for `load_dataset` to enumerate quickly.
+    hf:<dataset>[/<config>][#<split>]     streamed from the Hub. Convenient, but on a
+                            repo with tens of thousands of shards the streaming resolver
+                            can take longer to list files than the eval takes to run; reach
+                            for `parquet:` on those.
 
 Train and eval slices are contiguous and disjoint: eval takes the first `eval_chars` of
 the stream, train the next `train_chars`. Contiguous rather than interleaved on purpose --
@@ -58,6 +65,28 @@ def _iter_sampled(corpus_name: str, base_dir: str) -> Iterator[str]:
         yield from _iter_jsonl(os.path.join(matches[0], name))
 
 
+def _iter_parquet(spec: str) -> Iterator[str]:
+    """Documents from parquet shards, in filename order then row order.
+
+    Read in record batches via pyarrow rather than with a whole-file reader: a FineWeb
+    shard is ~2 GB and the caller normally wants a slice off the front, so materializing
+    the column would cost more memory than the n-gram counting it feeds.
+    """
+    import pyarrow.parquet as pq
+
+    pattern, _, column = spec.partition("#")
+    paths = sorted(glob.glob(pattern)) if any(c in pattern for c in "*?[") else [pattern]
+    if not paths:
+        raise FileNotFoundError(f"no parquet files match {pattern!r}")
+    column = column or "text"
+    for path in paths:
+        parquet = pq.ParquetFile(path)
+        if column not in parquet.schema_arrow.names:
+            raise ValueError(f"{path} has no column {column!r}; found {parquet.schema_arrow.names}")
+        for batch in parquet.iter_batches(batch_size=2048, columns=[column]):
+            yield from batch.column(0).to_pylist()
+
+
 def _iter_hf(spec: str) -> Iterator[str]:
     from datasets import load_dataset
 
@@ -82,25 +111,36 @@ def iter_documents(spec: str, base_dir: str = PretokenizedCorpus.DEFAULT_BASE_PA
                 for line in f:
                     if line.strip():
                         yield line.rstrip("\n")
+    elif kind == "parquet":
+        yield from _iter_parquet(rest)
     elif kind == "hf":
         yield from _iter_hf(rest)
     else:
-        raise ValueError(f"unknown text source spec {spec!r}; expected sampled:/file:/hf: prefix")
+        raise ValueError(f"unknown text source spec {spec!r}; expected sampled:/file:/parquet:/hf: prefix")
 
 
-def take_split(spec: str, *, eval_chars: int, train_chars: int,
+def take_split(spec: str, *, eval_chars: int, train_chars: int, skip_chars: int = 0,
                base_dir: str = PretokenizedCorpus.DEFAULT_BASE_PATH) -> tuple[list[str], list[str]]:
     """Read one pass of `spec` into disjoint (eval_docs, train_docs) slices.
 
     Documents are never split, so the realized sizes overshoot the budgets by at most one
     document each. Raises if the source runs dry before both budgets are met -- a silently
     short training corpus would look like a real result.
+
+    `skip_chars` discards that much text off the front first, which is how to get a
+    replicate on disjoint text. That matters more here than it might look: the differences
+    between tokenizer arms are small at higher orders, so the honest question is whether a
+    ranking survives being measured on a different sample, and a replicate is the only way
+    to answer it.
     """
     eval_docs: list[str] = []
     train_docs: list[str] = []
-    seen_eval = seen_train = 0
+    seen_eval = seen_train = skipped = 0
     for doc in iter_documents(spec, base_dir=base_dir):
         if not doc:
+            continue
+        if skipped < skip_chars:
+            skipped += len(doc)
             continue
         if seen_eval < eval_chars:
             eval_docs.append(doc)
@@ -112,7 +152,8 @@ def take_split(spec: str, *, eval_chars: int, train_chars: int,
             break
     if seen_eval < eval_chars or seen_train < train_chars:
         raise ValueError(
-            f"{spec!r} yielded {seen_eval:,} eval + {seen_train:,} train chars, short of the "
-            f"requested {eval_chars:,} + {train_chars:,}. Use a larger source or smaller budgets."
+            f"{spec!r} yielded {seen_eval:,} eval + {seen_train:,} train chars after skipping "
+            f"{skipped:,}, short of the requested {eval_chars:,} + {train_chars:,}. "
+            f"Use a larger source or smaller budgets."
         )
     return eval_docs, train_docs
