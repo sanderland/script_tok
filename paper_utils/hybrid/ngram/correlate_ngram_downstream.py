@@ -6,17 +6,21 @@ downstream sweep already scored the same nine arms with 20 seeds each of nanocha
 pretraining; this ranks the CPU-only n-gram numbers against those and reports, for every
 order, how well the cheap ranking reproduces the expensive one.
 
-Read the output as follows. Kendall tau against `core` is the headline -- CORE is the
-downstream benchmark the paper reports, and rank agreement is what matters for a metric
-whose job is to choose between tokenizers. Tau against `val_bpb` is the easier target,
-since it compares a bits-per-byte number to another bits-per-byte number; a metric that
-tracks val_bpb but not CORE is measuring compression, which is what the existing intrinsic
-metrics already do and is exactly the correlation known to be unreliable.
+**Read the pairwise table, not the Kendall tau.** Tau over all arms is actively
+misleading here, and measurably so: on the first real run it reported 0.14 against CORE,
+because it averaged a handful of genuine agreements together with sixteen arm pairs that
+the GPU sweep does not separate at all. The between-arm range in CORE (0.0059) is smaller
+than the within-arm seed standard deviation (~0.006), so most of what tau scores is the
+downstream sweep's own noise, and no metric could do better than chance on it.
 
-`--seed-spread` prints the seed-to-seed standard deviation of the downstream numbers, which
-bounds how well *anything* could correlate: where two arms differ by less than the seed
-noise, their true order is not established by the downstream runs either, and a
-disagreement there is not evidence against the n-gram metric.
+So the honest question is narrower: *of the arm pairs the expensive sweep actually
+resolves, how many does the cheap metric order correctly?* That is what the pairwise
+section reports -- a Welch t-test per arm pair to find the resolved ones, then the n-gram
+metric's hit rate on those, with a binomial p-value against the 50% chance baseline.
+
+Tau is still printed, since it is what a reader expects, but treat it as a footnote.
+
+`--seed-spread` prints the per-arm means and seed-to-seed spread behind all of this.
 
     uv run python paper_utils/hybrid/ngram/correlate_ngram_downstream.py \
         --ngram-tsv results/ngram/ngram_bpb_fineweb_en_5gb.tsv
@@ -28,8 +32,10 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
+import itertools
+
 from cyclopts import App
-from scipy.stats import kendalltau, spearmanr
+from scipy.stats import binomtest, kendalltau, spearmanr, ttest_ind
 from tabulate import tabulate
 
 from paper_utils.hybrid.downstream_results import DOWNSTREAM_RESULTS_TSV, METHOD_ORDER, load_rows
@@ -38,13 +44,39 @@ from paper_utils.hybrid.token_usage_counts import TOKENIZER_TO_METHOD
 app = App()
 
 
-def _downstream_by_method(path: Path) -> dict[str, dict[str, float]]:
-    """Mean CORE and val_bpb per arm, plus the seed spread of each."""
+# Which downstream metrics we compare against, and whether lower is better for each.
+TARGETS = {"core": False, "val_bpb": True}
+
+
+def _downstream_seeds(path: Path) -> dict[str, dict[str, list[float]]]:
+    """Per-arm lists of per-seed values, which the pairwise tests need."""
     per_method: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
     for row in load_rows(path):
-        for col in ("core", "val_bpb"):
+        for col in TARGETS:
             if row.get(col) not in (None, ""):
                 per_method[row["method"]][col].append(float(row[col]))
+    return per_method
+
+
+def _resolved_pairs(seed_values: dict[str, list[float]], methods: list[str], alpha: float):
+    """Arm pairs the downstream sweep separates, by Welch t-test over seeds.
+
+    Welch rather than Student: the arms do not have equal seed variance (CORE sd ranges
+    from 0.0040 to 0.0087 across arms), and pooling it would overstate significance for
+    the low-variance arms.
+    """
+    out = []
+    for a, b in itertools.combinations(methods, 2):
+        if a in seed_values and b in seed_values:
+            p = ttest_ind(seed_values[a], seed_values[b], equal_var=False).pvalue
+            if p < alpha:
+                out.append((a, b, p))
+    return out
+
+
+def _downstream_by_method(path: Path) -> dict[str, dict[str, float]]:
+    """Mean CORE and val_bpb per arm, plus the seed spread of each."""
+    per_method = _downstream_seeds(path)
     out = {}
     for method, cols in per_method.items():
         entry = {}
@@ -61,16 +93,19 @@ def cli(
     ngram_tsv: str,
     downstream_tsv: str = str(DOWNSTREAM_RESULTS_TSV),
     seed_spread: bool = False,
+    alpha: float = 0.05,
     out: str | None = None,
 ) -> None:
-    """Rank-correlate n-gram bpb against downstream CORE and val_bpb, one row per order.
+    """Score n-gram bpb against downstream CORE and val_bpb, one row per order.
 
     Args:
         ngram_tsv: Output of run_ngram_eval.py.
         downstream_tsv: The GPU sweep's master results (method, seed, val_bpb, core).
         seed_spread: Also print each arm's downstream mean and seed-to-seed spread.
+        alpha: Significance level for deciding which arm pairs the sweep resolves.
         out: Write the correlation table to this TSV as well as printing it.
     """
+    seed_values = _downstream_seeds(Path(downstream_tsv))
     downstream = _downstream_by_method(Path(downstream_tsv))
     if not downstream:
         raise SystemExit(f"no downstream rows in {downstream_tsv}")
@@ -109,8 +144,44 @@ def cli(
             row[f"rho_{col}"] = sign * spearmanr(bpb, target).statistic
         table.append(row)
 
+    # The headline: agreement restricted to the pairs the GPU sweep actually resolves.
     print(f"\nn-gram bpb vs downstream, {len(ngram_rows)} rows from {ngram_tsv}")
-    print("positive = the cheap metric agrees with the expensive one\n")
+    for col, better_low in TARGETS.items():
+        values = {m: v[col] for m, v in seed_values.items() if col in v}
+        methods = [m for m in METHOD_ORDER if m in values and any(m in s for s in by_order.values())]
+        pairs = _resolved_pairs(values, methods, alpha)
+        n_all = len(methods) * (len(methods) - 1) // 2
+        print(f"\n{col}: {len(pairs)}/{n_all} arm pairs separated downstream (Welch p<{alpha})")
+        if not pairs:
+            print("  none — the sweep does not resolve these arms on this metric, so there is "
+                  "nothing here for any cheap metric to predict.")
+            continue
+        rows_out = []
+        for order in sorted(by_order):
+            scores = by_order[order]
+            if not all(m in scores for m in methods):
+                continue
+            hits = 0
+            for a, b, _ in pairs:
+                mean_a = statistics.fmean(values[a])
+                mean_b = statistics.fmean(values[b])
+                down_a_better = (mean_a < mean_b) if better_low else (mean_a > mean_b)
+                hits += down_a_better == (scores[a] < scores[b])   # lower bpb = better
+            rows_out.append({
+                "order": order, "correct": f"{hits}/{len(pairs)}",
+                "pct": 100 * hits / len(pairs),
+                "binomial_p": binomtest(hits, len(pairs), 0.5, alternative="greater").pvalue,
+            })
+        print(tabulate(rows_out, headers="keys", tablefmt="github", floatfmt=".3f"))
+        missed = [f"{a} vs {b}" for a, b, _ in pairs
+                  if ((statistics.fmean(values[a]) < statistics.fmean(values[b])) if better_low
+                      else (statistics.fmean(values[a]) > statistics.fmean(values[b])))
+                  != (by_order[max(by_order)][a] < by_order[max(by_order)][b])]
+        if missed:
+            print(f"  missed at n={max(by_order)}: {'; '.join(missed)}")
+
+    print("\nKendall/Spearman over all arms — a footnote, not the headline: these average the\n"
+          "resolved pairs together with pairs the sweep leaves as noise (see module docstring).\n")
     print(tabulate(table, headers="keys", tablefmt="github", floatfmt=".3f"))
 
     if seed_spread:
