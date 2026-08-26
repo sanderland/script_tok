@@ -22,6 +22,16 @@ Tau is still printed, since it is what a reader expects, but treat it as a footn
 
 `--seed-spread` prints the per-arm means and seed-to-seed spread behind all of this.
 
+**The arms are not independent, and one pair barely differs at all.** MinGram-PP (f=8) and
+PathPiece-BPE prune the *same* 262,144-token BPE initialisation -- 8 x 32,768 for the
+former, `iv262144` for the latter -- by two similar minimum-token-count criteria, and end
+up sharing 98.52% of their vocabulary (34,172 of 34,684 tokens; for scale, MinGram-PP vs
+MinGram f=1.15 is 86.48% and vs BPE 79.33%). They segment test text identically and report
+the same tokens/byte to four decimals. So the pair count treats them as two arms when they
+are nearly one, which slightly overstates how much independent evidence a hit rate carries.
+It is not a large effect at nine arms -- one pair in thirty-six -- but a hit or miss on
+that pair should not be read as an independent data point.
+
     uv run python paper_utils/hybrid/ngram/correlate_ngram_downstream.py \
         --ngram-tsv results/ngram/ngram_bpb_fineweb_en_5gb.tsv
 """
