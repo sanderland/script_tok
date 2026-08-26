@@ -47,28 +47,19 @@ app = App()
 # Which downstream metrics we compare against, and whether lower is better for each.
 TARGETS = {"core": False, "val_bpb": True}
 
-# Tokenizer-spec name -> the method key that actually appears in the master TSV. This
-# diverges from TOKENIZER_TO_METHOD in three places, and every divergence silently loses
-# an arm rather than raising, which is why the mapping is restated here instead of reused:
+# Tokenizer-spec name -> the method key in the master TSV. Since the arms were renamed
+# consistently upstream (mingram_mi_f8 -> mingram_pp_f8, and PathPiece's paper arm moved to
+# pathpiece_pb01), TOKENIZER_TO_METHOD is now correct for every arm the paper reports and
+# is reused as-is. One entry is added, for an arm the paper does not report:
 #
-#   mingram_pp_f8 -- the TSV calls this arm `mingram_mi_f8`, METHOD_ORDER calls it
-#     `mingram_pp_f8`. load_rows filters on METHOD_ORDER and skips methods it finds no
-#     rows for, so asking for 9 arms returns 8 with no warning. Verified: load_rows on the
-#     committed TSV drops exactly this arm.
-#   pathpiece / pathpiece_pb0.1 -- the TSV holds both a 24-seed `pathpiece` block and a
-#     20-seed `pathpiece_pb01` block. The 24-seed rows are the pb0.2 model, so
-#     TOKENIZER_TO_METHOD's `pathpiece_pb0.1 -> pathpiece` joins pb0.1 tokenizers onto
-#     pb0.2 downstream rows. Mapping each setting to its own rows keeps them separate and,
-#     as a side effect, gives two more arms to test on.
-#
-# Renaming the TSV or METHOD_ORDER is the paper's call, not this module's, so the
-# translation lives here and `_downstream_seeds` reads the TSV unfiltered.
-DOWNSTREAM_METHOD = {
-    **TOKENIZER_TO_METHOD,
-    "mingram_pp_f8": "mingram_mi_f8",
-    "pathpiece_pb0.1": "pathpiece_pb01",
-    "pathpiece_pb0.2": "pathpiece",
-}
+#   pathpiece_pb0.2 -> pathpiece. The TSV keeps a 24-seed bare `pathpiece` block, now
+#     excluded from METHOD_ORDER as superseded. Those rows are *probably* the pb=0.2 model
+#     -- but nothing on disk records which pb setting produced them, so treating them as
+#     pb0.2 is an inference, not a fact. It is therefore off by default and enabled with
+#     --include-superseded, which reports it as a sensitivity check rather than folding an
+#     unverified pairing into the headline.
+SUPERSEDED_METHOD = {"pathpiece_pb0.2": "pathpiece"}
+DOWNSTREAM_METHOD = {**TOKENIZER_TO_METHOD, **SUPERSEDED_METHOD}
 
 
 def _downstream_seeds(path: Path) -> dict[str, dict[str, list[float]]]:
@@ -84,7 +75,13 @@ def _downstream_seeds(path: Path) -> dict[str, dict[str, list[float]]]:
 
 
 def _arm_order(by_order: dict[int, dict[str, float]]) -> list[str]:
-    """Arms to report, METHOD_ORDER first then any extras the TSV names differently."""
+    """Arms to report: the paper's own order, then any superseded extras that were kept.
+
+    `m in seen` filtering is deliberate here and safe only because an arm that was scored
+    but has no downstream rows already raised in `cli`. Silently intersecting arm-name
+    lists is how this repo lost an arm from three different tables, so the check has to
+    happen before any filtering, not instead of it.
+    """
     seen = {m for scores in by_order.values() for m in scores}
     return [m for m in METHOD_ORDER if m in seen] + sorted(seen - set(METHOD_ORDER))
 
@@ -124,6 +121,7 @@ def cli(
     ngram_tsv: str,
     downstream_tsv: str = str(DOWNSTREAM_RESULTS_TSV),
     seed_spread: bool = False,
+    include_superseded: bool = False,
     alpha: float = 0.05,
     out: str | None = None,
 ) -> None:
@@ -133,6 +131,9 @@ def cli(
         ngram_tsv: Output of run_ngram_eval.py.
         downstream_tsv: The GPU sweep's master results (method, seed, val_bpb, core).
         seed_spread: Also print each arm's downstream mean and seed-to-seed spread.
+        include_superseded: Also score arms the paper no longer reports, currently the bare
+            `pathpiece` rows. Their pb setting is not recorded on disk, so this is a
+            sensitivity check, not the headline.
         alpha: Significance level for deciding which arm pairs the sweep resolves.
         out: Write the correlation table to this TSV as well as printing it.
     """
@@ -148,6 +149,8 @@ def cli(
     unmapped, no_rows = set(), set()
     for row in ngram_rows:
         method = DOWNSTREAM_METHOD.get(row["tokenizer_id"])
+        if method in SUPERSEDED_METHOD.values() and not include_superseded:
+            continue
         if method is None:
             unmapped.add(row["tokenizer_id"])
             continue
