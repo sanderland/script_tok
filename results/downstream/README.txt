@@ -14,6 +14,23 @@ d24_master_results.tsv   -> results/downstream/d24_master_results.tsv
     Master per-seed downstream LM results with bpb, CORE, and the 22 centered
     task accuracies. Paper tables use the 20 lowest seed ids for each included
     method so all rows have matched n=20.
+
+    METHOD NAMES. The nine arms the paper reports are METHOD_ORDER in
+    paper_utils/hybrid/downstream_results.py. Two carry historical names:
+
+      mingram_pp_f8   MinGram-PP, the MI-prune arm (f=8, 2 EM iters, p=0.9).
+                      Earlier files and the tokenizer filename tag call this
+                      mingram_mi / _pcmi; the tokenizer lives at
+                      results/mingram/<corpus>/mingram_f8.0_em2_p0.9_pcmi_*.
+      pathpiece_pb01  PathPiece-BPE at the canonical prune-batch fraction 0.1
+                      (train_pathpiece.MAIN_PRUNE_BATCH_FRACTION). The bare
+                      "pathpiece" rows in this TSV are the earlier, superseded
+                      PathPiece run at a different prune-batch fraction and are
+                      NOT what the paper reports - they are kept for reference.
+
+    Averaging every row of this TSV will not reproduce the paper: it mixes the
+    superseded pathpiece rows in and ignores the 20-lowest-seeds rule. Load it
+    through downstream_results.load_rows() instead, which applies both.
     rendered by:
       paper_utils/hybrid/generate_downstream_table.py
       paper_utils/hybrid/generate_downstream_seed_table.py

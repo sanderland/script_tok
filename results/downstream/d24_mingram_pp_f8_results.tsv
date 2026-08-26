@@ -1,0 +1,23 @@
+# d24 downstream, MinGram-MI f=8 (careful-MI prune, max-compression overshoot), FineWeb-en,
+# matched vocab 34,685, ratio 8, n=20 native 8-GPU. Compare vs mingram_f1.15 (stock optimum).
+method	seed	core	val_bpb
+mingram_pp_f8	45	0.2653	0.712684
+mingram_pp_f8	46	0.2587	0.712314
+mingram_pp_f8	47	0.2555	0.712339
+mingram_pp_f8	48	0.2630	0.712200
+mingram_pp_f8	49	0.2589	0.712277
+mingram_pp_f8	50	0.2833	0.712715
+mingram_pp_f8	51	0.2815	0.712947
+mingram_pp_f8	52	0.2706	0.712793
+mingram_pp_f8	53	0.2616	0.712497
+mingram_pp_f8	54	0.2632	0.712752
+mingram_pp_f8	55	0.2709	0.712365
+mingram_pp_f8	56	0.2705	0.712393
+mingram_pp_f8	57	0.2756	0.712874
+mingram_pp_f8	58	0.2667	0.712483
+mingram_pp_f8	59	0.2719	0.712128
+mingram_pp_f8	60	0.2764	0.712223
+mingram_pp_f8	61	0.2671	0.712690
+mingram_pp_f8	62	0.2605	0.712628
+mingram_pp_f8	63	0.2700	0.712630
+mingram_pp_f8	64	0.2687	0.712457

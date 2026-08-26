@@ -19,7 +19,7 @@ TOKENIZER_TO_METHOD = {
     "fsp_bpe_init_f1.15": "fsp_bpe_init_f1.15",
     "mingram_f1.15": "mingram_f1.15",
     "mingram_pp_f8": "mingram_pp_f8",
-    "pathpiece_pb0.1": "pathpiece",
+    "pathpiece_pb0.1": "pathpiece_pb01",
     "convextok": "convextok",
 }
 METHOD_TO_TOKENIZER = {method: tokenizer for tokenizer, method in TOKENIZER_TO_METHOD.items()}

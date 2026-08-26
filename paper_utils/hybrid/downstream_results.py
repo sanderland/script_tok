@@ -17,7 +17,7 @@ METHOD_ORDER = [
     "fsp_bpe_init_f1.15",
     "mingram_f1.15",
     "mingram_pp_f8",
-    "pathpiece",
+    "pathpiece_pb01",
     "convextok",
 ]
 METHOD_LABEL = {
@@ -28,7 +28,7 @@ METHOD_LABEL = {
     "fsp_bpe_init_f1.15": "FSP\\hspace{0pt}-BPE\\hspace{0pt}-Init",
     "mingram_f1.15": "MinGram",
     "mingram_pp_f8": "\\mingrampp{}",
-    "pathpiece": "PathPiece\\hspace{0pt}-BPE",
+    "pathpiece_pb01": "PathPiece\\hspace{0pt}-BPE",
     "convextok": "ConvexTok",
 }
 METHOD_SHORT_LABEL = {
@@ -39,11 +39,12 @@ METHOD_SHORT_LABEL = {
     "fsp_bpe_init_f1.15": "F-BPE",
     "mingram_f1.15": "Min",
     "mingram_pp_f8": "Min-PP",
-    "pathpiece": "Path",
+    "pathpiece_pb01": "Path",
     "convextok": "Conv",
 }
 GLITCH_KEY = {
     "mingram_pp_f8": "mingram_pp",
+    "pathpiece_pb01": "pathpiece",
 }
 TASK_LABEL = {
     "hellaswag_zeroshot": "HellaSwag-0",
@@ -95,7 +96,7 @@ def load_rows(
     method_order = methods if methods is not None else sorted(rows_by_method)
     for method in method_order:
         if method not in rows_by_method:
-            continue
+            raise ValueError(f"{method} has no downstream rows in {path}")
         method_rows = sorted(rows_by_method[method], key=lambda row: int(row["seed"]))
         if len(method_rows) < seeds_per_method:
             raise ValueError(f"{method} has {len(method_rows)} downstream seeds, need {seeds_per_method}")
