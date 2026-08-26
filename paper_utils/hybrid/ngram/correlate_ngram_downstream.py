@@ -47,15 +47,46 @@ app = App()
 # Which downstream metrics we compare against, and whether lower is better for each.
 TARGETS = {"core": False, "val_bpb": True}
 
+# Tokenizer-spec name -> the method key that actually appears in the master TSV. This
+# diverges from TOKENIZER_TO_METHOD in three places, and every divergence silently loses
+# an arm rather than raising, which is why the mapping is restated here instead of reused:
+#
+#   mingram_pp_f8 -- the TSV calls this arm `mingram_mi_f8`, METHOD_ORDER calls it
+#     `mingram_pp_f8`. load_rows filters on METHOD_ORDER and skips methods it finds no
+#     rows for, so asking for 9 arms returns 8 with no warning. Verified: load_rows on the
+#     committed TSV drops exactly this arm.
+#   pathpiece / pathpiece_pb0.1 -- the TSV holds both a 24-seed `pathpiece` block and a
+#     20-seed `pathpiece_pb01` block. The 24-seed rows are the pb0.2 model, so
+#     TOKENIZER_TO_METHOD's `pathpiece_pb0.1 -> pathpiece` joins pb0.1 tokenizers onto
+#     pb0.2 downstream rows. Mapping each setting to its own rows keeps them separate and,
+#     as a side effect, gives two more arms to test on.
+#
+# Renaming the TSV or METHOD_ORDER is the paper's call, not this module's, so the
+# translation lives here and `_downstream_seeds` reads the TSV unfiltered.
+DOWNSTREAM_METHOD = {
+    **TOKENIZER_TO_METHOD,
+    "mingram_pp_f8": "mingram_mi_f8",
+    "pathpiece_pb0.1": "pathpiece_pb01",
+    "pathpiece_pb0.2": "pathpiece",
+}
+
 
 def _downstream_seeds(path: Path) -> dict[str, dict[str, list[float]]]:
     """Per-arm lists of per-seed values, which the pairwise tests need."""
     per_method: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
-    for row in load_rows(path):
+    # methods=None: the default filter is METHOD_ORDER, whose names do not all exist in the
+    # TSV. Read everything and let DOWNSTREAM_METHOD do the matching.
+    for row in load_rows(path, methods=None):
         for col in TARGETS:
             if row.get(col) not in (None, ""):
                 per_method[row["method"]][col].append(float(row[col]))
     return per_method
+
+
+def _arm_order(by_order: dict[int, dict[str, float]]) -> list[str]:
+    """Arms to report, METHOD_ORDER first then any extras the TSV names differently."""
+    seen = {m for scores in by_order.values() for m in scores}
+    return [m for m in METHOD_ORDER if m in seen] + sorted(seen - set(METHOD_ORDER))
 
 
 def _resolved_pairs(seed_values: dict[str, list[float]], methods: list[str], alpha: float):
@@ -114,20 +145,31 @@ def cli(
         ngram_rows = list(csv.DictReader(f, delimiter="\t"))
 
     by_order: dict[int, dict[str, float]] = defaultdict(dict)
-    unmapped = set()
+    unmapped, no_rows = set(), set()
     for row in ngram_rows:
-        method = TOKENIZER_TO_METHOD.get(row["tokenizer_id"])
+        method = DOWNSTREAM_METHOD.get(row["tokenizer_id"])
         if method is None:
             unmapped.add(row["tokenizer_id"])
             continue
+        if method not in seed_values:
+            no_rows.add(f"{row['tokenizer_id']} -> {method}")
+            continue
         by_order[int(row["order"])][method] = float(row["bpb"])
     if unmapped:
-        print(f"# ignoring arms with no downstream counterpart: {', '.join(sorted(unmapped))}")
+        print(f"# no downstream counterpart, ignored: {', '.join(sorted(unmapped))}")
+    if no_rows:
+        # Loud on purpose. A scored tokenizer whose downstream rows cannot be found is the
+        # exact failure that silently turned 9 arms into 8; it must never pass unremarked.
+        raise SystemExit(
+            "these arms were scored but have no rows in the downstream TSV:\n  "
+            + "\n  ".join(sorted(no_rows))
+            + "\nCheck DOWNSTREAM_METHOD against the TSV's method column."
+        )
 
     table = []
     for order in sorted(by_order):
         scores = by_order[order]
-        methods = [m for m in METHOD_ORDER if m in scores and m in downstream]
+        methods = [m for m in _arm_order(by_order) if m in scores and m in downstream]
         if len(methods) < 3:
             print(f"# order {order}: only {len(methods)} arms in both sources, skipping")
             continue
@@ -148,7 +190,7 @@ def cli(
     print(f"\nn-gram bpb vs downstream, {len(ngram_rows)} rows from {ngram_tsv}")
     for col, better_low in TARGETS.items():
         values = {m: v[col] for m, v in seed_values.items() if col in v}
-        methods = [m for m in METHOD_ORDER if m in values and any(m in s for s in by_order.values())]
+        methods = [m for m in _arm_order(by_order) if m in values and any(m in s for s in by_order.values())]
         pairs = _resolved_pairs(values, methods, alpha)
         n_all = len(methods) * (len(methods) - 1) // 2
         print(f"\n{col}: {len(pairs)}/{n_all} arm pairs separated downstream (Welch p<{alpha})")
@@ -195,7 +237,7 @@ def cli(
                 "seeds": downstream[m].get("core_n") or downstream[m].get("val_bpb_n"),
                 **{f"ngram_n{o}": by_order[o].get(m) for o in sorted(by_order)},
             }
-            for m in METHOD_ORDER if m in downstream
+            for m in _arm_order(by_order) if m in downstream
         ]
         print("\nper-arm downstream means and seed spread "
               "(arms closer than ~1 sd are not separated by the GPU runs either)\n")
