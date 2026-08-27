@@ -1,43 +1,41 @@
 \documentclass[10pt,twocolumn]{article}
-\usepackage[margin=0.85in,top=0.8in,bottom=0.9in]{geometry}
+\usepackage[margin=0.8in,top=0.75in,bottom=0.85in]{geometry}
+\usepackage[T2A,T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[russian,english]{babel}
 \usepackage{times}
 \usepackage{booktabs}
-\usepackage{microtype}
+\usepackage[expansion=false]{microtype}
 \usepackage{amsmath}
 \usepackage[hidelinks]{hyperref}
 \usepackage{titlesec}
-\titlespacing*{\section}{0pt}{7pt}{4pt}
-\titlespacing*{\subsection}{0pt}{5pt}{3pt}
+\titlespacing*{\section}{0pt}{6pt}{3pt}
 \titleformat*{\section}{\normalsize\bfseries}
-\titleformat*{\subsection}{\small\bfseries}
 \setlength{\columnsep}{18pt}
 \usepackage{caption}
-\captionsetup{font=small,skip=4pt}
+\captionsetup{font=small,skip=3pt}
 
-\title{\vspace{-14pt}\Large\bfseries A Tiny Language Model Goes a Long Way:\\ Evaluating Tokenizers with Held-Out $n$-gram Bits-per-Byte}
+\title{\vspace{-16pt}\Large\bfseries A Tiny Language Model Goes a Long Way:\\ Evaluating Tokenizers with Held-Out $n$-gram Bits-per-Byte}
 \author{\normalsize Sander Land$^*$}
 \date{}
 
 \begin{document}
-\twocolumn[{\maketitle\vspace{-24pt}
+\twocolumn[{\maketitle\vspace{-26pt}
 \begin{quote}\small\noindent\textbf{Abstract.}
-Comparing tokenizers currently forces a choice between cheap intrinsic metrics with unreliable downstream correlation and GPU-scale pretraining sweeps. We propose a middle point: fit an interpolated modified Kneser--Ney $n$-gram language model to each tokenizer's own token stream and report held-out bits per UTF-8 byte (bpb), a family of measures that interpolates from intrinsic ($n{=}1$) toward extrinsic as $n$ grows, computable in CPU minutes. On nine closely matched 34.7K-vocabulary tokenizers with a 20-seed transformer sweep, where compression is at chance, $n$-gram bpb orders 85\% of the pairs both methods resolve ($p{=}0.0013$). On the 48-tokenizer TokEval suite at 128K vocabulary, held-out bigram bpb reaches Spearman $\rho{=}0.80$ against published 1.27B-model validation bpb, exceeding every intrinsic metric reported there, including R\'enyi efficiency (0.57) and plug-in trigram entropy (0.44, n.s.): held-out estimation and byte normalization, not sequential order per se, do the work. We characterize when the method fails, and show it discriminates best in exactly the multilingual settings where GPU validation is least affordable.
-\end{quote}\vspace{6pt}}]
-\begingroup\renewcommand\thefootnote{}\footnotetext{$^*$\,Draft, August 2026. Code and results: \texttt{github.com/sanderland/script\_tok}, branch \texttt{claude/ngram-tokenizer-eval-cq08so}. Prepared with Claude Code.}\endgroup
-
+Comparing tokenizers currently means choosing between cheap intrinsic metrics with unreliable downstream correlation and GPU-scale pretraining sweeps. We propose a middle point: fit an interpolated modified Kneser--Ney $n$-gram language model to each tokenizer's own token stream and report held-out bits per UTF-8 byte (bpb), computable in CPU minutes. On nine closely matched 34.7K-vocabulary tokenizers with a 20-seed transformer sweep, where compression is at chance, $n$-gram bpb orders 85\% of the pairs both methods resolve ($p{=}0.0013$). On the 48-tokenizer TokEval suite at 128K vocabulary, held-out \emph{bigram} bpb reaches Spearman $\rho{=}0.80$ against published 1.27B-model validation bpb, exceeding every intrinsic metric reported there, including R\'enyi efficiency (0.57) and plug-in trigram entropy (0.44, n.s.). Our central observation is a coverage confound that governs when sequential proxies work at all: the $n$-gram's context is measured in \emph{tokens}, so when candidate tokenizers differ in fertility, higher orders reward fragmentation rather than quality---at $n{=}3$ the panel's second-\emph{worst} tokenizer downstream is scored fourth-\emph{best}. The usable order is the largest $n$ at which held-out $n$-gram coverage is comparable across candidates, a diagnostic the metric provides about itself.
+\end{quote}\vspace{4pt}}]
+\begingroup\renewcommand\thefootnote{}\footnotetext{$^*$Draft, August 2026. Code and results: \texttt{github.com/sanderland/script\_tok}, branch \texttt{claude/ngram-tokenizer-eval-cq08so}. Prepared with Claude Code.}\endgroup
 
 \section{Introduction}
-Tokenizer evaluation is polarized. Intrinsic metrics---compression, fertility, R\'enyi efficiency \cite{zouhar2023}, Zipf statistics \cite{lotz2025}---cost seconds but correlate inconsistently with the models eventually trained \cite{schmidt2024,cognetta2024,ali2024}. Extrinsic evaluation pretrains a model per tokenizer \cite{meister2026,lotz2025}, which is exactly what practitioners iterating on a tokenizer cannot afford. Between plug-in corpus statistics and a transformer sits an old, unfashionable object: a smoothed $n$-gram language model. We show that, used carefully, it is a surprisingly strong tokenizer evaluation.
+Tokenizer evaluation is polarized. Intrinsic metrics---compression, fertility, R\'enyi efficiency \cite{zouhar2023}, Zipf statistics \cite{lotz2025}---cost seconds but correlate inconsistently with the models eventually trained \cite{schmidt2024,cognetta2024,ali2024}. Extrinsic evaluation pretrains a model per tokenizer \cite{meister2026,lotz2025}, which is what practitioners iterating on a tokenizer cannot afford. Between plug-in corpus statistics and a transformer sits an old, unfashionable object: a smoothed $n$-gram language model. We show that, used carefully, it is a surprisingly strong tokenizer evaluation---and that ``carefully'' has exact content.
 
-\textbf{Method.} For each candidate tokenizer we encode disjoint held-out and training text, fit an interpolated modified Kneser--Ney model \cite{chen1998} of order $n$ over the token stream (counts via dense-prefix-id \texttt{numpy}, no Python loop; minutes on a laptop), and report total held-out bits divided by the \emph{true UTF-8 byte length of the text}, measured before tokenization. Three design points matter. (i) The model is a proper distribution: level~1 interpolates into a uniform over the tokenizer's full alphabet, so bpb is a real code length and unused vocabulary is priced, not free. (ii) The true-byte denominator makes scores comparable across tokenizers without the per-token byte-accounting corrections neural bpb needs; a lossy tokenizer is flagged by a round-trip check rather than silently flattered. (iii) Because the metric is deterministic, uncertainty comes from a \emph{paired bootstrap over held-out documents}: every tokenizer scores the same documents, so document difficulty cancels and each pair of tokenizers gets a confidence interval. At $n{=}1$ the measure is close to token-entropy-per-byte intrinsic metrics; each increment adds sequential structure only a trained LM would otherwise see.
+\textbf{Method.} For each candidate tokenizer we encode disjoint held-out and training text, fit an interpolated modified Kneser--Ney model \cite{chen1998} of order $n$ over the token stream (dense-prefix-id \texttt{numpy} counting; minutes on a laptop), and report total held-out bits divided by the \emph{true UTF-8 byte length of the text}, measured before tokenization. Three design points: (i)~the model is a proper distribution---level~1 interpolates into a uniform over the tokenizer's full alphabet, so bpb is a real code length and unused vocabulary is priced, not free; (ii)~the true-byte denominator makes scores comparable across tokenizers without per-token byte-accounting corrections, and a lossy tokenizer trips a round-trip check rather than being silently flattered; (iii)~the metric is deterministic, so uncertainty comes from a \emph{paired bootstrap over held-out documents}: every tokenizer scores the same documents, document difficulty cancels, and every pair of tokenizers gets a confidence interval.
 
 \section{Fine distinctions: a matched panel}
-We first test the regime where intrinsic metrics are known to fail: nine tokenizers (BPE, Unigram, two BPE-initialized Unigram variants, MinGram, MinGram-PP, PathPiece at two prune settings, ConvexTok) sharing a 34.7K vocabulary, training corpus, and pretokenizer, each with $\geq$20 seeds of 1.27B-token nanochat \cite{karpathy2025} pretraining. Downstream val bpb separates 30 of 36 tokenizer pairs (Welch, $p{<}.05$); the task benchmark CORE separates only 9 of 36---its between-arm range is smaller than its seed noise, so at this scale \emph{the expensive benchmark is the one that cannot rank tokenizers}. The $n$-gram metric, from 5\,MB of held-out text, separates 31 of 36 pairs at 95\% and reproduces its ranking exactly on disjoint text at $n\geq3$ (Kendall $\tau{=}1.0$; $\tau{=}0.81$ below).
-
-On the pairs downstream resolves, $n\geq3$ bpb agrees with val bpb on 21/30 ($p{=}.021$; disjoint replicate 20/30, $p{=}.049$); restricted to pairs where \emph{both} metrics are individually confident, agreement is 17/20 = 85\% ($p{=}.0013$). Compression agrees on 17/30 and 16/30---chance. The misses are systematic, not random: every disagreement over-rates a plain Unigram-family tokenizer relative to what the transformer rewards. Multilingually (six languages, eight tokenizers each), the metric separates from 19/28 pairs (English) to 28/28 (German): English is the \emph{hardest} case---arms sit $8\times$ closer there than in Finnish---so English-only validation understates the method, and discrimination is best precisely where GPU validation is least available. Bpb is not comparable across scripts (UTF-8 width), only within a language.
+We first test the regime where intrinsic metrics fail: nine tokenizers (BPE, Unigram, BPE-initialized Unigram variants, MinGram, MinGram-PP, PathPiece at two prune settings, ConvexTok) sharing a 34.7K vocabulary, corpus, and pretokenizer, each with $\geq$20 seeds of 1.27B-token nanochat \cite{karpathy2025} pretraining. Downstream val bpb separates 30/36 tokenizer pairs (Welch, $p{<}.05$); the CORE task benchmark separates only 9/36---its between-arm range is smaller than its seed noise, so at this scale \emph{the expensive benchmark is the one that cannot rank tokenizers}. The $n$-gram metric, from 5\,MB of held-out text, separates 31/36 pairs at 95\% and reproduces its ranking exactly on disjoint text at $n{\geq}3$ (Kendall $\tau{=}1.0$; $\tau{=}0.81$ below). On downstream-resolved pairs, $n{\geq}3$ bpb agrees with val bpb on 21/30 ($p{=}.021$; replicate 20/30); where \emph{both} metrics are individually confident, 17/20 = 85\% ($p{=}.0013$). Compression agrees on 17/30 and 16/30---chance. Multilingually (six languages, eight tokenizers), separation runs from 19/28 pairs (English) to 28/28 (German); English is the \emph{hardest} case, so English-only validation understates the method, and discrimination is best where GPU validation is least available.
 
 \section{External validation on TokEval}
-TokEval \cite{meister2026} releases 51 nanochat runs at ${\sim}$128K vocabulary spanning algorithms, pretokenizers, and training mixtures, with published val bpb. We reconstruct its training mixture from the paper's byte shares (36.9\% FineWeb-Edu, 33.4\% FineWeb2 over 30 languages, 16.1\% FineMath, 13.6\% code) and score every released tokenizer, training nothing.
+TokEval \cite{meister2026} releases 51 nanochat runs at ${\sim}$128K vocabulary spanning algorithms, pretokenizers, and training mixtures, with published val bpb. We reconstruct its training mixture from the paper's byte shares (36.9\% FineWeb-Edu, 33.4\% FineWeb2 over 30 languages, 16.1\% FineMath, 13.6\% code) and score every released tokenizer, training nothing. Held-out bigram bpb reaches $\rho{=}0.80$ ($p{=}7{\times}10^{-12}$), exceeding every intrinsic metric in TokEval's own tables (Table~\ref{tab:tokeval}). The contrast with plug-in trigram entropy (0.44, n.s.) is the informative one: similar sequential information, different estimator---held-out smoothed estimation with byte normalization is what does the work. On the mixture-matched subset, compression again drops to chance while the $n$-gram holds, reproducing the matched-panel finding externally at four times the size. But $n{=}3$ collapses to $\rho{=}0.05$ on the full panel, and the reason deserves its own section.
 
 \begin{table}[t]\centering\small
 \begin{tabular}{lcc}
@@ -54,18 +52,37 @@ plug-in trigram entropy \cite{meister2026} & \multicolumn{2}{c}{0.44$^{\text{ns}
 compression rate \cite{meister2026} & \multicolumn{2}{c}{0.32$^{\text{ns}}$ ($n{=}29$)} \\
 \bottomrule
 \end{tabular}
-\caption{Spearman correlation with published val bpb on the TokEval panel. ``Matched 39'' drops the deliberately mixture-mismatched (English/code-only) tokenizers. Bottom: the strongest intrinsic metrics reported by TokEval on its primary panel. $^{***}p{<}10^{-7}$, $^{*}p{<}.05$.}
+\caption{Spearman correlation with published val bpb on the TokEval panel. ``Matched 39'' drops the deliberately mixture-mismatched (English/code-only) tokenizers. $^{***}p{<}10^{-7}$, $^{*}p{<}.05$.}
 \label{tab:tokeval}
 \end{table}
 
-Held-out \emph{bigram} bpb reaches $\rho{=}0.80$ ($p{=}7{\times}10^{-12}$), exceeding every intrinsic metric in TokEval's own tables (Table~\ref{tab:tokeval}). The comparison with plug-in trigram entropy (0.44, not significant) is the informative one: similar sequential information, different estimator. Held-out smoothed estimation with byte normalization---not $n$-gram order---is what does the work. On the mixture-matched subset, compression again drops to chance while the $n$-gram holds, reproducing the matched-panel finding externally at four times the size.
+\section{The coverage confound: when more context inverts the ranking}
+Consider a minimal pair from the TokEval panel: two BPE tokenizers with the \emph{same} algorithm, vocabulary size, and GPT-4o pretokenization regex, differing only in training data---the balanced multilingual mixture versus English-only web text (Table~\ref{tab:pair}). Downstream they are near-opposite ends of the panel: rank 2 versus rank 47 of 48. Held-out bigram bpb orders them correctly. Held-out \emph{trigram} bpb inverts them: the English-only tokenizer is scored 4th-best of 48.
 
-The $n{=}3$ collapse on the full panel (+0.05) is diagnosable and instructive: English-only tokenizers fragment multilingual text into near-byte streams whose low-order statistics are dense, while 128K-vocabulary tokenizers' trigrams go sparse; the $n$-gram's context window is measured in \emph{tokens}, so fragmentation wins unfairly at higher order. Excluding mismatched tokenizers restores $n{=}3$ to $0.39$. Jointly with the matched panel (34.7K vocabulary, where $n\geq3$ was optimal and $n{=}2$ unstable), the prescription is that usable order scales with training tokens per vocabulary entry.
+\begin{table}[t]\centering\small
+\begin{tabular}{lcc}
+\toprule
+ & balanced & English-only \\
+\midrule
+1.27B val bpb (rank/48) & 0.7114 (2) & 0.7350 (47) \\
+tokens per byte & 0.217 & 0.295 \\
+\foreignlanguage{russian}{``\,государство''} (Ru.\ \emph{state}) & 1 token & 7 tokens \\
+held-out bigrams seen in train & 61.5\% & 80.2\% \\
+held-out trigrams seen in train & 23.4\% & 51.2\% \\
+$n{=}2$ bpb (rank/48) & \textbf{2.316} (21) & 2.383 (39) \\
+$n{=}3$ bpb (rank/48) & 2.259 (33) & \textbf{2.190} (4) \\
+\bottomrule
+\end{tabular}
+\caption{A minimal pair: same BPE algorithm, vocabulary size, and pretokenizer; only tokenizer training data differs. At $n{=}3$ the ranking inverts in favor of the downstream-worse tokenizer, and the seen-rates say why.}
+\label{tab:pair}
+\end{table}
+
+The mechanism is visible in one word. The Russian \foreignlanguage{russian}{``государство''} is a single token under the balanced tokenizer and seven fragments (\foreignlanguage{russian}{г$\cdot$ос$\cdot$у$\cdot$д$\cdot$ар$\cdot$ств$\cdot$о}) under the English-only one. Fragments recur constantly, so the English-only model finds 51\% of its held-out trigrams verbatim in 30\,MB of training text and scores them with dense character-level statistics; the balanced tokenizer's whole-word trigrams are seen only 23\% of the time, so it backs off for three quarters of its predictions. The $n$-gram's context window is measured in \emph{tokens}: at fixed $n$, a fragmenting tokenizer buys coverage with the very fertility that makes it bad, and past some order the metric measures corpus coverage, not tokenizer quality. At $n{=}2$ the coverage gap is small (62\% vs.\ 80\%) and genuine modeling quality wins through; at $n{=}3$ the gap more than doubles and coverage dominates.
+
+The matched panel of \S2 shows the opposite failure and completes the rule. There all nine arms have near-identical fertility, so trigram coverage is $\sim$37\% \emph{for every arm}: sparsity penalizes all candidates equally, cannot reorder them, and $n{\geq}3$ adds discriminating signal---while $n{=}2$, whose differences between near-identical arms are tiny, is the unstable order ($\tau{=}0.81$ across text samples; agreement 15/30, n.s.). Two failure modes therefore bracket the choice of $n$: too low is underpowered on closely matched candidates; too high conflates coverage with quality on fertility-heterogeneous ones. The prescription is operational, not aesthetic: \textbf{use the largest $n$ at which held-out $n$-gram coverage is comparable across candidates}. The coverage rates are computed by the metric itself, so the diagnostic is free, and a large coverage spread at some order is itself a warning that the panel mixes fertility regimes.
 
 \section{Discussion}
-The metric has the same profile TokEval reports for its own predictor fits: screening, not selection. It flags every bad tokenizer (bottom-10 overlap with val bpb: 9/10) but does not order close leaders (top-10: 3/10); on the matched panel it placed the eventual CORE-best tokenizer 2nd of 10 while over-rating plain Unigram variants. It predicts language-modeling quality, not task accuracy---though at the scales where cheap evaluation matters, task benchmarks cannot rank tokenizers either. Within those limits it dominates its cost class: strictly stronger than compression and plug-in entropies on two independent testbeds, a fraction of a CPU-hour per tokenizer, precise enough for paired significance tests, and most discriminating in multilingual settings. We release the implementation, both evaluation harnesses, and all per-document scores.
-
-\textbf{Limitations.} Downstream anchors come from one architecture family (nanochat) at ${\sim}$1.3B parameters; the TokEval corpus is a reconstruction of its mixture, not its validation shard; and the systematic Unigram-family bias on matched panels is observed but not yet explained---an $n$-gram cannot exploit within-token composition, and embedding-based smoothing is the natural next probe.
+Within its limits the method dominates its cost class: strictly stronger than compression and plug-in entropies on two independent testbeds, a fraction of a CPU-hour per tokenizer, precise enough for paired significance tests, and most discriminating in multilingual settings. Its profile matches what TokEval reports for its own predictor fits---screening, not selection: it flags every bad tokenizer (bottom-10 overlap with val bpb: 9/10) but does not order close leaders (top-10: 3/10), and on the matched panel it over-rates plain Unigram variants while placing the eventual CORE-best tokenizer 2nd of 10. It predicts language-modeling quality, not task accuracy---though at these scales task benchmarks cannot rank tokenizers either. \textbf{Limitations.} Downstream anchors come from one architecture family at ${\sim}$1.3B parameters; the TokEval corpus is a reconstruction of its mixture, not its validation shard; the Unigram-family bias on matched panels is observed but unexplained---an $n$-gram cannot exploit within-token composition, and embedding-based smoothing is the natural next probe. We release the implementation, both harnesses, and all per-document scores.
 
 \begin{thebibliography}{9}\small\setlength{\itemsep}{0pt}
 \bibitem{zouhar2023} V.~Zouhar et al. Tokenization and the noiseless channel. \emph{ACL}, 2023.
@@ -76,6 +93,5 @@ The metric has the same profile TokEval reports for its own predictor fits: scre
 \bibitem{meister2026} C.~Meister. TokEval: a tokenizer evaluation suite. \emph{arXiv:2608.18062}, 2026.
 \bibitem{chen1998} S.~Chen and J.~Goodman. An empirical study of smoothing techniques for language modeling. Harvard TR-10-98, 1998.
 \bibitem{karpathy2025} A.~Karpathy. nanochat. \emph{github.com/karpathy/nanochat}, 2025.
-\bibitem{poelman2025} W.~Poelman et al. Confounding factors in relating model performance to morphology. \emph{EMNLP}, 2025.
 \end{thebibliography}
 \end{document}
