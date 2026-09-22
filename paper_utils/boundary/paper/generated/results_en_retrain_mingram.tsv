@@ -1,0 +1,13 @@
+method	arm	variant	trainer	seed	val_bpb_true	train_bpb_true	val_bpb	train_bpb	byte_factor	depth	vocab_size	tokenizer_id	log
+bnd_w_mingram	bnd_w	retrain	mingram	0	0.8763446565191516	0.7496591441485023	1.015507	0.868704	0.862962694022938	12	34686	bnd_w_mingram_d12_s0_retrain	bnd_w_mingram_d12_s0_retrain.log
+bnd_w_mingram	bnd_w	retrain	mingram	1	0.8762773454290178	0.7489851702844704	1.015429	0.867923	0.862962694022938	12	34686	bnd_w_mingram_d12_s1_retrain	bnd_w_mingram_d12_s1_retrain.log
+bnd_w_mingram	bnd_w	retrain	mingram	2	0.8762212528539064	0.7527770283620072	1.015364	0.872317	0.862962694022938	12	34686	bnd_w_mingram_d12_s2_retrain	bnd_w_mingram_d12_s2_retrain.log
+bnd_wpd_caps_mingram	bnd_wpd_caps	retrain	mingram	0	0.8765989950949727	0.7533023787068146	1.038162	0.892141	0.8443759211905009	12	34686	bnd_wpd_caps_mingram_d12_s0_retrain	bnd_wpd_caps_mingram_d12_s0_retrain.log
+bnd_wpd_caps_mingram	bnd_wpd_caps	retrain	mingram	1	0.8756972016111413	0.752798286281864	1.037094	0.891544	0.8443759211905009	12	34686	bnd_wpd_caps_mingram_d12_s1_retrain	bnd_wpd_caps_mingram_d12_s1_retrain.log
+bnd_wpd_caps_mingram	bnd_wpd_caps	retrain	mingram	2	0.8761480983530571	0.7554352722837419	1.037628	0.894667	0.8443759211905009	12	34686	bnd_wpd_caps_mingram_d12_s2_retrain	bnd_wpd_caps_mingram_d12_s2_retrain.log
+bnd_wpd_mingram	bnd_wpd	retrain	mingram	0	0.8800893909593822	0.7566828433164848	1.044498	0.898038	0.8425955731455516	12	34686	bnd_wpd_mingram_d12_s0_retrain	bnd_wpd_mingram_d12_s0_retrain.log
+bnd_wpd_mingram	bnd_wpd	retrain	mingram	1	0.8804820404964682	0.7566070097149017	1.044964	0.897948	0.8425955731455516	12	34686	bnd_wpd_mingram_d12_s1_retrain	bnd_wpd_mingram_d12_s1_retrain.log
+bnd_wpd_mingram	bnd_wpd	retrain	mingram	2	0.8807289209993999	0.7600860868364198	1.045257	0.902077	0.8425955731455516	12	34686	bnd_wpd_mingram_d12_s2_retrain	bnd_wpd_mingram_d12_s2_retrain.log
+plain_mingram	plain	retrain	mingram	0	0.8830948413898524	0.7582293791908342	0.882547	0.757759	1.0006207503847981	12	34686	plain_mingram_d12_s0_retrain	plain_mingram_d12_s0_retrain.log
+plain_mingram	plain	retrain	mingram	1	0.8844546849896253	0.7591659602131944	0.883906	0.758695	1.0006207503847981	12	34686	plain_mingram_d12_s1_retrain	plain_mingram_d12_s1_retrain.log
+plain_mingram	plain	retrain	mingram	2	0.883593150523544	0.7612662631682521	0.883045	0.760794	1.0006207503847981	12	34686	plain_mingram_d12_s2_retrain	plain_mingram_d12_s2_retrain.log

@@ -1,0 +1,13 @@
+method	arm	variant	trainer	seed	val_bpb_true	train_bpb_true	val_bpb	train_bpb	byte_factor	depth	vocab_size	tokenizer_id	log
+bnd_w_bpe	bnd_w	retrain	bpe	0	0.8763057826315537	0.7520419574315205	1.01564	0.871618	0.8628114121455964	12	34686	bnd_w_bpe_d12_s0_retrain	bnd_w_bpe_d12_s0_retrain.log
+bnd_w_bpe	bnd_w	retrain	bpe	1	0.8763446091451	0.7521472204238022	1.015685	0.87174	0.8628114121455964	12	34686	bnd_w_bpe_d12_s1_retrain	bnd_w_bpe_d12_s1_retrain.log
+bnd_w_bpe	bnd_w	retrain	bpe	2	0.8776621221714465	0.7548504085780544	1.017212	0.874873	0.8628114121455964	12	34686	bnd_w_bpe_d12_s2_retrain	bnd_w_bpe_d12_s2_retrain.log
+bnd_wpd_bpe	bnd_wpd	retrain	bpe	0	0.8803864685213855	0.75700631988673	1.045067	0.898608	0.8424210778078205	12	34686	bnd_wpd_bpe_d12_s0_retrain	bnd_wpd_bpe_d12_s0_retrain.log
+bnd_wpd_bpe	bnd_wpd	retrain	bpe	1	0.8797993010301535	0.757874013596872	1.04437	0.899638	0.8424210778078205	12	34686	bnd_wpd_bpe_d12_s1_retrain	bnd_wpd_bpe_d12_s1_retrain.log
+bnd_wpd_bpe	bnd_wpd	retrain	bpe	2	0.8798473190315885	0.7586877923580343	1.044427	0.900604	0.8424210778078205	12	34686	bnd_wpd_bpe_d12_s2_retrain	bnd_wpd_bpe_d12_s2_retrain.log
+bnd_wpd_caps_bpe	bnd_wpd_caps	retrain	bpe	0	0.8794237365223199	0.7576173065703045	1.043766	0.899197	0.8425487480166243	12	34686	bnd_wpd_caps_bpe_d12_s0_retrain	bnd_wpd_caps_bpe_d12_s0_retrain.log
+bnd_wpd_caps_bpe	bnd_wpd_caps	retrain	bpe	1	0.8790867170231133	0.754857116871802	1.043366	0.895921	0.8425487480166243	12	34686	bnd_wpd_caps_bpe_d12_s1_retrain	bnd_wpd_caps_bpe_d12_s1_retrain.log
+bnd_wpd_caps_bpe	bnd_wpd_caps	retrain	bpe	2	0.8795223147258378	0.7582770222400015	1.043883	0.89998	0.8425487480166243	12	34686	bnd_wpd_caps_bpe_d12_s2_retrain	bnd_wpd_caps_bpe_d12_s2_retrain.log
+plain_bpe	plain	retrain	bpe	0	0.8854057403383081	0.7610462289275148	0.884861	0.760578	1.0006156224969889	12	34686	plain_bpe_d12_s0_retrain	plain_bpe_d12_s0_retrain.log
+plain_bpe	plain	retrain	bpe	1	0.8846112515340455	0.7598985228085108	0.884067	0.759431	1.0006156224969889	12	34686	plain_bpe_d12_s1_retrain	plain_bpe_d12_s1_retrain.log
+plain_bpe	plain	retrain	bpe	2	0.8857029231781897	0.7647495073463763	0.885158	0.764279	1.0006156224969889	12	34686	plain_bpe_d12_s2_retrain	plain_bpe_d12_s2_retrain.log
