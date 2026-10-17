@@ -157,7 +157,23 @@ def main():
     parser.add_argument("--retrain", action="store_true", help="Force retraining of the tokenizer, even if it exists")
     parser.add_argument("--parallel", "-p", type=int, default=4, help="Number of CPUs to use for training")
     parser.add_argument("--report", action="store_true", help="Generate a report after training")
+    parser.add_argument(
+        "--merge_score",
+        choices=["count", "unibpe"],
+        default=None,
+        help="bpe only: rank merges by pair count (default) or by Unigram loss drop (UniBPE)",
+    )
+    parser.add_argument(
+        "--unibpe_merges",
+        type=int,
+        default=None,
+        help="bpe + unibpe only: number of leading UniBPE merges before falling back to count-ranked BPE (default: all)",
+    )
     args = parser.parse_args()
+
+    trainer_config_kwargs = {
+        k: v for k, v in dict(merge_score=args.merge_score, unibpe_merges=args.unibpe_merges).items() if v is not None
+    }
 
     train_tokenizer(
         pretokenizer_name=args.pretokenizer,
@@ -167,6 +183,7 @@ def main():
         retrain=args.retrain,
         n_cpus=args.parallel,
         report=args.report,
+        trainer_config_kwargs=trainer_config_kwargs,
     )
 
 
