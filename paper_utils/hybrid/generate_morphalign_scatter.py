@@ -13,10 +13,16 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import seaborn as sns
 
-from paper_utils.hybrid.train_hybrid import OVERSHOOT_FACTORS, get_model_path as get_hybrid_model_path
+from paper_utils.hybrid.train_hybrid import (
+    OVERSHOOT_FACTORS,
+    get_model_path as get_hybrid_model_path,
+    get_unibpe_model_path,
+    unibpe_hybrid_merges,
+)
 from paper_utils.hybrid.utils import (
     FSP_OVERRIDES,
     FSP_PARAMS,
+    SPARSE_L1_PARAMS,
     load_cache,
     morphalign_paper_score,
     paper_figure_path,
@@ -85,6 +91,9 @@ REFERENCE_STYLE = {
     "FSP": {"color": "#9467bd", "marker": "^", "label": "FSP", "filled": True},
     "PathPiece-B": {"color": "#e377c2", "marker": "s", "label": "PathPiece", "filled": True},
     "ConvexTok": {"color": "#17becf", "marker": "*", "label": "ConvexTok", "filled": True},
+    "SparseL1": {"color": "#8c564b", "marker": "v", "label": "Sparse L1 Unigram", "filled": True},
+    "UniBPE": {"color": "#bcbd22", "marker": "p", "label": "UniBPE", "filled": True},
+    "UniBPE-Hybrid": {"color": "#7f7f7f", "marker": "h", "label": "UniBPE + BPE", "filled": False},
 }
 
 TRACE_ORDER = ["bpe_init", "bpe_init_fsp", "mingram"]
@@ -423,6 +432,22 @@ def get_reference_points(
             "morphalign": fsp_score,
         }
 
+    sparse_l1_path = get_unigram_model_path(train_corpus, SPARSE_L1_PARAMS)
+    unibpe_hybrid_path = get_unibpe_model_path(
+        train_corpus, ADDITIONAL_VOCAB_SIZE, unibpe_hybrid_merges(ADDITIONAL_VOCAB_SIZE)
+    )
+    for name, path, model_cls in (
+        ("SparseL1", sparse_l1_path, UnigramModel),
+        ("UniBPE", get_unibpe_model_path(train_corpus, ADDITIONAL_VOCAB_SIZE), BPETokenizer),
+        ("UniBPE-Hybrid", unibpe_hybrid_path, BPETokenizer),
+    ):
+        if not path.exists():
+            continue
+        model = model_cls.load(str(path))
+        tokens = cached_eval_total_tokens(model, eval_corpus, cache, f"{lang}/ref/{name}", eval_corpus_name)
+        score = morphalign_score(model, gold_file, cache, f"{lang}/ref/{name}")
+        refs[name] = {"rel_tok": (tokens - baseline["tokens"]) / baseline["tokens"] * 100, "morphalign": score}
+
     # PathPiece-BPE is a single reference point, not part of this MorphAlign f-sweep.
     pp_refs = collect_pathpiece_refs(
         train_corpus=train_corpus,
@@ -602,7 +627,7 @@ def plot(rows: list[dict], out_png: Path):
                 label=style["label"],
             )
         )
-    for name in ["BPE", "Default", "FSP", "PathPiece-B"]:
+    for name in ["BPE", "Default", "FSP", "PathPiece-B", "SparseL1", "UniBPE", "UniBPE-Hybrid"]:
         if name not in REFERENCE_STYLE:
             continue
         style = REFERENCE_STYLE[name]

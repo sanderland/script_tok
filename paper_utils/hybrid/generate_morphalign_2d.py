@@ -90,6 +90,9 @@ BASELINE_STYLES = {
     "FSP": {"color": COLOR_FSP, "marker": "^", "label": "FSP", "filled": True},
     "PathPiece-B": {"color": COLOR_PATHPIECE, "marker": "s", "label": "PathPiece-BPE", "filled": False},
     "ConvexTok": {"color": COLOR_CONVEXTOK, "marker": "*", "label": "ConvexTok", "filled": True},
+    "SparseL1": {"color": "#8c564b", "marker": "v", "label": "Sparse L1 Unigram", "filled": True},
+    "UniBPE": {"color": "#bcbd22", "marker": "p", "label": "UniBPE", "filled": True},
+    "UniBPE-Hybrid": {"color": "#7f7f7f", "marker": "h", "label": "UniBPE + BPE", "filled": False},
 }
 
 LANG_COLORS = {
@@ -108,8 +111,13 @@ LEFT_LEGEND_ORDER = [
     "mingram_pp",
     "PathPiece-B",
     "ConvexTok",
+    "SparseL1",
+    "UniBPE",
+    "UniBPE-Hybrid",
 ]
-RIGHT_GLYPH_LEGEND_ORDER = ["BPE", "Default", "FSP", "mingram", "PathPiece-B", "ConvexTok"]
+RIGHT_GLYPH_LEGEND_ORDER = [
+    "BPE", "Default", "FSP", "mingram", "PathPiece-B", "ConvexTok", "SparseL1", "UniBPE", "UniBPE-Hybrid",
+]
 
 
 def _filter(pts: list[dict]) -> list[dict]:
@@ -274,6 +282,9 @@ def _plot_perlang_panel(ax, lang_mingram_pts: dict[str, list[dict]], lang_refs: 
             ("BPE", "D", True, 64),
             ("PathPiece-B", "s", False, 70),
             ("ConvexTok", "*", True, 100),
+            ("SparseL1", "v", True, 64),
+            ("UniBPE", "p", True, 70),
+            ("UniBPE-Hybrid", "h", False, 76),
         )
         for ref_name, marker, filled, size in baseline_markers:
             if ref_name not in refs:
@@ -379,6 +390,14 @@ def _perlang_legend(ax) -> None:
         "ConvexTok": Line2D([0], [0], linestyle="none", marker="*", markersize=8,
                             markerfacecolor="#4A4A4A", markeredgecolor="white", markeredgewidth=0.7,
                             label="ConvexTok"),
+        "SparseL1": Line2D([0], [0], linestyle="none", marker="v", markersize=6,
+                           markerfacecolor="#4A4A4A", markeredgecolor="white", markeredgewidth=0.7,
+                           label="Sparse L1 Unigram"),
+        "UniBPE": Line2D([0], [0], linestyle="none", marker="p", markersize=6,
+                         markerfacecolor="#4A4A4A", markeredgecolor="white", markeredgewidth=0.7, label="UniBPE"),
+        "UniBPE-Hybrid": Line2D([0], [0], linestyle="none", marker="h", markersize=6,
+                                markerfacecolor="white", markeredgecolor="#4A4A4A", markeredgewidth=1.4,
+                                label="UniBPE + BPE"),
     }
     glyph_handles = [glyph_by_method[name] for name in RIGHT_GLYPH_LEGEND_ORDER]
     ax.legend(
@@ -551,7 +570,7 @@ def _cache_only_bpe_init(method: str, eval_corpus_name: str, lang: str, baseline
 def _cache_only_refs(eval_corpus_name: str, lang: str, baseline_tokens: int, cache: dict) -> dict[str, dict]:
     """Recover BPE/Default/FSP reference points from the cache without loading models."""
     out: dict[str, dict] = {}
-    for name in ("Default", "BPE", "FSP"):
+    for name in ("Default", "BPE", "FSP", "SparseL1", "UniBPE", "UniBPE-Hybrid"):
         score_key = f"{lang}/ref/{name}"
         if score_key not in cache:
             continue

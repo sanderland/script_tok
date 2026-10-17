@@ -12,6 +12,8 @@
 #   bpe_init, bpe_init_fsp         - f sweep
 #   mingram                        - f x p sweep
 #   mingram + --prune-criterion mi - MinGram-PP, p=0.9, f sweep including f=8
+#   sparse_l1                      - Unigram with Sparse L1 pruning, no factor
+#   unibpe, unibpe_hybrid          - BPE ranked by Unigram loss drop (hybrid: 119744/127644 of the merges)
 # External trainers (own scripts, all skip-if-exists):
 #   pathpiece_bpe                  - build_pathpiece.py
 #   pathpiece_bpe f-sweep          - build_pathpiece_sweep.py
@@ -137,6 +139,14 @@ done
 for corpus in "${ALL_MONO_CORPORA[@]}" "${MULTILINGUAL_CORPORA[@]}"; do
     printf "uv run python %s %s %s\n" "$BUILD_PATHPIECE" "$corpus" "$PATHPIECE_WORKERS" >> "$NONBPE_JOB_FILE"
     printf "uv run python %s %s 200000 %s\n" "$BUILD_CONVEXTOK" "$corpus" "$CONVEXTOK_WORKERS" >> "$NONBPE_JOB_FILE"
+done
+
+# Sparse L1 Unigram, UniBPE and UniBPE+BPE: FineWeb mono corpora at the headline vocab size only.
+# UniBPE jobs are BPE-style (merge-loop bound), so they go in the BPE job file.
+for corpus in "${MONOLINGUAL_CORPORA[@]}"; do
+    printf "uv run python %s --method sparse_l1      --corpus %s --num-workers %s\n" "$TRAIN" "$corpus" "$NUM_WORKERS" >> "$NONBPE_JOB_FILE"
+    printf "uv run python %s --method unibpe         --corpus %s --num-workers %s\n" "$TRAIN" "$corpus" "$NUM_WORKERS" >> "$BPE_JOB_FILE"
+    printf "uv run python %s --method unibpe_hybrid  --corpus %s --num-workers %s\n" "$TRAIN" "$corpus" "$NUM_WORKERS" >> "$BPE_JOB_FILE"
 done
 
 # Appendix f-sweep overlay for PathPiece-BPE. The plot uses FineWeb-trained

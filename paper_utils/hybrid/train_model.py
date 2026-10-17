@@ -8,6 +8,9 @@ Methods:
   bpe_init      - Standard Unigram initialized from BPE (requires --overshoot-factor)
   bpe_init_fsp  - FSP Unigram initialized from BPE (requires --overshoot-factor)
   mingram       - MinGram hard-EM on minimum-path lattice (requires --overshoot-factor)
+  sparse_l1     - Unigram pruned with Sparse L1 (soft-thresholded EM), otherwise as default
+  unibpe        - BPE with merges ranked by Unigram loss drop, all merges
+  unibpe_hybrid - UniBPE for 119744/127644 of the merges, then count-ranked BPE (Aleph Alpha split)
 
 Designed to be called once per (method, corpus, factor) job so all runs can be
 dispatched in parallel by run_all_experiments.sh.
@@ -20,6 +23,7 @@ import time
 from script_bpe import get_pretokenizer
 from script_bpe.corpus.registry import load_corpus_by_name
 from script_bpe.tokenizers.bpe import BPETokenizer
+from script_bpe.tokenizers.bpe.trainer import BPETrainer, BPETrainerConfig
 from script_bpe.tokenizers.mingram.trainer import MinGramTrainer, MinGramTrainerConfig
 from script_bpe.tokenizers.unigram.trainer import UnigramTrainer, UnigramTrainerConfig
 from script_bpe.utils import create_logger
@@ -28,12 +32,15 @@ from paper_utils.hybrid.train_hybrid import (
     PRETOKENIZER_NAME,
     bpe_to_unigram_tokens,
     get_bpe_model_path,
+    get_unibpe_model_path,
+    unibpe_hybrid_merges,
     get_model_path as get_hybrid_model_path,
     get_or_train_bpe,
 )
 from paper_utils.hybrid.train_mingram import (
     get_model_path as get_mingram_model_path,
 )
+from paper_utils.hybrid.utils import SPARSE_L1_PARAMS
 from paper_utils.unigram.train_hyperparameters import (
     ADDITIONAL_VOCAB_SIZE,
     DEFAULTS,
@@ -45,6 +52,7 @@ _FSP_OVERRIDES: dict = {"flat_score_prune": True, "pre_final_vocab_factor": 1.0}
 
 _UNIGRAM_PARAMS: dict[str, dict] = {
     "default":      DEFAULTS,
+    "sparse_l1":    SPARSE_L1_PARAMS,
     "fsp":          {**DEFAULTS, **_FSP_OVERRIDES},
     "bpe_init":     DEFAULTS,
     "bpe_init_fsp": {**DEFAULTS, **_FSP_OVERRIDES},
@@ -63,6 +71,10 @@ def get_model_path(
 ):
     if method == "bpe":
         return get_bpe_model_path(corpus, additional_vocab_size)
+    if method == "unibpe":
+        return get_unibpe_model_path(corpus, additional_vocab_size)
+    if method == "unibpe_hybrid":
+        return get_unibpe_model_path(corpus, additional_vocab_size, unibpe_hybrid_merges(additional_vocab_size))
     if method == "mingram":
         return get_mingram_model_path(
             corpus, overshoot_factor, num_em, pruning, additional_vocab_size, prune_criterion, skip_substring
@@ -125,7 +137,19 @@ def train(
         logger.info(f"Cached: {model_path}")
         return
 
-    if method == "mingram":
+    if method in ("unibpe", "unibpe_hybrid"):
+        unibpe_merges = unibpe_hybrid_merges(additional_vocab_size) if method == "unibpe_hybrid" else None
+        bpe_cfg = BPETrainerConfig(
+            additional_vocab_size=additional_vocab_size,
+            num_workers=num_workers,
+            merge_score="unibpe",
+            unibpe_merges=unibpe_merges,
+        )
+        model = BPETrainer(pretokenizer, corpus_data, bpe_cfg).train()
+        model.metadata["corpus"] = corpus
+        model.metadata["time"] = time.perf_counter() - t0
+        model.metadata["performance"] = model.corpus_performance(corpus_data)
+    elif method == "mingram":
         cfg = MinGramTrainerConfig(
             additional_vocab_size=additional_vocab_size,
             overshoot_factor=overshoot_factor,
@@ -167,7 +191,8 @@ def train(
 def main():
     parser = argparse.ArgumentParser(description="Train one paper tokenizer model.")
     parser.add_argument("--method", required=True,
-                        choices=["bpe", "default", "fsp", "bpe_init", "bpe_init_fsp", "mingram"])
+                        choices=["bpe", "default", "fsp", "bpe_init", "bpe_init_fsp", "mingram",
+                                 "sparse_l1", "unibpe", "unibpe_hybrid"])
     parser.add_argument("--corpus", required=True)
     parser.add_argument("--overshoot-factor", type=float, default=None)
     parser.add_argument("--num-em-iterations", type=int, default=2)

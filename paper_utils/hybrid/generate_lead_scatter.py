@@ -79,6 +79,9 @@ METHOD_ORDER = [
     "mingram_pp",
     "pathpiece_bpe",
     "convextok",
+    "sparse_l1",
+    "unibpe",
+    "unibpe_hybrid",
 ]
 METHOD_STYLE = {
     "bpe": {"color": "#D55E00", "marker": "D", "label": "BPE", "filled": True},
@@ -90,6 +93,9 @@ METHOD_STYLE = {
     "mingram_pp": {"color": "#009E73", "marker": "x", "label": "MinGram-PP", "filled": False, "size": 82},
     "pathpiece_bpe": {"color": "#CC79A7", "marker": "s", "label": "PathPiece (BPE)", "filled": False, "size": 88},
     "convextok": {"color": "#C44E52", "marker": "*", "label": "ConvexTok", "filled": True, "size": 190},
+    "sparse_l1": {"color": "#8C564B", "marker": "v", "label": "Sparse L1 Unigram", "filled": True},
+    "unibpe": {"color": "#8F8400", "marker": "p", "label": "UniBPE", "filled": True, "size": 112},
+    "unibpe_hybrid": {"color": "#8F8400", "marker": "h", "label": "UniBPE + BPE", "filled": False, "size": 96},
 }
 
 CONVEXTOK_MODEL = "results/convextok_tokenizers/{train}/n32768_cmin50_mp200000_L32_det.json.gz"
@@ -143,6 +149,9 @@ def _grid_method_key(method: str) -> str:
         "mingram": "mingram",
         "mingram_pp": "mingram_pp",
         "pathpiece_bpe": "pathpiece_bpe",
+        "sparse_l1": "sparse_l1",
+        "unibpe": "unibpe",
+        "unibpe_hybrid": "unibpe_hybrid",
     }[method]
 
 
@@ -219,7 +228,14 @@ def _mingram_trace_deltas(compression_cache: dict, morph_cache: dict, langs: lis
 
 def _morphalign_references(cache: dict, lang: str) -> dict[str, float]:
     out = {}
-    for ref_name, method in [("BPE", "bpe"), ("Default", "unigram"), ("FSP", "fsp")]:
+    for ref_name, method in [
+        ("BPE", "bpe"),
+        ("Default", "unigram"),
+        ("FSP", "fsp"),
+        ("SparseL1", "sparse_l1"),
+        ("UniBPE", "unibpe"),
+        ("UniBPE-Hybrid", "unibpe_hybrid"),
+    ]:
         key = f"{lang}/ref/{ref_name}"
         if key in cache:
             out[method] = float(cache[key])

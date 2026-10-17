@@ -91,6 +91,22 @@ def get_bpe_model_path(corpus_name: str, bpe_vocab_size: int) -> Path:
     return RESULTS_DIR / corpus_name / f"bpe_n{bpe_vocab_size}.model.json.gz"
 
 
+# Aleph Alpha's report builds its 127,644-token vocabulary from 119,744 UniBPE merges followed by
+# 7,900 count-ranked BPE merges; the hybrid method keeps that ratio at any vocab size.
+UNIBPE_REPORT_MERGES = 119_744
+UNIBPE_REPORT_VOCAB = 127_644
+
+
+def unibpe_hybrid_merges(additional_vocab_size: int) -> int:
+    return round(additional_vocab_size * UNIBPE_REPORT_MERGES / UNIBPE_REPORT_VOCAB)
+
+
+def get_unibpe_model_path(corpus_name: str, additional_vocab_size: int, unibpe_merges: int | None = None) -> Path:
+    """Pure UniBPE when unibpe_merges is None, else UniBPE for that many merges followed by BPE."""
+    merges = "" if unibpe_merges is None else f"_m{unibpe_merges}"
+    return RESULTS_DIR / corpus_name / f"unibpe{merges}_n{additional_vocab_size}.model.json.gz"
+
+
 def get_or_train_bpe(
     corpus_name: str,
     bpe_vocab_size: int,

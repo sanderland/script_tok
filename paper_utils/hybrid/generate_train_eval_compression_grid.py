@@ -13,14 +13,19 @@ from matplotlib.lines import Line2D
 import numpy as np
 import seaborn as sns
 
-from paper_utils.hybrid.train_hybrid import get_bpe_model_path, get_model_path as get_hybrid_model_path
+from paper_utils.hybrid.train_hybrid import (
+    get_bpe_model_path,
+    get_model_path as get_hybrid_model_path,
+    get_unibpe_model_path,
+    unibpe_hybrid_merges,
+)
 from paper_utils.hybrid.train_mingram import (
     ADDITIONAL_VOCAB_SIZE,
     RESULTS_DIR as MINGRAM_RESULTS_DIR,
     get_model_path as get_mingram_model_path,
 )
 from paper_utils.hybrid.train_pathpiece import get_model_path as get_pathpiece_model_path
-from paper_utils.hybrid.utils import FSP_OVERRIDES, FSP_PARAMS, load_cache, paper_figure_path, save_cache
+from paper_utils.hybrid.utils import FSP_OVERRIDES, FSP_PARAMS, SPARSE_L1_PARAMS, load_cache, paper_figure_path, save_cache
 from paper_utils.unigram.train_hyperparameters import DEFAULTS, get_model_path as get_unigram_model_path
 from script_bpe.corpus.registry import load_corpus_by_name
 from script_bpe.tokenizers.bpe import BPETokenizer
@@ -154,6 +159,9 @@ METHOD_ORDER = [
     "mingram_pp",
     "pathpiece_bpe",
     "convextok",
+    "sparse_l1",
+    "unibpe",
+    "unibpe_hybrid",
 ]
 # Methods plotted in the grid (all of METHOD_ORDER; PathPiece gaps fill once it's
 # trained on the FineWeb/h6 corpora too).
@@ -166,6 +174,9 @@ GRID_PLOT_METHODS = [
     "mingram_pp",
     "pathpiece_bpe",
     "convextok",
+    "sparse_l1",
+    "unibpe",
+    "unibpe_hybrid",
 ]
 METHOD_LABELS = {
     "bpe": "BPE",
@@ -176,6 +187,9 @@ METHOD_LABELS = {
     "mingram_pp": f"MinGram-PP (f={MINGRAM_PP_F:g})",
     "pathpiece_bpe": "PathPiece (BPE init)",
     "convextok": "ConvexTok",
+    "sparse_l1": "Sparse L1 Unigram",
+    "unibpe": "UniBPE",
+    "unibpe_hybrid": "UniBPE + BPE",
 }
 METHOD_COLORS = {
     "bpe": "#ff7f0e",
@@ -186,6 +200,9 @@ METHOD_COLORS = {
     "mingram_pp": "#009E73",
     "pathpiece_bpe": "#e377c2",
     "convextok": "#17becf",
+    "sparse_l1": "#8c564b",
+    "unibpe": "#bcbd22",
+    "unibpe_hybrid": "#7f7f7f",
 }
 
 
@@ -342,6 +359,19 @@ def _build_tasks(pairing_keys: set[str] | None = None) -> tuple[list[dict], dict
                 task = _task_for_model(train_corpus, eval_corpus, "fsp", "unigram", fsp_path)
                 tasks.append(task)
                 entry["methods"]["fsp"] = {"cache_key": task["cache_key"]}
+
+            sparse_l1_path = get_unigram_model_path(train_corpus, SPARSE_L1_PARAMS)
+            if sparse_l1_path.exists():
+                task = _task_for_model(train_corpus, eval_corpus, "sparse_l1", "unigram", sparse_l1_path)
+                tasks.append(task)
+                entry["methods"]["sparse_l1"] = {"cache_key": task["cache_key"]}
+
+            for method, merges in (("unibpe", None), ("unibpe_hybrid", unibpe_hybrid_merges(ADDITIONAL_VOCAB_SIZE))):
+                unibpe_path = get_unibpe_model_path(train_corpus, ADDITIONAL_VOCAB_SIZE, merges)
+                if unibpe_path.exists():
+                    task = _task_for_model(train_corpus, eval_corpus, method, "bpe", unibpe_path)
+                    tasks.append(task)
+                    entry["methods"][method] = {"cache_key": task["cache_key"]}
 
             bpe_init_path = get_hybrid_model_path(train_corpus, {**DEFAULTS, "overshoot_factor": BAR_F})
             if bpe_init_path.exists():
