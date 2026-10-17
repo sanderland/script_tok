@@ -6,6 +6,7 @@ Each panel places BPE, Unigram, and FSP as static reference points, and traces
 Unigram-BPE-Init, FSP-BPE-Init, and MinGram across the overshoot factor sweep.
 """
 
+import argparse
 import importlib.util
 from pathlib import Path
 
@@ -662,12 +663,21 @@ def plot(rows: list[dict], out_png: Path):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--langs",
+        nargs="+",
+        choices=[cfg["lang"] for cfg in LANGUAGE_CONFIGS],
+        help="Only fill the cache for these languages (no other corpus is loaded) and skip the panel plot.",
+    )
+    args = parser.parse_args()
+    configs = [cfg for cfg in LANGUAGE_CONFIGS if args.langs is None or cfg["lang"] in args.langs]
     cache = load_cache(MORPHALIGN_CACHE_PATH)
 
     rows = []
     series_for_mean = []
     refs_for_mean = []
-    for cfg in LANGUAGE_CONFIGS:
+    for cfg in configs:
         print(f"Processing {cfg['label']}...")
         baseline = load_baseline(cfg["train_corpus"], cfg["eval_corpus"], cache, cfg["lang"])
         if baseline is None:
@@ -724,6 +734,8 @@ def main():
         if refs:
             refs_for_mean.append(refs)
 
+    if args.langs:
+        return
     mean_series = aggregate_mean_series(series_for_mean)
     mean_refs = aggregate_mean_refs(refs_for_mean)
     plot_rows = [{"label": "Mean", "trace_series": mean_series, "refs": mean_refs}] + rows

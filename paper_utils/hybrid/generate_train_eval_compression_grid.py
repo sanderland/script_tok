@@ -320,7 +320,7 @@ def _task_for_model(train_corpus: str, eval_corpus_name: str, method: str, model
     }
 
 
-def _build_tasks(pairing_keys: set[str] | None = None) -> tuple[list[dict], dict[str, dict]]:
+def _build_tasks(pairing_keys: set[str] | None = None, langs: set[str] | None = None) -> tuple[list[dict], dict[str, dict]]:
     tasks: list[dict] = []
     pairing_data: dict[str, dict] = {}
 
@@ -332,6 +332,8 @@ def _build_tasks(pairing_keys: set[str] | None = None) -> tuple[list[dict], dict
         pairing_data[pairing["key"]] = pairing_entry
 
         for series in _series_specs(pairing):
+            if langs is not None and series["key"] not in langs:
+                continue
             train_corpus = series["train_corpus"]
             eval_corpus = series["eval_corpus"]
             entry = {
@@ -627,13 +629,28 @@ def main() -> None:
         choices=[pairing["key"] for pairing in PAIRINGS],
         help="Restrict evaluation to selected train/eval pairings and merge them into the existing JSON output.",
     )
+    parser.add_argument(
+        "--langs",
+        nargs="+",
+        choices=[cfg["lang"] for cfg in LANGUAGE_CONFIGS],
+        help="Restrict to these languages so no other corpus is loaded. Defaults the pairing to "
+        "fineweb->fishfood, writes compression_train_eval_grid_<langs>.json and skips the bar plot.",
+    )
     args = parser.parse_args()
 
     pairing_keys = set(args.pairings) if args.pairings else None
-    tasks, pairing_data = _build_tasks(pairing_keys)
+    if args.langs and pairing_keys is None:
+        pairing_keys = {"fineweb->fishfood"}
+    tasks, pairing_data = _build_tasks(pairing_keys, set(args.langs) if args.langs else None)
     cache = load_cache(CACHE_PATH)
     cache = _compute_cache(tasks, cache, args.max_workers)
     resolved = _resolve_results(pairing_data, cache)
+    if args.langs:
+        save_cache(cache, CACHE_PATH)
+        out_json = OUT_JSON.with_name(f"{OUT_JSON.stem}_{'_'.join(args.langs)}.json")
+        out_json.write_text(json.dumps(resolved, indent=2))
+        print(f"Saved: {out_json}")
+        return
     if pairing_keys is not None and OUT_JSON.exists():
         existing = json.loads(OUT_JSON.read_text())
         existing.update(resolved)
