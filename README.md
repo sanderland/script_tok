@@ -67,6 +67,8 @@ To train a Unigram tokenizer:
 uv run train --corpus kor_hang_300mb -n 64000 --pretokenizer scriptenc_cb --model unigram
 ```
 
+Unigram training can use [Sparse L1 Unigram](https://google.github.io/sentencepiece/doc/sparse_l1_unigram/) instead of the default EM and Viterbi pruning by setting `UnigramTrainerConfig(sparse_l1=True)`. It prunes with soft-thresholded EM, `w = max(0, E[count] - lambda)`, and refits probabilities at the end (`post_l1_debias`).
+
 ### Reproducing Paper Results
 
 The `paper_utils/` directory contains scripts to reproduce paper results from scratch:
