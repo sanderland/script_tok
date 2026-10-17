@@ -163,9 +163,27 @@ def main():
         default=None,
         help="unigram only: prune with Sparse L1 Unigram (soft-thresholded EM) instead of Viterbi pruning",
     )
+    parser.add_argument(
+        "--merge_score",
+        choices=["count", "unibpe"],
+        default=None,
+        help="bpe only: rank merges by pair count (default) or by Unigram loss drop (UniBPE)",
+    )
+    parser.add_argument(
+        "--unibpe_merges",
+        type=int,
+        default=None,
+        help="bpe + unibpe only: number of leading UniBPE merges before falling back to count-ranked BPE (default: all)",
+    )
     args = parser.parse_args()
 
-    trainer_config_kwargs = {k: v for k, v in dict(sparse_l1=args.sparse_l1).items() if v is not None}
+    trainer_config_kwargs = {
+        k: v
+        for k, v in dict(
+            sparse_l1=args.sparse_l1, merge_score=args.merge_score, unibpe_merges=args.unibpe_merges
+        ).items()
+        if v is not None
+    }
 
     train_tokenizer(
         pretokenizer_name=args.pretokenizer,
