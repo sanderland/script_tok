@@ -36,6 +36,45 @@ def _h(x: int | float) -> float:
     return x * math.log(x) if x > 0 else 0.0
 
 
+class CountScorer:
+    """Ranks candidate merges by pair count (plain BPE) with a lazily re-validated max-heap."""
+
+    score_name = "Max count"
+
+    def __init__(self, pair_counts: dict[tuple[int, int], int]):
+        self.pair_counts = pair_counts
+        self.heap: list[tuple[int, tuple[int, int]]] = [(-count, p) for p, count in pair_counts.items()]
+        heapq.heapify(self.heap)
+        self.last_score = 0
+
+    def pop(self) -> tuple[int, int] | None:
+        while self.heap:
+            neg_count, pair = heapq.heappop(self.heap)
+            if pair not in self.pair_counts:
+                continue
+            if self.pair_counts[pair] != -neg_count:
+                heapq.heappush(self.heap, (-self.pair_counts[pair], pair))
+                continue
+            self.last_score = -neg_count
+            return pair
+        return None
+
+    def apply_merge(
+        self,
+        pair: tuple[int, int],
+        new_token_id: int,
+        num_merges: int,
+        pair_deltas: dict[tuple[int, int], int],
+    ):
+        """Push pairs whose count grew; `self.pair_counts` must already include `pair_deltas`."""
+        for p, dc in pair_deltas.items():
+            if dc > 0 and p in self.pair_counts:
+                heapq.heappush(self.heap, (-self.pair_counts[p], p))
+
+    def format_score(self) -> str:
+        return f"{self.last_score:10,d}"
+
+
 class UniBPEScorer:
     """Ranks candidate merges by the change in Unigram negative log-likelihood (the most negative first).
 
@@ -45,7 +84,13 @@ class UniBPEScorer:
     Scores are kept in a lazily re-validated heap: a popped entry is rescored and pushed back if stale. This is
     exact because a falling N or a fallen pair count can only make a stale score look better than it is, and the
     pairs whose parent counts fell (those touching a or b) are rescored eagerly after every merge.
+    Eager rescoring leaves the old entries of those pairs behind, so the heap is rebuilt from current scores once
+    it holds more than HEAP_COMPACTION_FACTOR entries per live pair. Dropping entries for dead pairs and
+    duplicates cannot change what pop() returns, since every live pair keeps a fresh entry.
     """
+
+    score_name = "Delta-L"
+    HEAP_COMPACTION_FACTOR = 4
 
     def __init__(self, pair_counts: dict[tuple[int, int], int], token_counts: dict[int, int]):
         self.pair_counts = pair_counts
@@ -54,7 +99,12 @@ class UniBPEScorer:
         self.pairs_by_token: dict[int, set[tuple[int, int]]] = defaultdict(set)
         for pair in pair_counts:
             self._index(pair)
-        self.heap = [(self.delta_loss(pair), pair) for pair in pair_counts]
+        self.heap: list[tuple[float, tuple[int, int]]] = []
+        self._rebuild_heap()
+        self.last_score = 0.0
+
+    def _rebuild_heap(self):
+        self.heap = [(self.delta_loss(pair), pair) for pair in self.pair_counts]
         heapq.heapify(self.heap)
 
     def _index(self, pair: tuple[int, int]):
@@ -81,6 +131,7 @@ class UniBPEScorer:
             if fresh != score:
                 heapq.heappush(self.heap, (fresh, pair))
                 continue
+            self.last_score = score
             return pair
         return None
 
@@ -108,6 +159,11 @@ class UniBPEScorer:
         for p in rescore:
             if p in self.pair_counts:
                 heapq.heappush(self.heap, (self.delta_loss(p), p))
+        if len(self.heap) > self.HEAP_COMPACTION_FACTOR * len(self.pair_counts):
+            self._rebuild_heap()
+
+    def format_score(self) -> str:
+        return f"{self.last_score:10,.2f}"
 
 
 class ChunkTokenization:
@@ -279,39 +335,21 @@ class BPETrainer(BaseTrainer):
         merge_rules: list[MergeRule] = []
 
         unibpe_budget = cfg.additional_vocab_size if cfg.unibpe_merges is None else cfg.unibpe_merges
-        unibpe = (
-            UniBPEScorer(overall_pair_counts, overall_token_counts)
-            if cfg.merge_score == "unibpe" and unibpe_budget > 0
-            else None
-        )
-        pair_counts_heap: list[tuple[int, tuple[int, int]]] = []
-        if unibpe is None:
-            pair_counts_heap = [(-count, p) for p, count in overall_pair_counts.items()]
-            heapq.heapify(pair_counts_heap)
+        scorer: CountScorer | UniBPEScorer
+        if cfg.merge_score == "unibpe" and unibpe_budget > 0:
+            scorer = UniBPEScorer(overall_pair_counts, overall_token_counts)
+        else:
+            scorer = CountScorer(overall_pair_counts)
         logger.info(f"Initialized with {len(overall_pair_counts):,d} token pairs")
 
         while len(merge_rules) < cfg.additional_vocab_size:
-            if unibpe is not None and len(merge_rules) >= unibpe_budget:
+            if isinstance(scorer, UniBPEScorer) and len(merge_rules) >= unibpe_budget:
                 logger.info(f"Switching to count-ranked BPE after {len(merge_rules):,d} UniBPE merges")
-                unibpe = None
-                pair_counts_heap = [(-count, p) for p, count in overall_pair_counts.items()]
-                heapq.heapify(pair_counts_heap)
-            if unibpe is not None:
-                most_common_pair = unibpe.pop()
-                if most_common_pair is None:
-                    logger.warning("Heap empty - no more merges possible - overly small corpus?")
-                    break
-            else:
-                if not pair_counts_heap:
-                    logger.warning("Heap empty - no more merges possible - overly small corpus?")
-                    break
-                neg_max_count, most_common_pair = heapq.heappop(pair_counts_heap)
-                if most_common_pair not in overall_pair_counts:
-                    continue
-                if overall_pair_counts[most_common_pair] != -neg_max_count:
-                    heapq.heappush(pair_counts_heap, (-overall_pair_counts[most_common_pair], most_common_pair))
-                    continue
-            max_count = overall_pair_counts[most_common_pair]
+                scorer = CountScorer(overall_pair_counts)
+            most_common_pair = scorer.pop()
+            if most_common_pair is None:
+                logger.warning("Heap empty - no more merges possible - overly small corpus?")
+                break
 
             (ta, tb) = most_common_pair
             tokens[next_token_id] = Token(
@@ -337,14 +375,11 @@ class BPETrainer(BaseTrainer):
                 overall_pair_counts[pair] += delta_count
                 if overall_pair_counts[pair] == 0:
                     del overall_pair_counts[pair]
-                elif delta_count > 0 and unibpe is None:
-                    heapq.heappush(pair_counts_heap, (-overall_pair_counts[pair], pair))
-            if unibpe is not None:
-                unibpe.apply_merge(most_common_pair, next_token_id, num_merges, aggregated_deltas)
+            scorer.apply_merge(most_common_pair, next_token_id, num_merges, aggregated_deltas)
 
             logger.info(
-                f"Max count {max_count:10,d} from {len(overall_pair_counts):8,d} candidate pairs -> Created {tokens[next_token_id].pretty_repr(pretokenizer):<40} from "
-                f"merging {tokens[ta].pretty_repr(pretokenizer):<30} & {tokens[tb].pretty_repr(pretokenizer):<30} \tTotal {sum(n_chunks_affected.values()):10,d} chunks affected ({min(n_chunks_affected.values()):5,d} - {max(n_chunks_affected.values()):5,d}/worker). Heap size {len(unibpe.heap if unibpe is not None else pair_counts_heap):,d}"
+                f"{scorer.score_name} {scorer.format_score()} from {len(overall_pair_counts):8,d} candidate pairs -> Created {tokens[next_token_id].pretty_repr(pretokenizer):<40} from "
+                f"merging {tokens[ta].pretty_repr(pretokenizer):<30} & {tokens[tb].pretty_repr(pretokenizer):<30} \tTotal {sum(n_chunks_affected.values()):10,d} chunks affected ({min(n_chunks_affected.values()):5,d} - {max(n_chunks_affected.values()):5,d}/worker). Heap size {len(scorer.heap):,d}"
             )
             next_token_id += 1
 

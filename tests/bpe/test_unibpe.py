@@ -5,7 +5,7 @@ import pytest
 
 from script_bpe.corpus import PretokenizedCorpus
 from script_bpe.pretokenize import get_pretokenizer
-from script_bpe.tokenizers.bpe.trainer import BPETrainer, BPETrainerConfig
+from script_bpe.tokenizers.bpe.trainer import BPETrainer, BPETrainerConfig, UniBPEScorer
 from script_bpe.utils import token_array
 
 # "xy" is rarer than "pq" but x and y occur nowhere else, while p and q are frequent on their own. Count-ranked
@@ -142,3 +142,24 @@ def test_unibpe_hybrid_switches_to_count_ranking(tmp_path, pretokenizer, taylors
 def test_unibpe_merges_requires_unibpe_score():
     with pytest.raises(ValueError, match="unibpe_merges"):
         BPETrainerConfig(additional_vocab_size=5, unibpe_merges=3)
+
+
+def test_unibpe_heap_compaction_keeps_merges_and_bounds_heap(tmp_path, pretokenizer, taylorswift_text, monkeypatch):
+    kwargs = dict(additional_vocab_size=60, merge_score="unibpe")
+    baseline, _ = train(tmp_path, pretokenizer, taylorswift_text, "no_compaction", **kwargs)
+
+    # A factor of 1 forces a rebuild whenever the heap outgrows the live pair set.
+    monkeypatch.setattr(UniBPEScorer, "HEAP_COMPACTION_FACTOR", 1)
+    max_ratio = 0.0
+    original_apply = UniBPEScorer.apply_merge
+
+    def tracking_apply(self, *args):
+        nonlocal max_ratio
+        original_apply(self, *args)
+        max_ratio = max(max_ratio, len(self.heap) / len(self.pair_counts))
+
+    monkeypatch.setattr(UniBPEScorer, "apply_merge", tracking_apply)
+    compacted, _ = train(tmp_path, pretokenizer, taylorswift_text, "compaction", **kwargs)
+
+    assert compacted.merge_rules == baseline.merge_rules
+    assert max_ratio <= 1.0
