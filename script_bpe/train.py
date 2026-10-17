@@ -157,7 +157,15 @@ def main():
     parser.add_argument("--retrain", action="store_true", help="Force retraining of the tokenizer, even if it exists")
     parser.add_argument("--parallel", "-p", type=int, default=4, help="Number of CPUs to use for training")
     parser.add_argument("--report", action="store_true", help="Generate a report after training")
+    parser.add_argument(
+        "--sparse_l1",
+        action="store_true",
+        default=None,
+        help="unigram only: prune with Sparse L1 Unigram (soft-thresholded EM) instead of Viterbi pruning",
+    )
     args = parser.parse_args()
+
+    trainer_config_kwargs = {k: v for k, v in dict(sparse_l1=args.sparse_l1).items() if v is not None}
 
     train_tokenizer(
         pretokenizer_name=args.pretokenizer,
@@ -167,6 +175,7 @@ def main():
         retrain=args.retrain,
         n_cpus=args.parallel,
         report=args.report,
+        trainer_config_kwargs=trainer_config_kwargs,
     )
 
 

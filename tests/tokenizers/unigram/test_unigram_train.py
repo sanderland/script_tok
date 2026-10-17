@@ -120,3 +120,19 @@ def test_sparse_l1_debias_changes_probabilities_not_vocab(sparse_corpus):
     }
     by_token = {t.atomic_tokens.tobytes(): t.log_prob for t in shrunk.tokens.values()}
     assert any(not math.isclose(t.log_prob, by_token[t.atomic_tokens.tobytes()]) for t in debiased.tokens.values())
+
+
+def test_sparse_l1_ties_remove_exactly_the_excess(sparse_corpus):
+    pretokenizer, corpus = sparse_corpus
+    trainer = UnigramTrainer(pretokenizer, corpus, UnigramTrainerConfig(sparse_l1=True, additional_vocab_size=100))
+    model = train_sparse(sparse_corpus, n=100)
+    n_required = sum(t.required for t in model.tokens.values())
+    # Every token has the same expected count, so any lambda that removes one prunable token removes them all.
+    trainer.run_e_step = lambda model, length: ({t.id: 5.0 for t in model.tokens.values()}, 0.0, 0)
+    target = len(model.tokens) - 10
+    new_model, _, num_removed, converged = trainer.run_sparse_l1_iteration(model, 1, target, 0.0)
+    assert converged
+    assert num_removed == 10
+    assert len(new_model.tokens) == target
+    assert sum(t.required for t in new_model.tokens.values()) == n_required
+    assert math.isclose(sum(math.exp(t.log_prob) for t in new_model.tokens.values()), 1.0, rel_tol=1e-6)

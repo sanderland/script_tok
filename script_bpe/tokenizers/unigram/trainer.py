@@ -72,21 +72,17 @@ class UnigramTrainer(BaseTrainer):
         final_vocab_size = len(self.pretokenizer.atomic_tokens) + cfg.additional_vocab_size
         totals_removed = defaultdict(list)
         defended_token_ids = set()
-        l1_lambda = 0.0
 
         model = UnigramModel(self.pretokenizer, vocab)
 
-        for iter in range(cfg.max_iterations):
-            if cfg.sparse_l1:
-                self.logger.info(f"🔄 Sparse L1 iteration {iter + 1}. Model size {len(model.tokens):,}")
-                model, l1_lambda, num_removed, converged = self.run_sparse_l1_iteration(
-                    model, corpus_atomic_length, final_vocab_size, l1_lambda
-                )
-                totals_removed["Sparse L1"].append(num_removed)
-                if converged:
-                    self.logger.info("🎯 Target vocabulary size reached")
-                    break
-                continue
+        num_iterations = 0
+        if cfg.sparse_l1:
+            model, removed_per_iteration, num_iterations = self.run_sparse_l1(
+                model, corpus_atomic_length, final_vocab_size
+            )
+            totals_removed["Sparse L1"] = removed_per_iteration
+        for iter in range(0 if cfg.sparse_l1 else cfg.max_iterations):
+            num_iterations = iter + 1
             for sub_iter in range(cfg.num_sub_iterations):
                 self.logger.info(f"🔄 EM Iteration {iter + 1}.{sub_iter + 1}. Model size {len(model.tokens):,}")
                 expected_count, objective, total_tokens = self.run_e_step(model, corpus_atomic_length)
@@ -119,7 +115,7 @@ class UnigramTrainer(BaseTrainer):
             "objective": objective,
             "total_tokens": total_tokens,
             "tokens/pretoken": total_tokens / total_pretokens,
-            "num_iterations": iter + 1,
+            "num_iterations": num_iterations,
             "totals_removed": totals_removed,
             "num_defended": num_defended,
             "defended_in_final": defended_in_final,
@@ -264,26 +260,45 @@ class UnigramTrainer(BaseTrainer):
         self.set_log_probs(model, expected_count, digamma_update=self.config.m_step_digamma)
         return model, num_removed
 
+    def run_sparse_l1(
+        self, model: UnigramModel, corpus_atomic_length: int, target_size: int
+    ) -> tuple[UnigramModel, list[int], int]:
+        """Returns (model, tokens removed per iteration, number of iterations)."""
+        l1_lambda = 0.0
+        removed_per_iteration = []
+        for iter in range(self.config.max_iterations):
+            self.logger.info(f"🔄 Sparse L1 iteration {iter + 1}. Model size {len(model.tokens):,}")
+            model, l1_lambda, num_removed, converged = self.run_sparse_l1_iteration(
+                model, corpus_atomic_length, target_size, l1_lambda
+            )
+            removed_per_iteration.append(num_removed)
+            if converged:
+                self.logger.info("🎯 Target vocabulary size reached")
+                return model, removed_per_iteration, iter + 1
+        return model, removed_per_iteration, self.config.max_iterations
+
     def run_sparse_l1_iteration(
         self, model: UnigramModel, corpus_atomic_length: int, target_size: int, l1_lambda: float
     ) -> tuple[UnigramModel, float, int, bool]:
         """One E-step plus proximal M-step. Returns (model, lambda, num_removed, reached_target_size)."""
         expected_count, objective, total_tokens = self.run_e_step(model, corpus_atomic_length)
-        prunable_counts = sorted(expected_count[t.id] for t in model.tokens.values() if not t.required)
+        prunable = sorted((expected_count[t.id], t.id) for t in model.tokens.values() if not t.required)
         excess = len(model.tokens) - target_size
         num_removed = 0
         if excess > 0:
-            quantile_index = min(int(len(prunable_counts) * self.config.sparse_l1_quantile), len(prunable_counts) - 1)
-            l1_lambda = max(l1_lambda, prunable_counts[quantile_index])
-            # Soft-thresholding removes every token with E[c] <= lambda; cap lambda so it cannot overshoot the target.
-            l1_lambda = min(l1_lambda, prunable_counts[excess - 1])
+            quantile_index = min(int(len(prunable) * self.config.sparse_l1_quantile), len(prunable) - 1)
+            l1_lambda = max(l1_lambda, prunable[quantile_index][0])
+            # Never zero out more than `excess` tokens: cap lambda at the excess-th lowest count.
+            l1_lambda = min(l1_lambda, prunable[excess - 1][0])
             weights = {t.id: max(0.0, expected_count[t.id] - l1_lambda) for t in model.tokens.values()}
-            kept = [t for t in model.tokens.values() if t.required or weights[t.id] > 0]
-            num_removed = len(model.tokens) - len(kept)
+            # Ties at lambda can zero more than `excess` tokens; drop the lowest (count, id) ones only.
+            removed_ids = {i for _, i in prunable[:excess] if weights[i] <= 0}
+            kept = [t for t in model.tokens.values() if t.id not in removed_ids]
+            num_removed = len(removed_ids)
             self.logger.debug(f"   ├─ Objective: {objective:.4f}, lambda: {l1_lambda:.4g}, tokens: {total_tokens:,d}")
             self.logger.debug(f"   └─ Removed {num_removed:,} tokens")
             model = UnigramModel(self.pretokenizer, kept)
-            # Required tokens can have zero weight; give them the same floor the standard M-step uses.
+            # Survivors tied at lambda and required tokens can have zero weight; give them the standard M-step floor.
             self.set_log_probs(
                 model, {k: max(self.MIN_EXPECTED_COUNT, w) for k, w in weights.items()}, digamma_update=False
             )
