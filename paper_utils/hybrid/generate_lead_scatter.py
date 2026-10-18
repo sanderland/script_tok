@@ -192,7 +192,8 @@ def _compression_default_tokens(cache: dict, lang: str) -> float | None:
 def _compression_mingram_tokens(compression_cache: dict, morph_cache: dict, lang: str, f: float, em: int, p: float, prune_criterion: str = "usage_count") -> float | None:
     cfg = COMPRESSION_CORPORA[lang]
     model_name = get_mingram_model_path(cfg["train"], f, em, p, prune_criterion=prune_criterion).name
-    key = f"tokens/{cfg['train']}/{cfg['eval']}/mingram/{model_name}"
+    grid_method = "mingram_pp" if prune_criterion == "mi" else "mingram"
+    key = f"tokens/{cfg['train']}/{cfg['eval']}/{grid_method}/{model_name}"
     value = _cache_value(compression_cache, key)
     if value is not None:
         return value
@@ -305,7 +306,23 @@ def _morphalign_mingram(cache: dict, lang: str, f: float, em: int, p: float, pru
     train_corpus = COMPRESSION_CORPORA[lang]["train"]
     model_name = get_mingram_model_path(train_corpus, f, em, p, prune_criterion=prune_criterion).name
     key = f"{lang}/mingram/{model_name}"
-    return _cache_value(cache, key)
+    value = _cache_value(cache, key)
+    if value is not None:
+        return value
+    return _compute_mingram(cache, lang, f, em, p, prune_criterion)
+
+
+def _compute_mingram(cache: dict, lang: str, f: float, em: int, p: float, prune_criterion: str) -> float | None:
+    # generate_morphalign_scatter only scores filenames it can parse, which excludes the _pc<criterion> variants.
+    from paper_utils.hybrid.generate_morphalign_scatter import LANGUAGE_CONFIGS, morphalign_score
+    from script_bpe.tokenizers.mingram.model import MinGramModel
+
+    cfg = next(cfg for cfg in LANGUAGE_CONFIGS if cfg["lang"] == lang)
+    path = get_mingram_model_path(cfg["train_corpus"], f, em, p, prune_criterion=prune_criterion)
+    if not path.exists():
+        return None
+    model = MinGramModel.load(str(path))
+    return morphalign_score(model, cfg["gold_file"], cache, f"{lang}/mingram/{path.name}")
 
 
 def _morphalign_pathpiece(cache: dict, lang: str, init: str) -> float | None:
@@ -384,20 +401,6 @@ def build_points(
     for method in METHOD_ORDER:
         if method == "mingram":
             compression_mean = _mean_mingram_delta(compression_cache, morph_cache, compression_langs, MAIN_F, PLOT_EM, PLOT_P)
-        elif method == "mingram_pp":
-            vals = [
-                _compression_mingram_delta(
-                    compression_cache,
-                    morph_cache,
-                    lang,
-                    MINGRAM_PP_F,
-                    PLOT_EM,
-                    MINGRAM_PP_P,
-                    "mi",
-                )
-                for lang in compression_langs
-            ]
-            compression_mean = float(np.mean(vals)) if all(v is not None for v in vals) else None
         else:
             compression_mean = _arith_mean_or_none(compression.get(method, {}), compression_langs)
         morphalign_mean = _geomean_or_none(morphalign.get(method, {}), morph_langs)
@@ -448,7 +451,7 @@ def plot(method_points: dict, mingram_trace: list[tuple[float, float, float]], o
     )
     sns.set_context("paper", font_scale=1.03)
 
-    fig, ax = plt.subplots(figsize=(5.2, 3.8), dpi=220)
+    fig, ax = plt.subplots(figsize=(6.6, 3.8), dpi=220)
 
     if mingram_trace:
         xs = [point[1] for point in mingram_trace]
@@ -493,7 +496,8 @@ def plot(method_points: dict, mingram_trace: list[tuple[float, float, float]], o
                 bbox={"boxstyle": "round,pad=0.14", "facecolor": "white", "edgecolor": "none", "alpha": 0.82},
             )
 
-    if mingram_pp_trace:
+    # A single point is already drawn as the MinGram-PP marker.
+    if mingram_pp_trace and len(mingram_pp_trace) > 1:
         xs = [p[1] for p in mingram_pp_trace]
         ys = [p[2] for p in mingram_pp_trace]
         ax.plot(
@@ -558,16 +562,19 @@ def plot(method_points: dict, mingram_trace: list[tuple[float, float, float]], o
     ax.set_xlabel("Compression Improvement over Unigram (%)", fontsize=9.4)
     ax.set_ylabel("MorphAlign Score", fontsize=9.4)
     ax.set_yscale("log")
-    y_ticks = [0.6, 0.8, 1.0, 1.2, 1.5]
+    y_ticks = [0.4, 0.5, 0.6, 0.8, 1.0, 1.2, 1.5]
     ax.set_yticks(y_ticks)
     ax.set_yticklabels([f"{tick:.1f}" for tick in y_ticks])
+    ax.yaxis.set_minor_formatter(plt.NullFormatter())
     ax.grid(True, alpha=0.45, zorder=0)
 
+    # Outside the axes: with eleven methods any inside corner covers a point.
     ax.legend(
         fontsize=7.6,
         framealpha=0.94,
-        loc="upper right",
-        ncol=2,
+        loc="upper left",
+        bbox_to_anchor=(1.02, 1.0),
+        ncol=1,
         columnspacing=0.8,
         handletextpad=0.6,
         borderpad=0.45,
