@@ -31,6 +31,12 @@ GPT4O_REGEX_LL = (
     r"""|\p{N}{1,3}| ?[^\s\p{L}\p{N}]{1,16}[\r\n/]{0,16}|\s{0,15}[\r\n]{1,16}|\s{1,16}(?!\S)|\s{1,16}"""
 )
 
+# SentencePiece SplitIntoWords with split_by_whitespace=true and allow_whitespace_only_pieces=false:
+# every space starts a new piece and attaches to the non-space run after it, so a run of n spaces
+# yields n-1 lone spaces plus one space-prefixed word. Nothing else (tabs, newlines, digits,
+# punctuation, scripts) splits. max_sentencepiece_length only filters candidate pieces, not words.
+SP_REGEX = r""" [^ ]*|[^ ]+"""
+
 
 # Registry of available pretokenizers
 PRETOKENIZER_REGISTRY: dict[str, PretokenizerConfig] = {
@@ -40,6 +46,7 @@ PRETOKENIZER_REGISTRY: dict[str, PretokenizerConfig] = {
     "bytes_gpt4o_cb": UTF8PretokenizerConfig(regex_pattern=GPT4O_REGEX),
     "bytes_gpt4o_ll_cb": UTF8PretokenizerConfig(regex_pattern=GPT4O_REGEX_LL),  # length-limited (paper's exact)
     "bytes_gpt4o_cbi": UTF8PretokenizerConfig(regex_pattern=GPT4O_REGEX, enforce_inherited=True),
+    "bytes_sp_cb": UTF8PretokenizerConfig(regex_pattern=SP_REGEX),
     "bytes_nosplit_cb": UTF8PretokenizerConfig(regex_pattern=None),
     # Backward-compatible alias names expected by tests
     "bytes_nosplit_cbi": UTF8PretokenizerConfig(regex_pattern=None, enforce_inherited=True),
