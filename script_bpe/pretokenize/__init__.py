@@ -38,13 +38,14 @@ GPT4O_REGEX_LL = (
 # punctuation, scripts) splits. max_sentencepiece_length only filters candidate pieces, not words.
 SP_REGEX = r""" [^ ]*|[^ ]+"""
 
-# trainer_spec of the released Gemma 2 and Gemma 3 tokenizer.model files. Gemma 3 sets
-# split_by_whitespace=false, but its vocabulary has no multi-word pieces. The regex only covers
-# where a piece may span; the no-trailing-space rule needs forbid_trailing_space.
-SP_GEMMA2 = dict(
+# trainer_spec of the released Gemma 2 tokenizer.model. Gemma 3's differs only in
+# split_by_whitespace=false, yet its vocabulary has no multi-word pieces, so this covers both.
+SP_GEMMA = dict(
     split_by_unicode_script=True, split_by_number=True, split_digits=True, allow_whitespace_only_pieces=True
 )
-SP_GEMMA3 = SP_GEMMA2 | dict(split_by_whitespace=False)
+# What Gemma 3's split_by_whitespace=false allows on paper. The regex only covers where a piece
+# may span; the no-trailing-space rule needs forbid_trailing_space.
+SP_GEMMA_XWS = SP_GEMMA | dict(split_by_whitespace=False)
 
 
 # Registry of available pretokenizers
@@ -57,9 +58,9 @@ PRETOKENIZER_REGISTRY: dict[str, PretokenizerConfig] = {
     "bytes_gpt4o_ll_cb": UTF8PretokenizerConfig(regex_pattern=GPT4O_REGEX_LL),  # length-limited (paper's exact)
     "bytes_gpt4o_cbi": UTF8PretokenizerConfig(regex_pattern=GPT4O_REGEX, enforce_inherited=True),
     "bytes_sp_cb": UTF8PretokenizerConfig(regex_pattern=SP_REGEX),
-    "bytes_sp_gemma2_cb": UTF8PretokenizerConfig(regex_pattern=sentencepiece_regex(**SP_GEMMA2)),
-    "bytes_sp_gemma3_cb": UTF8PretokenizerConfig(
-        regex_pattern=sentencepiece_regex(**SP_GEMMA3), forbid_trailing_space=True
+    "bytes_sp_gemma_cb": UTF8PretokenizerConfig(regex_pattern=sentencepiece_regex(**SP_GEMMA)),
+    "bytes_sp_gemma_xws_cb": UTF8PretokenizerConfig(
+        regex_pattern=sentencepiece_regex(**SP_GEMMA_XWS), forbid_trailing_space=True
     ),
     "bytes_nosplit_cb": UTF8PretokenizerConfig(regex_pattern=None),
     # Backward-compatible alias names expected by tests

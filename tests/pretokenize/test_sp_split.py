@@ -43,8 +43,8 @@ def test_sp_split_rule(text, expected):
         ("x.\n(y)", ["x", ".\n(", "y", ")"]),
     ],
 )
-def test_sp_gemma2_split(text, expected):
-    pt = get_pretokenizer("bytes_sp_gemma2_cb")
+def test_sp_gemma_split(text, expected):
+    pt = get_pretokenizer("bytes_sp_gemma_cb")
     assert [pt.decode(c) for c in pt.pretokenize(text)] == expected
 
 
@@ -57,8 +57,8 @@ def test_sp_gemma2_split(text, expected):
         ("Привет мир hi", ["Привет мир", " hi"]),
     ],
 )
-def test_sp_gemma3_split(text, expected):
-    pt = get_pretokenizer("bytes_sp_gemma3_cb")
+def test_sp_gemma_xws_split(text, expected):
+    pt = get_pretokenizer("bytes_sp_gemma_xws_cb")
     assert [pt.decode(c) for c in pt.pretokenize(text)] == expected
 
 
@@ -92,8 +92,8 @@ def test_sentencepiece_regex_without_script_split_matches_sp_cb():
     "text,allowed",
     [("of the", True), ("of ", False), ("e ", False), (" the", True), ("  ", True), ("a  b", True)],
 )
-def test_sp_gemma3_forbids_trailing_space(text, allowed):
-    gemma3, gemma2 = get_pretokenizer("bytes_sp_gemma3_cb"), get_pretokenizer("bytes_sp_gemma2_cb")
-    token = list(itertools.chain.from_iterable(gemma3.pretokenize(text)))
-    assert gemma3.token_allowed(token) is allowed
-    assert gemma2.token_allowed(token)
+def test_sp_gemma_xws_forbids_trailing_space(text, allowed):
+    xws, gemma = get_pretokenizer("bytes_sp_gemma_xws_cb"), get_pretokenizer("bytes_sp_gemma_cb")
+    token = list(itertools.chain.from_iterable(xws.pretokenize(text)))
+    assert xws.token_allowed(token) is allowed
+    assert gemma.token_allowed(token)
