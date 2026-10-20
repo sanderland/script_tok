@@ -5,6 +5,7 @@ from script_bpe.pretokenize.pretokenizer import (
     UTF8PretokenizerConfig,
 )
 from script_bpe.pretokenize.scriptencoding import ScriptEncodingV1, ScriptEncodingV2, ScriptEncodingV3
+from script_bpe.pretokenize.sentencepiece_split import sentencepiece_regex
 
 GPT2_REGEX = r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"
 GPT4_REGEX = (
@@ -37,6 +38,13 @@ GPT4O_REGEX_LL = (
 # punctuation, scripts) splits. max_sentencepiece_length only filters candidate pieces, not words.
 SP_REGEX = r""" [^ ]*|[^ ]+"""
 
+# trainer_spec of the released Gemma 2 and Gemma 3 tokenizer.model files. Gemma 3 sets
+# split_by_whitespace=false, but its vocabulary has a single piece with an inner space.
+SP_GEMMA2 = dict(
+    split_by_unicode_script=True, split_by_number=True, split_digits=True, allow_whitespace_only_pieces=True
+)
+SP_GEMMA3 = SP_GEMMA2 | dict(split_by_whitespace=False)
+
 
 # Registry of available pretokenizers
 PRETOKENIZER_REGISTRY: dict[str, PretokenizerConfig] = {
@@ -48,6 +56,8 @@ PRETOKENIZER_REGISTRY: dict[str, PretokenizerConfig] = {
     "bytes_gpt4o_ll_cb": UTF8PretokenizerConfig(regex_pattern=GPT4O_REGEX_LL),  # length-limited (paper's exact)
     "bytes_gpt4o_cbi": UTF8PretokenizerConfig(regex_pattern=GPT4O_REGEX, enforce_inherited=True),
     "bytes_sp_cb": UTF8PretokenizerConfig(regex_pattern=SP_REGEX),
+    "bytes_sp_gemma2_cb": UTF8PretokenizerConfig(regex_pattern=sentencepiece_regex(**SP_GEMMA2)),
+    "bytes_sp_gemma3_cb": UTF8PretokenizerConfig(regex_pattern=sentencepiece_regex(**SP_GEMMA3)),
     "bytes_nosplit_cb": UTF8PretokenizerConfig(regex_pattern=None),
     # Backward-compatible alias names expected by tests
     "bytes_nosplit_cbi": UTF8PretokenizerConfig(regex_pattern=None, enforce_inherited=True),
