@@ -40,6 +40,7 @@ SP_REGEX = r""" [^ ]*|[^ ]+"""
 
 # Registry of available pretokenizers
 PRETOKENIZER_REGISTRY: dict[str, PretokenizerConfig] = {
+    "bytes_gpt2_cb": UTF8PretokenizerConfig(regex_pattern=GPT2_REGEX),
     "bytes_gpt4": UTF8PretokenizerConfig(regex_pattern=GPT4_REGEX, enforce_char_boundaries=False),
     "bytes_gpt4_cb": UTF8PretokenizerConfig(regex_pattern=GPT4_REGEX),
     "bytes_gpt4o": UTF8PretokenizerConfig(regex_pattern=GPT4O_REGEX, enforce_char_boundaries=False),
