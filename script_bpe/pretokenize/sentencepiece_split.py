@@ -48,6 +48,8 @@ def sentencepiece_regex(
     SentencePiece also lets one digit bridge two different scripts ("a1α"). Inherited-script
     characters (combining marks) take the script of what precedes them, as in SentencePiece.
     max_sentencepiece_length caps candidate pieces and has no chunk equivalent.
+    With split_by_whitespace=False, pair the regex with forbid_trailing_space=True: a chunk may span
+    words, but SentencePiece rejects pieces that end in a space.
     """
     excluded = " " + (_DIGITS if split_digits else "")
     if split_by_unicode_script:

@@ -86,3 +86,14 @@ def test_sentencepiece_regex_without_script_split_matches_sp_cb():
     pattern = sentencepiece_regex(split_by_unicode_script=False, split_by_number=False)
     text = "a   b  c,d 12 x\ty\n  z ▁w  "
     assert regex.findall(pattern, text) == regex.findall(SP_REGEX, text)
+
+
+@pytest.mark.parametrize(
+    "text,allowed",
+    [("of the", True), ("of ", False), ("e ", False), (" the", True), ("  ", True), ("a  b", True)],
+)
+def test_sp_gemma3_forbids_trailing_space(text, allowed):
+    gemma3, gemma2 = get_pretokenizer("bytes_sp_gemma3_cb"), get_pretokenizer("bytes_sp_gemma2_cb")
+    token = list(itertools.chain.from_iterable(gemma3.pretokenize(text)))
+    assert gemma3.token_allowed(token) is allowed
+    assert gemma2.token_allowed(token)
