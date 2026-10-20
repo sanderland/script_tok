@@ -442,6 +442,14 @@ def _compute_cache(tasks: list[dict], cache: dict, max_workers: int) -> dict:
     if not missing_tasks:
         return cache
 
+    # Workers that miss the same eval corpus all try to create it, and every one but the first
+    # dies with FileExistsError. One serial task per eval corpus creates it for the pool; the
+    # grid models share a pretokenizer, so that covers every task.
+    first_per_eval = {task["eval_corpus"]: task for task in reversed(missing_tasks)}
+    for eval_corpus, task in first_per_eval.items():
+        pretokenizer = _load_model(task["model_type"], task["model_path"]).pretokenizer
+        load_corpus_by_name(eval_corpus, pretokenizer, num_workers=max_workers)
+
     completed = 0
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(_evaluate_task, task): task for task in missing_tasks}
