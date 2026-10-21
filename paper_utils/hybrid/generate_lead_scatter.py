@@ -453,7 +453,8 @@ def plot(method_points: dict, mingram_trace: list[tuple[float, float, float]], o
 
     fig, ax = plt.subplots(figsize=(6.6, 3.8), dpi=220)
 
-    if mingram_trace:
+    # Languages without the f sweep leave one shared point, already drawn as the MinGram marker.
+    if len(mingram_trace) > 1:
         xs = [point[1] for point in mingram_trace]
         ys = [point[2] for point in mingram_trace]
         ax.plot(
