@@ -43,6 +43,8 @@ FINEWEB_HYBRID6_CORPORA = [
     "fineweb_ar_5gb",
     "fineweb_ko_5gb",
 ]
+# German and English, as in the Kolibri tokenizer comparison.
+FINEWEB_DEEN_CORPORA = ["fineweb_de_5gb", "fineweb_en_5gb"]
 FINEWEB_5GB_MAX_CHARS = 5_000_000_000
 FINEWEB_SOURCE_MAX_CHARS = 500_000_000_000
 FINEWEB_BLOCK_MAX_CHARS = 10_000_000
@@ -648,6 +650,15 @@ def load_corpus_by_name(
         return create_merged_corpus(
             corpus_name=corpus_name,
             source_corpus_names=FINEWIKI_HYBRID6_CORPORA,
+            pretokenizer=pretokenizer,
+            base_dir=base_dir,
+            logger=logger,
+            num_workers=num_workers,
+        )
+    elif corpus_name == "fineweb:deen":
+        return create_merged_corpus(
+            corpus_name=corpus_name,
+            source_corpus_names=FINEWEB_DEEN_CORPORA,
             pretokenizer=pretokenizer,
             base_dir=base_dir,
             logger=logger,

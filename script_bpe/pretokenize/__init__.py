@@ -47,6 +47,10 @@ SP_GEMMA = dict(
 # may span; the no-trailing-space rule needs forbid_trailing_space.
 SP_GEMMA_XWS = SP_GEMMA | dict(split_by_whitespace=False)
 
+# Pre-tokenizer of Aleph Alpha's Kolibri-1 tokenizer.json: the GPT-4 regex with single digits and no
+# possessive quantifiers. It is byte-level BPE with no normalizer, so no NFC, no unassigned-char
+# removal and no char-boundary rule.
+KOLIBRI_REGEX = r"""(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+"""
 
 # Registry of available pretokenizers
 PRETOKENIZER_REGISTRY: dict[str, PretokenizerConfig] = {
@@ -61,6 +65,9 @@ PRETOKENIZER_REGISTRY: dict[str, PretokenizerConfig] = {
     "bytes_sp_gemma_cb": UTF8PretokenizerConfig(regex_pattern=sentencepiece_regex(**SP_GEMMA)),
     "bytes_sp_gemma_xws_cb": UTF8PretokenizerConfig(
         regex_pattern=sentencepiece_regex(**SP_GEMMA_XWS), forbid_trailing_space=True
+    ),
+    "bytes_kolibri": UTF8PretokenizerConfig(
+        regex_pattern=KOLIBRI_REGEX, normalization=None, remove_unassigned=False, enforce_char_boundaries=False
     ),
     "bytes_nosplit_cb": UTF8PretokenizerConfig(regex_pattern=None),
     # Backward-compatible alias names expected by tests
