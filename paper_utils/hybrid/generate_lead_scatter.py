@@ -591,6 +591,94 @@ def plot(method_points: dict, mingram_trace: list[tuple[float, float, float]], o
     print(f"Saved: {out_png}")
 
 
+TWEET_METHODS = [m for m in METHOD_ORDER if m not in ("bpe_init", "fsp_bpe_init")]
+TWEET_LABELS = {"pathpiece_bpe": "PathPiece", "sparse_l1": "Sparse L1", "unibpe_hybrid": "UniBPE+BPE"}
+# Label offsets in points, hand-placed for the 6-language figure.
+TWEET_LABEL_OFFSETS = {
+    "unigram": (-12, 0, "right", "center"),
+    "unibpe": (0, -14, "center", "top"),
+    "unibpe_hybrid": (0, -14, "center", "top"),
+    "sparse_l1": (-10, 4, "right", "center"),
+    "fsp": (10, -6, "left", "top"),
+    "bpe": (10, 0, "left", "center"),
+    "mingram": (0, 12, "center", "bottom"),
+    "mingram_pp": (0, -14, "center", "top"),
+    "convextok": (-12, 0, "right", "center"),
+    "pathpiece_bpe": (-12, 0, "right", "center"),
+}
+
+
+def pareto_front(method_points: dict) -> list[str]:
+    """Methods no other method beats on both compression and MorphAlign, ordered by compression."""
+    front = [
+        m for m, p in method_points.items()
+        if not any(q["x"] >= p["x"] and q["y"] >= p["y"] and q != p for q in method_points.values())
+    ]
+    return sorted(front, key=lambda m: method_points[m]["x"])
+
+
+def plot_tweet(method_points: dict, out_png: Path) -> None:
+    points = {m: method_points[m] for m in TWEET_METHODS if m in method_points}
+    sns.set_style("white")
+    fig, ax = plt.subplots(figsize=(8, 4.5), dpi=220)
+
+    front = pareto_front(points)
+    fx = [points[m]["x"] for m in front]
+    fy = [points[m]["y"] for m in front]
+    # Staircase through the front: everything below and left of it is beaten by some method.
+    sx, sy = [fx[0]], [fy[0]]
+    for x, y in zip(fx[1:], fy[1:]):
+        sx += [x, x]
+        sy += [sy[-1], y]
+    ax.plot(sx, sy, color="#999999", linewidth=1.4, linestyle="--", zorder=2)
+
+    for method, point in points.items():
+        style = METHOD_STYLE[method]
+        on_front = method in front
+        kwargs = dict(marker=style["marker"], s=style.get("size", 104) * 1.6, zorder=5)
+        if style["marker"] == "x":
+            ax.scatter([point["x"]], [point["y"]], c=style["color"], linewidths=2.4, **kwargs)
+        else:
+            ax.scatter(
+                [point["x"]], [point["y"]], facecolors=style["color"] if style["filled"] else "white",
+                edgecolors="white" if style["filled"] else style["color"], linewidths=1.2 if style["filled"] else 2.4, **kwargs,
+            )
+        dx, dy, ha, va = TWEET_LABEL_OFFSETS[method]
+        ax.annotate(
+            TWEET_LABELS.get(method, style["label"]), xy=(point["x"], point["y"]), xytext=(dx, dy),
+            textcoords="offset points", ha=ha, va=va, fontsize=12, color=style["color"],
+            fontweight="bold" if on_front else "normal",
+        )
+
+    ax.annotate(
+        "better", xy=(0.97, 0.97), xytext=(0.84, 0.80), xycoords="axes fraction", fontsize=11, color="#666666",
+        ha="center", va="center", arrowprops=dict(arrowstyle="->", color="#666666", linewidth=1.4),
+    )
+    ax.set_yscale("log")
+    y_ticks = [0.5, 0.6, 0.8, 1.0, 1.2, 1.5]
+    ax.set_yticks(y_ticks)
+    ax.set_yticklabels([f"{tick:.1f}" for tick in y_ticks])
+    ax.yaxis.set_minor_formatter(plt.NullFormatter())
+    ax.set_ylim(0.47, 1.65)
+    ax.set_xlim(-2.3, 2.9)
+    ax.tick_params(labelsize=11)
+    ax.set_xlabel("Compression gain over Unigram (%)  →", fontsize=12)
+    ax.set_ylabel("MorphAlign  →", fontsize=12)
+    ax.grid(True, color="#E6E6E6", linewidth=0.7, zorder=0)
+    ax.set_title(
+        "Compression vs. morphological alignment\n", fontsize=15, fontweight="bold", loc="left",
+    )
+    ax.text(
+        0.0, 1.02, "32k vocab · compression mean over en/de/fi/ru/ar/ko · MorphAlign over en/de/fi · dashed: Pareto front",
+        transform=ax.transAxes, fontsize=9.5, color="#666666",
+    )
+    sns.despine(ax=ax)
+    fig.tight_layout()
+    plt.savefig(out_png, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved: {out_png}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -600,6 +688,7 @@ def main() -> None:
         help="Restrict to these languages (e.g. eng). Reads compression_train_eval_grid_<langs>.json "
         "and writes lead_scatter_<langs>.png. Default: all six compression langs, geomean over eng/deu/fin.",
     )
+    parser.add_argument("--tweet", action="store_true", help="Also write a directly labelled lead_scatter_tweet.png.")
     args = parser.parse_args()
     grid_json, out_png = GRID_JSON, OUT_PNG
     if args.langs:
@@ -634,6 +723,8 @@ def main() -> None:
         print("MinGram f-trace: empty")
 
     plot(method_points, mingram_trace, out_png, mingram_pp_trace=mingram_pp_trace)
+    if args.tweet:
+        plot_tweet(method_points, out_png.with_name(f"{out_png.stem}_tweet.png"))
 
 
 if __name__ == "__main__":
