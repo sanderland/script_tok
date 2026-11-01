@@ -5,8 +5,10 @@ Four MinGram models trained on the same 5 billion characters: 80% English,
 plain, boundary[w], boundary[w,p,d], and boundary[w,p,d,↑], corresponding to
 `plain`, `bnd_w`, `bnd_wpd`, and `bnd_wpd_caps`.
 
-`manifest.json` contains relative model paths, SHA256 hashes and total vocabulary
-sizes. Resolve paths relative to this directory. Each model includes its training
+Only this README and `manifest.json` are tracked; the model files are not (see
+`../.gitignore`). `manifest.json` contains relative model paths, SHA256 hashes and total
+vocabulary sizes, so a regenerated or downloaded copy can be checked against it. Resolve
+paths relative to this directory. Each model includes its training
 provenance and intrinsic evaluation. Absolute source-cache paths in provenance
 record the original machine; loading the models does not require those caches.
 
