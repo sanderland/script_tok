@@ -275,7 +275,10 @@ class UnigramTrainer(BaseTrainer):
             if converged:
                 self.logger.info("🎯 Target vocabulary size reached")
                 return model, removed_per_iteration, iter + 1
-        return model, removed_per_iteration, self.config.max_iterations
+        raise RuntimeError(
+            f"Sparse L1 did not reach {target_size:,} tokens in {self.config.max_iterations} iterations "
+            f"({len(model.tokens):,} left); raise max_iterations or sparse_l1_quantile"
+        )
 
     def run_sparse_l1_iteration(
         self, model: UnigramModel, corpus_atomic_length: int, target_size: int, l1_lambda: float

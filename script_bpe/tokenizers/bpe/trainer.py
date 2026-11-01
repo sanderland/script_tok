@@ -8,7 +8,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Literal
 
-from pydantic import model_validator
+from pydantic import ConfigDict, model_validator
 
 from script_bpe.tokenizers.bpe.tokenizer import BPETokenizer, MergeRule, Token
 from script_bpe.corpus import PretokenizedCorpus
@@ -18,6 +18,8 @@ from script_bpe.utils import TokenSeq, join_workers, mp_ctx, token_array
 
 
 class BPETrainerConfig(TrainerConfig):
+    model_config = ConfigDict(extra="forbid")
+
     # "unibpe" ranks merges by the drop in Unigram corpus loss instead of by pair count (Aleph Alpha, Kolibri
     # tech report, Sec. 2.1.2). The tokenizer is still an ordinary merge list.
     merge_score: Literal["count", "unibpe"] = "count"
