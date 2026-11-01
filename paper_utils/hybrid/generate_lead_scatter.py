@@ -26,7 +26,6 @@ Output:
   results/mingram_paper/figures/lead_scatter.png
 """
 
-import argparse
 import json
 from pathlib import Path
 
@@ -80,9 +79,6 @@ METHOD_ORDER = [
     "mingram_pp",
     "pathpiece_bpe",
     "convextok",
-    "sparse_l1",
-    "unibpe",
-    "unibpe_hybrid",
 ]
 METHOD_STYLE = {
     "bpe": {"color": "#D55E00", "marker": "D", "label": "BPE", "filled": True},
@@ -94,15 +90,12 @@ METHOD_STYLE = {
     "mingram_pp": {"color": "#009E73", "marker": "x", "label": "MinGram-PP", "filled": False, "size": 82},
     "pathpiece_bpe": {"color": "#CC79A7", "marker": "s", "label": "PathPiece (BPE)", "filled": False, "size": 88},
     "convextok": {"color": "#C44E52", "marker": "*", "label": "ConvexTok", "filled": True, "size": 190},
-    "sparse_l1": {"color": "#8C564B", "marker": "v", "label": "Sparse L1 Unigram", "filled": True},
-    "unibpe": {"color": "#8F8400", "marker": "p", "label": "UniBPE", "filled": True, "size": 112},
-    "unibpe_hybrid": {"color": "#8F8400", "marker": "h", "label": "UniBPE + BPE", "filled": False, "size": 96},
 }
 
 CONVEXTOK_MODEL = "results/convextok_tokenizers/{train}/n32768_cmin50_mp200000_L32_det.json.gz"
 
 
-def _convextok_point(compression_cache: dict, morph_cache: dict, compression_langs: list[str], morph_langs: list[str]) -> dict | None:
+def _convextok_point(compression_cache: dict, morph_cache: dict) -> dict | None:
     """Compute (x=compression improvement over Unigram %, y=MorphAlign) for ConvexTok,
     meaned over the MorphAlign langs (eng/deu/fin), the same way the other methods are."""
     import os
@@ -114,7 +107,7 @@ def _convextok_point(compression_cache: dict, morph_cache: dict, compression_lan
 
     pretok = get_pretokenizer("scriptenc_cb")
     deltas = []
-    for lang in compression_langs:
+    for lang in COMPRESSION_LANGS:
         cfg = COMPRESSION_CORPORA[lang]
         path = CONVEXTOK_MODEL.format(train=cfg["train"])
         uni_tokens = _compression_default_tokens(compression_cache, lang)
@@ -130,7 +123,7 @@ def _convextok_point(compression_cache: dict, morph_cache: dict, compression_lan
         deltas.append((cvx_tokens - uni_tokens) / uni_tokens * 100.0)
 
     morphs = []
-    for lang in morph_langs:
+    for lang in MORPHALIGN_LANGS:
         cfg = COMPRESSION_CORPORA[lang]
         path = CONVEXTOK_MODEL.format(train=cfg["train"])
         model = load_tokenizer(path)
@@ -150,9 +143,6 @@ def _grid_method_key(method: str) -> str:
         "mingram": "mingram",
         "mingram_pp": "mingram_pp",
         "pathpiece_bpe": "pathpiece_bpe",
-        "sparse_l1": "sparse_l1",
-        "unibpe": "unibpe",
-        "unibpe_hybrid": "unibpe_hybrid",
     }[method]
 
 
@@ -160,11 +150,11 @@ def _format_f(value: float) -> str:
     return f"{value:g}"
 
 
-def _compression_deltas(grid: dict, langs: list[str]) -> dict[str, dict[str, float]]:
+def _compression_deltas(grid: dict) -> dict[str, dict[str, float]]:
     """Return {method: {lang: delta_pct}} for the fineweb->fishfood pairing."""
     series = grid["fineweb->fishfood"]["series"]
     out: dict[str, dict[str, float]] = {method: {} for method in METHOD_ORDER}
-    for lang in langs:
+    for lang in COMPRESSION_LANGS:
         row = series[lang]
         out["unigram"][lang] = 0.0
         for method in METHOD_ORDER:
@@ -192,8 +182,7 @@ def _compression_default_tokens(cache: dict, lang: str) -> float | None:
 def _compression_mingram_tokens(compression_cache: dict, morph_cache: dict, lang: str, f: float, em: int, p: float, prune_criterion: str = "usage_count") -> float | None:
     cfg = COMPRESSION_CORPORA[lang]
     model_name = get_mingram_model_path(cfg["train"], f, em, p, prune_criterion=prune_criterion).name
-    grid_method = "mingram_pp" if prune_criterion == "mi" else "mingram"
-    key = f"tokens/{cfg['train']}/{cfg['eval']}/{grid_method}/{model_name}"
+    key = f"tokens/{cfg['train']}/{cfg['eval']}/mingram/{model_name}"
     value = _cache_value(compression_cache, key)
     if value is not None:
         return value
@@ -230,14 +219,7 @@ def _mingram_trace_deltas(compression_cache: dict, morph_cache: dict, langs: lis
 
 def _morphalign_references(cache: dict, lang: str) -> dict[str, float]:
     out = {}
-    for ref_name, method in [
-        ("BPE", "bpe"),
-        ("Default", "unigram"),
-        ("FSP", "fsp"),
-        ("SparseL1", "sparse_l1"),
-        ("UniBPE", "unibpe"),
-        ("UniBPE-Hybrid", "unibpe_hybrid"),
-    ]:
+    for ref_name, method in [("BPE", "bpe"), ("Default", "unigram"), ("FSP", "fsp")]:
         key = f"{lang}/ref/{ref_name}"
         if key in cache:
             out[method] = float(cache[key])
@@ -306,23 +288,7 @@ def _morphalign_mingram(cache: dict, lang: str, f: float, em: int, p: float, pru
     train_corpus = COMPRESSION_CORPORA[lang]["train"]
     model_name = get_mingram_model_path(train_corpus, f, em, p, prune_criterion=prune_criterion).name
     key = f"{lang}/mingram/{model_name}"
-    value = _cache_value(cache, key)
-    if value is not None:
-        return value
-    return _compute_mingram(cache, lang, f, em, p, prune_criterion)
-
-
-def _compute_mingram(cache: dict, lang: str, f: float, em: int, p: float, prune_criterion: str) -> float | None:
-    # generate_morphalign_scatter only scores filenames it can parse, which excludes the _pc<criterion> variants.
-    from paper_utils.hybrid.generate_morphalign_scatter import LANGUAGE_CONFIGS, morphalign_score
-    from script_bpe.tokenizers.mingram.model import MinGramModel
-
-    cfg = next(cfg for cfg in LANGUAGE_CONFIGS if cfg["lang"] == lang)
-    path = get_mingram_model_path(cfg["train_corpus"], f, em, p, prune_criterion=prune_criterion)
-    if not path.exists():
-        return None
-    model = MinGramModel.load(str(path))
-    return morphalign_score(model, cfg["gold_file"], cache, f"{lang}/mingram/{path.name}")
+    return _cache_value(cache, key)
 
 
 def _morphalign_pathpiece(cache: dict, lang: str, init: str) -> float | None:
@@ -332,9 +298,9 @@ def _morphalign_pathpiece(cache: dict, lang: str, init: str) -> float | None:
     return _cache_value(cache, key)
 
 
-def _morphalign_per_method_lang(cache: dict, langs: list[str]) -> dict[str, dict[str, float]]:
+def _morphalign_per_method_lang(cache: dict) -> dict[str, dict[str, float]]:
     out: dict[str, dict[str, float]] = {method: {} for method in METHOD_ORDER}
-    for lang in langs:
+    for lang in MORPHALIGN_LANGS:
         refs = _morphalign_references(cache, lang)
         for method, score in refs.items():
             out[method][lang] = score
@@ -360,16 +326,16 @@ def _morphalign_per_method_lang(cache: dict, langs: list[str]) -> dict[str, dict
     return out
 
 
-def _morphalign_mingram_trace(cache: dict, langs: list[str]) -> list[tuple[float, float]]:
+def _morphalign_mingram_trace(cache: dict) -> list[tuple[float, float]]:
     points = []
     for f in MINGRAM_TRACE_FS:
         values = []
-        for lang in langs:
+        for lang in MORPHALIGN_LANGS:
             value = _morphalign_mingram(cache, lang, f, PLOT_EM, PLOT_P)
             if value is None:
                 break
             values.append(value)
-        if len(values) == len(langs):
+        if len(values) == len(MORPHALIGN_LANGS):
             points.append((f, float(geomean(values))))
     return points
 
@@ -388,32 +354,42 @@ def _geomean_or_none(values_by_lang: dict[str, float], langs: list[str]) -> floa
     return float(geomean(values))
 
 
-def build_points(
-    grid: dict, compression_cache: dict, morph_cache: dict, langs: list[str] | None = None
-) -> tuple[dict, list[tuple[float, float, float]]]:
+def build_points(grid: dict, compression_cache: dict, morph_cache: dict) -> tuple[dict, list[tuple[float, float, float]]]:
     """Return ({method: {'x': compression, 'y': morphalign}}, mingram_trace)."""
-    compression_langs = langs or COMPRESSION_LANGS
-    morph_langs = [lang for lang in compression_langs if lang in MORPHALIGN_LANGS] if langs else MORPHALIGN_LANGS
-    compression = _compression_deltas(grid, compression_langs)
-    morphalign = _morphalign_per_method_lang(morph_cache, morph_langs)
+    compression = _compression_deltas(grid)
+    morphalign = _morphalign_per_method_lang(morph_cache)
 
     method_points: dict[str, dict[str, float]] = {}
     for method in METHOD_ORDER:
         if method == "mingram":
-            compression_mean = _mean_mingram_delta(compression_cache, morph_cache, compression_langs, MAIN_F, PLOT_EM, PLOT_P)
+            compression_mean = _mean_mingram_delta(compression_cache, morph_cache, COMPRESSION_LANGS, MAIN_F, PLOT_EM, PLOT_P)
+        elif method == "mingram_pp":
+            vals = [
+                _compression_mingram_delta(
+                    compression_cache,
+                    morph_cache,
+                    lang,
+                    MINGRAM_PP_F,
+                    PLOT_EM,
+                    MINGRAM_PP_P,
+                    "mi",
+                )
+                for lang in COMPRESSION_LANGS
+            ]
+            compression_mean = float(np.mean(vals)) if all(v is not None for v in vals) else None
         else:
-            compression_mean = _arith_mean_or_none(compression.get(method, {}), compression_langs)
-        morphalign_mean = _geomean_or_none(morphalign.get(method, {}), morph_langs)
+            compression_mean = _arith_mean_or_none(compression.get(method, {}), COMPRESSION_LANGS)
+        morphalign_mean = _geomean_or_none(morphalign.get(method, {}), MORPHALIGN_LANGS)
         if compression_mean is None or morphalign_mean is None:
             continue
         method_points[method] = {"x": -compression_mean, "y": morphalign_paper_score(morphalign_mean)}
 
-    cvx_point = _convextok_point(compression_cache, morph_cache, compression_langs, morph_langs)
+    cvx_point = _convextok_point(compression_cache, morph_cache)
     if cvx_point is not None:
         method_points["convextok"] = cvx_point
 
-    compression_trace = dict(_mingram_trace_deltas(compression_cache, morph_cache, compression_langs))
-    morphalign_trace = dict(_morphalign_mingram_trace(morph_cache, morph_langs))
+    compression_trace = dict(_mingram_trace_deltas(compression_cache, morph_cache, COMPRESSION_LANGS))
+    morphalign_trace = dict(_morphalign_mingram_trace(morph_cache))
     mingram_trace = [
         (f, -compression_trace[f], morphalign_paper_score(morphalign_trace[f]))
         for f in MINGRAM_TRACE_FS
@@ -423,11 +399,11 @@ def build_points(
     # MinGram-PP f-trace (p=0.9): compression mean over COMPRESSION_LANGS, morphalign
     # geomean over MORPHALIGN_LANGS, both at prune_criterion="mi".
     def _mi_comp(f):
-        vals = [_compression_mingram_delta(compression_cache, morph_cache, lang, f, PLOT_EM, MINGRAM_PP_P, "mi") for lang in compression_langs]
+        vals = [_compression_mingram_delta(compression_cache, morph_cache, lang, f, PLOT_EM, MINGRAM_PP_P, "mi") for lang in COMPRESSION_LANGS]
         return float(np.mean(vals)) if all(v is not None for v in vals) else None
 
     def _mi_morph(f):
-        vals = [_morphalign_mingram(morph_cache, lang, f, PLOT_EM, MINGRAM_PP_P, "mi") for lang in morph_langs]
+        vals = [_morphalign_mingram(morph_cache, lang, f, PLOT_EM, MINGRAM_PP_P, "mi") for lang in MORPHALIGN_LANGS]
         return float(geomean(vals)) if all(v is not None for v in vals) else None
 
     mingram_pp_trace = []
@@ -451,10 +427,9 @@ def plot(method_points: dict, mingram_trace: list[tuple[float, float, float]], o
     )
     sns.set_context("paper", font_scale=1.03)
 
-    fig, ax = plt.subplots(figsize=(6.6, 3.8), dpi=220)
+    fig, ax = plt.subplots(figsize=(5.2, 3.8), dpi=220)
 
-    # Languages without the f sweep leave one shared point, already drawn as the MinGram marker.
-    if len(mingram_trace) > 1:
+    if mingram_trace:
         xs = [point[1] for point in mingram_trace]
         ys = [point[2] for point in mingram_trace]
         ax.plot(
@@ -497,8 +472,7 @@ def plot(method_points: dict, mingram_trace: list[tuple[float, float, float]], o
                 bbox={"boxstyle": "round,pad=0.14", "facecolor": "white", "edgecolor": "none", "alpha": 0.82},
             )
 
-    # A single point is already drawn as the MinGram-PP marker.
-    if mingram_pp_trace and len(mingram_pp_trace) > 1:
+    if mingram_pp_trace:
         xs = [p[1] for p in mingram_pp_trace]
         ys = [p[2] for p in mingram_pp_trace]
         ax.plot(
@@ -563,19 +537,16 @@ def plot(method_points: dict, mingram_trace: list[tuple[float, float, float]], o
     ax.set_xlabel("Compression Improvement over Unigram (%)", fontsize=9.4)
     ax.set_ylabel("MorphAlign Score", fontsize=9.4)
     ax.set_yscale("log")
-    y_ticks = [0.4, 0.5, 0.6, 0.8, 1.0, 1.2, 1.5]
+    y_ticks = [0.6, 0.8, 1.0, 1.2, 1.5]
     ax.set_yticks(y_ticks)
     ax.set_yticklabels([f"{tick:.1f}" for tick in y_ticks])
-    ax.yaxis.set_minor_formatter(plt.NullFormatter())
     ax.grid(True, alpha=0.45, zorder=0)
 
-    # Outside the axes: with eleven methods any inside corner covers a point.
     ax.legend(
         fontsize=7.6,
         framealpha=0.94,
-        loc="upper left",
-        bbox_to_anchor=(1.02, 1.0),
-        ncol=1,
+        loc="upper right",
+        ncol=2,
         columnspacing=0.8,
         handletextpad=0.6,
         borderpad=0.45,
@@ -591,114 +562,11 @@ def plot(method_points: dict, mingram_trace: list[tuple[float, float, float]], o
     print(f"Saved: {out_png}")
 
 
-TWEET_METHODS = [m for m in METHOD_ORDER if m not in ("bpe_init", "fsp_bpe_init")]
-TWEET_LABELS = {"pathpiece_bpe": "PathPiece", "sparse_l1": "Sparse L1", "unibpe_hybrid": "UniBPE+BPE"}
-# Label offsets in points, hand-placed for the 6-language figure.
-TWEET_LABEL_OFFSETS = {
-    "unigram": (-12, 0, "right", "center"),
-    "unibpe": (0, -14, "center", "top"),
-    "unibpe_hybrid": (0, -14, "center", "top"),
-    "sparse_l1": (-10, 4, "right", "center"),
-    "fsp": (10, -6, "left", "top"),
-    "bpe": (10, 0, "left", "center"),
-    "mingram": (0, 12, "center", "bottom"),
-    "mingram_pp": (0, -14, "center", "top"),
-    "convextok": (-12, 0, "right", "center"),
-    "pathpiece_bpe": (-12, 0, "right", "center"),
-}
-
-
-def pareto_front(method_points: dict) -> list[str]:
-    """Methods no other method beats on both compression and MorphAlign, ordered by compression."""
-    front = [
-        m for m, p in method_points.items()
-        if not any(q["x"] >= p["x"] and q["y"] >= p["y"] and q != p for q in method_points.values())
-    ]
-    return sorted(front, key=lambda m: method_points[m]["x"])
-
-
-def plot_tweet(method_points: dict, out_png: Path) -> None:
-    points = {m: method_points[m] for m in TWEET_METHODS if m in method_points}
-    sns.set_style("white")
-    fig, ax = plt.subplots(figsize=(8, 4.5), dpi=220)
-
-    front = pareto_front(points)
-    fx = [points[m]["x"] for m in front]
-    fy = [points[m]["y"] for m in front]
-    # Staircase through the front: everything below and left of it is beaten by some method.
-    sx, sy = [fx[0]], [fy[0]]
-    for x, y in zip(fx[1:], fy[1:]):
-        sx += [x, x]
-        sy += [sy[-1], y]
-    ax.plot(sx, sy, color="#999999", linewidth=1.4, linestyle="--", zorder=2)
-
-    for method, point in points.items():
-        style = METHOD_STYLE[method]
-        on_front = method in front
-        kwargs = dict(marker=style["marker"], s=style.get("size", 104) * 1.6, zorder=5)
-        if style["marker"] == "x":
-            ax.scatter([point["x"]], [point["y"]], c=style["color"], linewidths=2.4, **kwargs)
-        else:
-            ax.scatter(
-                [point["x"]], [point["y"]], facecolors=style["color"] if style["filled"] else "white",
-                edgecolors="white" if style["filled"] else style["color"], linewidths=1.2 if style["filled"] else 2.4, **kwargs,
-            )
-        dx, dy, ha, va = TWEET_LABEL_OFFSETS[method]
-        ax.annotate(
-            TWEET_LABELS.get(method, style["label"]), xy=(point["x"], point["y"]), xytext=(dx, dy),
-            textcoords="offset points", ha=ha, va=va, fontsize=12, color=style["color"],
-            fontweight="bold" if on_front else "normal",
-        )
-
-    ax.annotate(
-        "better", xy=(0.97, 0.97), xytext=(0.84, 0.80), xycoords="axes fraction", fontsize=11, color="#666666",
-        ha="center", va="center", arrowprops=dict(arrowstyle="->", color="#666666", linewidth=1.4),
-    )
-    ax.set_yscale("log")
-    y_ticks = [0.5, 0.6, 0.8, 1.0, 1.2, 1.5]
-    ax.set_yticks(y_ticks)
-    ax.set_yticklabels([f"{tick:.1f}" for tick in y_ticks])
-    ax.yaxis.set_minor_formatter(plt.NullFormatter())
-    ax.set_ylim(0.47, 1.65)
-    ax.set_xlim(-2.3, 2.9)
-    ax.tick_params(labelsize=11)
-    ax.set_xlabel("Compression gain over Unigram (%)  →", fontsize=12)
-    ax.set_ylabel("MorphAlign  →", fontsize=12)
-    ax.grid(True, color="#E6E6E6", linewidth=0.7, zorder=0)
-    ax.set_title(
-        "Compression vs. morphological alignment\n", fontsize=15, fontweight="bold", loc="left",
-    )
-    ax.text(
-        0.0, 1.02, "32k vocab · compression mean over en/de/fi/ru/ar/ko · MorphAlign over en/de/fi · dashed: Pareto front",
-        transform=ax.transAxes, fontsize=9.5, color="#666666",
-    )
-    sns.despine(ax=ax)
-    fig.tight_layout()
-    plt.savefig(out_png, dpi=300, bbox_inches="tight")
-    plt.close(fig)
-    print(f"Saved: {out_png}")
-
-
 def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--langs",
-        nargs="+",
-        choices=COMPRESSION_LANGS,
-        help="Restrict to these languages (e.g. eng). Reads compression_train_eval_grid_<langs>.json "
-        "and writes lead_scatter_<langs>.png. Default: all six compression langs, geomean over eng/deu/fin.",
-    )
-    parser.add_argument("--tweet", action="store_true", help="Also write a directly labelled lead_scatter_tweet.png.")
-    args = parser.parse_args()
-    grid_json, out_png = GRID_JSON, OUT_PNG
-    if args.langs:
-        suffix = "_".join(args.langs)
-        grid_json = GRID_JSON.with_name(f"{GRID_JSON.stem}_{suffix}.json")
-        out_png = paper_figure_path(f"lead_scatter_{suffix}.png")
-    grid = json.loads(grid_json.read_text())
+    grid = json.loads(GRID_JSON.read_text())
     compression_cache = json.loads(COMPRESSION_CACHE_JSON.read_text())
     morph_cache = json.loads(MORPHALIGN_JSON.read_text())
-    method_points, mingram_trace, mingram_pp_trace = build_points(grid, compression_cache, morph_cache, args.langs)
+    method_points, mingram_trace, mingram_pp_trace = build_points(grid, compression_cache, morph_cache)
     MORPHALIGN_JSON.write_text(json.dumps(morph_cache, indent=2))
     COMPRESSION_CACHE_JSON.write_text(json.dumps(compression_cache, indent=2))
 
@@ -722,9 +590,7 @@ def main() -> None:
     else:
         print("MinGram f-trace: empty")
 
-    plot(method_points, mingram_trace, out_png, mingram_pp_trace=mingram_pp_trace)
-    if args.tweet:
-        plot_tweet(method_points, out_png.with_name(f"{out_png.stem}_tweet.png"))
+    plot(method_points, mingram_trace, OUT_PNG, mingram_pp_trace=mingram_pp_trace)
 
 
 if __name__ == "__main__":
