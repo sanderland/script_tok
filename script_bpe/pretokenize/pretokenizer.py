@@ -26,6 +26,8 @@ class PretokenizerConfig(BaseModel):
     # token restrictions
     enforce_char_boundaries: bool = True
     enforce_inherited: bool = False
+    # SentencePiece split_by_whitespace=false: a space may sit inside a token but not end it
+    forbid_trailing_space: bool = False
     # disallow extra fields
     model_config = ConfigDict(extra="forbid")
 
@@ -142,6 +144,9 @@ class Pretokenizer:
         h = hashlib.sha1()
         config = self.config.model_copy(deep=True)
         dumped = config.model_dump(mode="json", by_alias=True)
+        # Fields added later are left out at their default so existing corpus caches keep their hash.
+        if not dumped["forbid_trailing_space"]:
+            del dumped["forbid_trailing_space"]
         h.update(json.dumps(dumped, sort_keys=True).encode("utf-8"))
         return "PT-" + h.hexdigest()[:8]
 
@@ -223,6 +228,10 @@ class Pretokenizer:
             if text is None and not self.char_boundary_ok(token_seq):
                 return False
             elif self.config.enforce_inherited and text is not None and self.violates_inherited_order(text):
+                return False
+        if self.config.forbid_trailing_space:
+            text = self.try_decode_strict(token_seq)
+            if text is not None and text.endswith(" ") and text.strip(" "):
                 return False
         return True
 

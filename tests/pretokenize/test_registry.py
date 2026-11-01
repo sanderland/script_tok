@@ -30,4 +30,5 @@ def test_pretokenizers_in_registry(pretokenizer_name):
     # test normalization does not remove unicode 16.0 introduced characters
     assert pretokenizer.normalize("1 \U000142aa ") == "1 \U000142aa "
     # Cn: Not Assigned (U+0378)  Co: Private Use (U+E000)   Cs: Surrogate (U+D800)
-    assert pretokenizer.normalize(":\u0378\ue000)\ud800") == ":)"
+    if pretokenizer.config.remove_unassigned:
+        assert pretokenizer.normalize(":\u0378\ue000)\ud800") == ":)"
