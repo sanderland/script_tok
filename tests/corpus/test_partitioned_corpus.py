@@ -69,3 +69,69 @@ def test_corpus_reconstruction_and_token_sum(tmp_path, taylorswift_text, pretoke
         reconstructed_atomic_tokens += len(chunk_array) * count
 
     assert reconstructed_atomic_tokens == corpus.metadata["atomic_tokens"]
+
+
+# Writing partition files dominates the build time of a small corpus, so these tests use few partitions.
+# The partition count does not affect the property under test.
+TEST_PARTITIONS = 4
+# Each multi-worker build pays forkserver start-up (every worker imports script_bpe), so the tests below do
+# one multi-worker build in total and compare everything else against single-worker builds.
+TEST_WORKERS = 2
+SMALL_TASK_CHARS = 500
+
+
+def _read_corpus_content(corpus: PretokenizedCorpus) -> tuple[list[str], list[tuple[bytes, int]]]:
+    """Return (partition file names, all (chunk, count) rows sorted across partitions)."""
+    rows = [(chunk.tobytes(), count) for chunk, count in corpus]
+    return corpus.partitions, sorted(rows)
+
+
+def test_splitter_cuts_by_size_and_keeps_every_document_once():
+    """
+    _split_by_chars must keep documents in order, never drop or duplicate one, keep each task within the
+    character budget, and leave a document larger than the budget whole as its own task.
+    """
+    from script_bpe.corpus import base
+
+    documents = ["a" * 300, "b" * 300, "c" * 1200, "d" * 100, "e" * 100, "f" * 301, "g"]
+    tasks = list(base._split_by_chars(documents, SMALL_TASK_CHARS))
+    assert tasks == [
+        [documents[0]],
+        [documents[1]],
+        [documents[2]],
+        [documents[3], documents[4]],
+        [documents[5], documents[6]],
+    ]
+    assert list(base._split_by_chars([], SMALL_TASK_CHARS)) == []
+
+
+def test_corpus_does_not_depend_on_batching_workers_or_task_size(tmp_path, taylorswift_text, monkeypatch):
+    """
+    The corpus must not depend on how the text is batched, how many workers encode it, or how it is cut into
+    tasks. Reference: one batch, one worker. Variants: (a) many small batches, one worker; (b) the same batches,
+    TEST_WORKERS workers and a 500-character task budget, so the batches are cut into many tasks that finish in
+    arbitrary order. Metadata and the sorted (chunk, count) rows must be identical, in the requested files.
+    The main process does the splitting, so patching the module constant takes effect for the forkserver pool.
+    """
+    from script_bpe.corpus import base
+
+    pretokenizer = get_pretokenizer("bytes_gpt4")
+    documents = taylorswift_text.split("\n")  # one document per line
+    assert len(documents) > 200, "test data must yield many batches"
+    assert any(len(text) > SMALL_TASK_CHARS for text in documents), "test data must contain an over-budget document"
+    batches = [documents[i : i + 20] for i in range(0, len(documents), 20)]
+    kwargs = dict(pretokenizer=pretokenizer, base_path=str(tmp_path), num_partitions=TEST_PARTITIONS)
+
+    reference = PretokenizedCorpus.from_texts("reference", documents, num_workers=1, **kwargs)
+    builds = {"batches_1_worker": PretokenizedCorpus.from_text_batches("batches_1", batches, num_workers=1, **kwargs)}
+    monkeypatch.setattr(base, "ENCODE_TASK_MAX_CHARS", SMALL_TASK_CHARS)
+    builds["small_tasks_multiprocess"] = PretokenizedCorpus.from_text_batches(
+        "small_tasks", batches, num_workers=TEST_WORKERS, **kwargs
+    )
+
+    reference_rows = _read_corpus_content(reference)[1]
+    for name, corpus in builds.items():
+        files, rows = _read_corpus_content(corpus)
+        assert len(files) == TEST_PARTITIONS, name
+        assert corpus.metadata == reference.metadata, name
+        assert rows == reference_rows, name
