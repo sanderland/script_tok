@@ -71,7 +71,14 @@ FLAGS = [
 ]
 
 
-@pytest.mark.parametrize("values", list(itertools.product([True, False], repeat=len(FLAGS))))
+SUPPORTED_FLAG_VALUES = [
+    v
+    for v in itertools.product([True, False], repeat=len(FLAGS))
+    if not (v[1] and not v[2] and not v[3])  # split_by_unicode_script without split_by_number or split_digits
+]
+
+
+@pytest.mark.parametrize("values", SUPPORTED_FLAG_VALUES)
 def test_sentencepiece_regex_covers_text(values):
     flags = dict(zip(FLAGS, values))
     rng = random.Random(0)

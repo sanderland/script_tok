@@ -44,20 +44,20 @@ def sentencepiece_regex(
     Defaults match spm_train. The input is unnormalized text, so U+0020 plays the role of U+2581.
     treat_whitespace_as_suffix is not supported.
 
-    Approximations: with split_by_number=False a digit run joins the script run around it, whereas
-    SentencePiece also lets one digit bridge two different scripts ("a1α"). Inherited-script
-    characters (combining marks) take the script of what precedes them, as in SentencePiece.
+    split_by_number=False with split_by_unicode_script=True is not supported: SentencePiece lets
+    a digit run join the script run around it, which an ordered regex alternation cannot express.
+    Inherited-script characters (combining marks) take the script of what precedes them, as in
+    SentencePiece.
     max_sentencepiece_length caps candidate pieces and has no chunk equivalent.
     With split_by_whitespace=False, pair the regex with forbid_trailing_space=True: a chunk may span
     words, but SentencePiece rejects pieces that end in a space.
     """
+    if split_by_unicode_script and not split_by_number and not split_digits:
+        raise NotImplementedError("split_by_number=False needs split_by_unicode_script=False")
     excluded = " " + (_DIGITS if split_digits else "")
     if split_by_unicode_script:
-        # Digits are Common, so the negated Common class holds them; with split_by_number=False
-        # they are wildcards and join every script.
-        wild = _DIGITS if not split_by_number and not split_digits else ""
         scripts = _script_classes()
-        classes = [f"[{c}{_INHERITED}{wild}]" for c in scripts]
+        classes = [f"[{c}{_INHERITED}]" for c in scripts]
         classes.append(f"[^{''.join(scripts)}{excluded}]")
     else:
         classes = [f"[^{excluded}]"]
