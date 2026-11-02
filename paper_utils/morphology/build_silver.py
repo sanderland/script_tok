@@ -10,7 +10,7 @@ Output TSV, one word per line, frequency order:
 with the segmentation written as morphs joined by `+` (inflection), `-` (derivation) and `=`
 (compound).
 
-    uv run --group morphology --with-editable ~/Desktop/neko/neko-algo/libs/nit \\
+    uv run --group morphology --with "cur8-nit @ git+https://github.com/Neko-Health/neko-algo.git@main#subdirectory=libs/nit" \\
         python -m paper_utils.morphology.build_silver --lang eng --top 500
 """
 
@@ -74,7 +74,7 @@ def render(word: str, bounds: list[tuple[int, str]]) -> str:
 
 
 @app.default
-def main(lang: str = "eng", top: int = 500, models: str = "claude-haiku-4-5,claude-sonnet-5,gpt-6-astra") -> None:
+def main(lang: str = "eng", top: int = 500, models: str = "gpt-6.1-sol,claude-sonnet-5-5,gpt-6-astra") -> None:
     with open(os.path.join(COUNTS, f"{GOLDFISH[lang]}.json")) as f:
         counts = json.load(f)["counts"]
     # single letters carry no boundary; everything else in the frequency list is annotated

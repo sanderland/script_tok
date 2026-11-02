@@ -1,10 +1,10 @@
 """Surface morph segmentation by an LLM, in batches, through nit (neko-algo `libs/nit`).
 
-Models are nit registry ids (claude-haiku-4-5, claude-sonnet-5, gpt-6-astra, ...). nit is not
-a dependency of this repo, so add it to the run:
+Models are nit registry ids (claude-sonnet-5-5, gpt-6.1-sol, gpt-6-astra, ...). nit is not a
+dependency of this repo, so add it to the run from neko-algo main:
 
-    uv run --group morphology --with-editable ~/Desktop/neko/neko-algo/libs/nit \\
-        python -m paper_utils.morphology.llm_segment --lang eng --model claude-haiku-4-5 --n 300
+    uv run --group morphology --with "cur8-nit @ git+https://github.com/Neko-Health/neko-algo.git@main#subdirectory=libs/nit" \\
+        python -m paper_utils.morphology.llm_segment --lang eng --model gpt-6.1-sol --n 300
 """
 
 import asyncio
@@ -143,7 +143,7 @@ app = cyclopts.App()
 
 
 @app.default
-def main(lang: str = "eng", model: str = "claude-haiku-4-5", n: int = 300, top: int = 10_000, seed: int = 0,
+def main(lang: str = "eng", model: str = "gpt-6.1-sol", n: int = 300, top: int = 10_000, seed: int = 0,
          typed: bool = False, minimal: bool = False, tag: str = "") -> None:
     ref = {w: b for w, (b, _) in sigmorphon(lang).items()}
     with open(os.path.join(OUT, "counts", f"{GOLDFISH[lang]}.json")) as f:
