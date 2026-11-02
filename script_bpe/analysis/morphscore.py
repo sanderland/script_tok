@@ -113,10 +113,10 @@ class MorphScore:
                 else (self.config["single_tok_point"], self.config["single_tok_point"])
             )
 
-        # find indices of predicted morpheme boundaries
+        # find indices of predicted morpheme boundaries; the end of the last token is the end of the word, not a boundary
         all_pred_boundaries = []
         idx = 0
-        for t in range(len(tokens)):
+        for t in range(len(tokens) - 1):
             tok = tokens[t]
             this_idx = idx + len(tok)
             all_pred_boundaries.append(this_idx)
