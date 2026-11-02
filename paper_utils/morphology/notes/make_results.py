@@ -111,6 +111,42 @@ themselves are bound roots and depth (`cognit-ive`, `re-mind+ed`, `proto-type`),
 per-boundary vote resolves.
 """)
 
+    mini = load("agreement_eng_minimal.json")["pairs"]
+    mnames = ["haiku_minimal", "sonnet_minimal", "gemini-3.8-flash_minimal", "gpt-6-astra_minimal",
+              "SIGMORPHON", "CELEX"]
+    mlabel = {"haiku_minimal": "Haiku", "sonnet_minimal": "Sonnet", "gemini-3.8-flash_minimal": "Gemini",
+              "gpt-6-astra_minimal": "GPT", "SIGMORPHON": "SIGMORPHON", "CELEX": "CELEX"}
+
+    def mpair(a, b):
+        if a == b:
+            return "--"
+        k = f"{a}|{b}" if f"{a}|{b}" in mini else f"{b}|{a}"
+        return f"{mini[k]['F1']:.2f}"
+
+    parts.append("""
+==== Does the rulebook make the agreement?
+
+The typed prompt fixes depth, bound roots and spelling conventions, so models that follow it
+will agree partly because of the rules. Rerun with a minimal prompt ("split each word into its
+morphemes, pieces must concatenate to the word", `llm_segment.MINIMAL_PROMPT`):
+""")
+    parts.append(table([""] + [mlabel[n] for n in mnames],
+                       [[mlabel[a]] + [mpair(a, b) for b in mnames] for a in mnames]))
+    parts.append("""
+Agreement drops from 0.93-0.97 to 0.82-0.93: the rulebook accounts for roughly 0.08 of it. The
+remaining minimal-prompt disagreements are the same convention questions the rulebook settles,
+not different morphology: etymological roots (Haiku's `con|tain`, `in|sert`, `e|merge`),
+e-drop (`ignore|d` against `ignor|ed`), consonant doubling (`fit|ting` against `fitt|ing`) and
+depth (`behavior|al` against `behav|ior|al`). Gemini is the strongest minimal-prompt annotator
+(0.85 against SIGMORPHON, the same as typed); Haiku is the weakest (0.78) because it splits
+Latinate roots.
+
+Caveat: agreement is not accuracy. The models may share biases, the human references use
+different conventions from each other and from the rulebook, and the SIGMORPHON reference here
+is a projection that adds its own errors. A hand check of a random sample is the only direct
+accuracy measurement and has not been done yet.
+""")
+
     silver = os.path.join(RES, "silver", "eng_top10000.tsv")
     if os.path.exists(silver):
         with open(silver, encoding="utf-8") as f:

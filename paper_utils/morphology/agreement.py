@@ -28,14 +28,16 @@ def load(name):
 @app.default
 def main(lang: str = "eng", runs: str = "haiku_typed,haiku_typed_r2,sonnet_typed,sonnet_typed_r2",
          out: str = "") -> None:
-    typed = {r: load(f"llm_{lang}_{r}.json") for r in runs.split(",")}
-    ann = {r: {w: [b for b, _ in v] for w, v in t.items()} for r, t in typed.items()}
+    llm = {r: load(f"llm_{lang}_{r}.json") for r in runs.split(",")}
+    # typed runs store (offset, kind) pairs, untyped ones bare offsets
+    ann = {r: {w: [b[0] if isinstance(b, list) else b for b in v] for w, v in t.items()} for r, t in llm.items()}
+    typed = {r: t for r, t in llm.items() if "_typed" in r}
     ann["SIGMORPHON"] = {w: b for w, (b, _) in sigmorphon(lang).items()}
     if lang == "eng":
         ann["CELEX"] = celex_en()
     crf = load(f"experiments_{lang}.json")["preds"]["crf50000"]
     ann["CRF-50k"] = crf
-    sample = sorted(set.intersection(*(set(typed[r]) for r in typed)))
+    sample = sorted(set.intersection(*(set(llm[r]) for r in llm)))
     names = list(ann)
     matrix = {}
     for a, b in itertools.product(names, names):

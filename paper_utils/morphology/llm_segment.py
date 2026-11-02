@@ -31,6 +31,14 @@ No other text.
 {words}"""
 
 
+MINIMAL_PROMPT = """Split each {language} word into its morphemes, writing the pieces so they \
+concatenate back to the word exactly.
+
+Output one line per word: word<TAB>piece|piece|...
+No other text.
+
+{words}"""
+
 TYPED_PROMPT = """Segment each {language} word into surface morphs and label every boundary.
 
 The morphs must concatenate exactly to the word as written. Mark each boundary with one symbol:
@@ -87,8 +95,8 @@ def segment_typed_batch(words: list[str], language: str, model: str) -> dict[str
     return got
 
 
-def segment_batch(words: list[str], language: str, model: str) -> dict[str, list[int]]:
-    out = ask(model, PROMPT.format(language=language, words="\n".join(words)))
+def segment_batch(words: list[str], language: str, model: str, template: str = PROMPT) -> dict[str, list[int]]:
+    out = ask(model, template.format(language=language, words="\n".join(words)))
     got = {}
     for line in out.splitlines():
         if "\t" not in line:
@@ -101,9 +109,14 @@ def segment_batch(words: list[str], language: str, model: str) -> dict[str, list
 
 
 def segment(words: list[str], language: str, model: str, typed: bool = False, batch: int = 100,
-            workers: int = 4) -> dict:
+            workers: int = 4, minimal: bool = False) -> dict:
     chunks = [words[i:i + batch] for i in range(0, len(words), batch)]
-    fn = segment_typed_batch if typed else segment_batch
+    if typed:
+        fn = segment_typed_batch
+    elif minimal:
+        fn = lambda c, lang, m: segment_batch(c, lang, m, MINIMAL_PROMPT)  # noqa: E731
+    else:
+        fn = segment_batch
     got = {}
     with concurrent.futures.ThreadPoolExecutor(workers) as pool:
         for part in pool.map(lambda c: fn(c, language, model), chunks):
@@ -116,17 +129,18 @@ app = cyclopts.App()
 
 @app.default
 def main(lang: str = "eng", model: str = "haiku", n: int = 300, top: int = 10_000, seed: int = 0,
-         typed: bool = False, tag: str = "") -> None:
+         typed: bool = False, minimal: bool = False, tag: str = "") -> None:
     ref = {w: b for w, (b, _) in sigmorphon(lang).items()}
     with open(os.path.join(OUT, "counts", f"{GOLDFISH[lang]}.json")) as f:
         ranked = list(json.load(f)["counts"])[:top]
     sample = random.Random(seed).sample([w for w in ranked if w in ref], n)
-    pred = segment(sample, LANG_NAME[lang], model, typed)
+    pred = segment(sample, LANG_NAME[lang], model, typed, minimal=minimal)
     print(f"{len(pred)}/{len(sample)} parsed")
     flat = {w: [b for b, *_ in v] if typed else v for w, v in pred.items()}
     # one band: the sample is drawn from the whole top-k
-    report(f"LLM {model}{' typed' if typed else ''}", flat, ref, sample)
-    name = f"llm_{lang}_{model}{'_typed' if typed else ''}{tag}.json"
+    kind = "_typed" if typed else "_minimal" if minimal else ""
+    report(f"LLM {model}{kind}", flat, ref, sample)
+    name = f"llm_{lang}_{model}{kind}{tag}.json"
     with open(os.path.join(OUT, name), "w") as f:
         json.dump(pred, f, ensure_ascii=False)
 

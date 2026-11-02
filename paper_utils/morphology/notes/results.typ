@@ -73,3 +73,33 @@ convention is `ignor+ed`, `patch+es`, `consum-er+s`). A few go the other way and
 deep Latinate splits (`typ-ic-al`, `athlet-ic-s`). The 35 words where the LLMs disagree among
 themselves are bound roots and depth (`cognit-ive`, `re-mind+ed`, `proto-type`), which a
 per-boundary vote resolves.
+
+
+==== Does the rulebook make the agreement?
+
+The typed prompt fixes depth, bound roots and spelling conventions, so models that follow it
+will agree partly because of the rules. Rerun with a minimal prompt ("split each word into its
+morphemes, pieces must concatenate to the word", `llm_segment.MINIMAL_PROMPT`):
+
+#table(columns: 7, align: (left,right,right,right,right,right,right), stroke: 0.4pt,
+  [], [Haiku], [Sonnet], [Gemini], [GPT], [SIGMORPHON], [CELEX],
+  [Haiku], [--], [0.84], [0.81], [0.84], [0.78], [0.65],
+  [Sonnet], [0.84], [--], [0.89], [0.87], [0.79], [0.71],
+  [Gemini], [0.81], [0.89], [--], [0.93], [0.85], [0.79],
+  [GPT], [0.84], [0.87], [0.93], [--], [0.82], [0.75],
+  [SIGMORPHON], [0.78], [0.79], [0.85], [0.82], [--], [0.73],
+  [CELEX], [0.65], [0.71], [0.79], [0.75], [0.73], [--])
+
+
+Agreement drops from 0.93-0.97 to 0.82-0.93: the rulebook accounts for roughly 0.08 of it. The
+remaining minimal-prompt disagreements are the same convention questions the rulebook settles,
+not different morphology: etymological roots (Haiku's `con|tain`, `in|sert`, `e|merge`),
+e-drop (`ignore|d` against `ignor|ed`), consonant doubling (`fit|ting` against `fitt|ing`) and
+depth (`behavior|al` against `behav|ior|al`). Gemini is the strongest minimal-prompt annotator
+(0.85 against SIGMORPHON, the same as typed); Haiku is the weakest (0.78) because it splits
+Latinate roots.
+
+Caveat: agreement is not accuracy. The models may share biases, the human references use
+different conventions from each other and from the rulebook, and the SIGMORPHON reference here
+is a projection that adds its own errors. A hand check of a random sample is the only direct
+accuracy measurement and has not been done yet.
