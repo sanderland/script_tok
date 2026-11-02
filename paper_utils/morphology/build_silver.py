@@ -10,11 +10,12 @@ Output TSV, one word per line, frequency order:
 with the segmentation written as morphs joined by `+` (inflection), `-` (derivation) and `=`
 (compound).
 
-    uv run python -m paper_utils.morphology.build_silver --lang eng --top 10000
+    uv run --group morphology --with-editable ~/Desktop/neko/neko-algo/libs/nit \\
+        python -m paper_utils.morphology.build_silver --lang eng --top 500
 """
 
+import asyncio
 import collections
-import concurrent.futures
 import json
 import os
 
@@ -30,16 +31,24 @@ SYMBOL = {"infl": "+", "deriv": "-", "comp": "="}
 app = cyclopts.App()
 
 
-def annotate(words: list[str], lang: str, model: str, cache: str, workers: int) -> dict:
-    """Annotate, caching per model so an interrupted or extended run only asks for what is missing."""
+async def annotate(words: list[str], lang: str, model: str, cache: str) -> dict:
+    """Annotate, caching per model after every batch so an interrupted or extended run only asks for what is missing."""
     got = json.load(open(cache)) if os.path.exists(cache) else {}
+    spent = 0.0
+
+    def save(part: dict, cost: float) -> None:
+        nonlocal spent
+        got.update(part)
+        spent += cost
+        with open(cache, "w") as f:
+            json.dump(got, f, ensure_ascii=False)
+
     for _attempt in range(2):            # one retry for words a batch dropped or mangled
         todo = [w for w in words if w not in got]
         if not todo:
             break
-        got.update(segment(todo, LANG_NAME[lang], model, typed=True, workers=workers))
-        with open(cache, "w") as f:
-            json.dump(got, f, ensure_ascii=False)
+        await segment(todo, LANG_NAME[lang], model, typed=True, on_batch=save)
+    print(f"{model}: {sum(w in got for w in words):,}/{len(words):,} parsed, ${spent:.3f} this run")
     return got
 
 
@@ -65,8 +74,7 @@ def render(word: str, bounds: list[tuple[int, str]]) -> str:
 
 
 @app.default
-def main(lang: str = "eng", top: int = 10_000, models: str = "haiku,gemini-3.8-flash,sonnet",
-         workers: int = 6) -> None:
+def main(lang: str = "eng", top: int = 500, models: str = "claude-haiku-4-5,claude-sonnet-5,gpt-6-astra") -> None:
     with open(os.path.join(COUNTS, f"{GOLDFISH[lang]}.json")) as f:
         counts = json.load(f)["counts"]
     # single letters carry no boundary; everything else in the frequency list is annotated
@@ -74,9 +82,11 @@ def main(lang: str = "eng", top: int = 10_000, models: str = "haiku,gemini-3.8-f
     words = [w for w in list(counts)[:top] if len(w) > 1 and regex.fullmatch(r"\p{L}+", w)]
     os.makedirs(OUT, exist_ok=True)
     names = models.split(",")
-    with concurrent.futures.ThreadPoolExecutor(len(names)) as pool:
-        done = pool.map(lambda m: annotate(words, lang, m, os.path.join(OUT, f"{lang}_{m}.json"), workers), names)
-        per_model = dict(zip(names, done))
+
+    async def run_all() -> list[dict]:
+        return await asyncio.gather(*(annotate(words, lang, m, os.path.join(OUT, f"{lang}_{m}.json")) for m in names))
+
+    per_model = dict(zip(names, asyncio.run(run_all())))
     path = os.path.join(OUT, f"{lang}_top{top}.tsv")
     missing, unanimous = 0, 0
     with open(path, "w", encoding="utf-8") as f:

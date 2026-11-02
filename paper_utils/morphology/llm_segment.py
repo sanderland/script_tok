@@ -1,15 +1,20 @@
-"""Surface morph segmentation by an LLM through the Claude Code CLI, in batches.
+"""Surface morph segmentation by an LLM, in batches, through nit (neko-algo `libs/nit`).
 
-    uv run python -m paper_utils.morphology.llm_segment --lang eng --model haiku --n 300
+Models are nit registry ids (claude-haiku-4-5, claude-sonnet-5, gpt-6-astra, ...). nit is not
+a dependency of this repo, so add it to the run:
+
+    uv run --group morphology --with-editable ~/Desktop/neko/neko-algo/libs/nit \\
+        python -m paper_utils.morphology.llm_segment --lang eng --model claude-haiku-4-5 --n 300
 """
 
-import concurrent.futures
+import asyncio
 import json
+import logging
 import os
 import random
-import subprocess
 
 import cyclopts
+from cur8.nit import get_model_provider
 
 from paper_utils.morphology.evaluate import report
 from paper_utils.morphology.gold import offsets, sigmorphon
@@ -60,6 +65,7 @@ No other text.
 
 {words}"""
 BOUNDARY = {"+": "infl", "-": "deriv", "=": "comp"}
+log = logging.getLogger(__name__)
 
 
 def parse_typed(word: str, seg: str) -> list[tuple[int, str]] | None:
@@ -74,53 +80,62 @@ def parse_typed(word: str, seg: str) -> list[tuple[int, str]] | None:
     return out if seg.strip().translate({ord(c): None for c in BOUNDARY}) == word else None
 
 
-def ask(model: str, prompt: str) -> str:
-    """Claude models through the Claude Code CLI, anything else through the Copilot CLI."""
-    if model in ("haiku", "sonnet", "opus", "fable"):
-        cmd = ["claude", "-p", "--model", model, prompt]
-    else:
-        cmd = ["copilot", "-p", prompt, "--model", model, "-s"]
-    return subprocess.run(cmd, capture_output=True, text=True, check=True).stdout
+async def ask(model: str, prompt: str) -> tuple[str, float]:
+    """One completion through nit; returns the reply and its cost in USD (0 when litellm has no price)."""
+    try:
+        r = await get_model_provider(model).complete([{"role": "user", "content": prompt}], log_name="morph segment")
+    except ValueError as e:
+        # Foundry intermittently answers a plain word list with no content (content_filter, or
+        # stop with nothing); the same batch passes on rerun. Treat it as a dropped batch: the
+        # caller retries missing words and reports what stays missing.
+        if "no content from" not in str(e):
+            raise
+        log.warning("%s batch dropped: %s", model, e)
+        return "", 0.0
+    if r.finish_reason != "stop":
+        log.warning("%s reply ended with %s; words past the cut are retried", model, r.finish_reason)
+    return r.text, r.cost or 0.0
 
 
-def segment_typed_batch(words: list[str], language: str, model: str) -> dict[str, list[tuple[int, str]]]:
-    out = ask(model, TYPED_PROMPT.format(language=language, words="\n".join(words)))
-    got = {}
+def parse_lines(out: str, words: list[str], parse) -> dict:
+    got, wanted = {}, set(words)
     for line in out.splitlines():
         if "\t" not in line:
             continue
         word, seg = line.split("\t", 1)
-        if word in words and (parsed := parse_typed(word, seg)) is not None:
+        if word in wanted and (parsed := parse(word, seg)) is not None:
             got[word] = parsed
     return got
 
 
-def segment_batch(words: list[str], language: str, model: str, template: str = PROMPT) -> dict[str, list[int]]:
-    out = ask(model, template.format(language=language, words="\n".join(words)))
-    got = {}
-    for line in out.splitlines():
-        if "\t" not in line:
-            continue
-        word, seg = line.split("\t", 1)
-        morphs = seg.strip().split("|")
-        if word in words and "".join(morphs) == word:
-            got[word] = offsets(morphs)
-    return got
+def parse_plain(word: str, seg: str) -> list[int] | None:
+    morphs = seg.strip().split("|")
+    return offsets(morphs) if "".join(morphs) == word else None
 
 
-def segment(words: list[str], language: str, model: str, typed: bool = False, batch: int = 100,
-            workers: int = 4, minimal: bool = False) -> dict:
+async def segment_batch(words: list[str], language: str, model: str, typed: bool = False,
+                        minimal: bool = False) -> tuple[dict, float]:
+    template = TYPED_PROMPT if typed else MINIMAL_PROMPT if minimal else PROMPT
+    out, cost = await ask(model, template.format(language=language, words="\n".join(words)))
+    return parse_lines(out, words, parse_typed if typed else parse_plain), cost
+
+
+async def segment(words: list[str], language: str, model: str, typed: bool = False, batch: int = 100,
+                  minimal: bool = False, on_batch=None) -> dict:
+    """All batches at once; nit's per-model `max_concurrency` bounds what is in flight.
+
+    `on_batch(got, cost)` runs as each batch returns, so a caller can cache partial progress.
+    """
     chunks = [words[i:i + batch] for i in range(0, len(words), batch)]
-    if typed:
-        fn = segment_typed_batch
-    elif minimal:
-        fn = lambda c, lang, m: segment_batch(c, lang, m, MINIMAL_PROMPT)  # noqa: E731
-    else:
-        fn = segment_batch
     got = {}
-    with concurrent.futures.ThreadPoolExecutor(workers) as pool:
-        for part in pool.map(lambda c: fn(c, language, model), chunks):
-            got.update(part)
+
+    async def one(chunk: list[str]) -> None:
+        part, cost = await segment_batch(chunk, language, model, typed, minimal)
+        got.update(part)
+        if on_batch:
+            on_batch(part, cost)
+
+    await asyncio.gather(*(one(c) for c in chunks))
     return got
 
 
@@ -128,13 +143,13 @@ app = cyclopts.App()
 
 
 @app.default
-def main(lang: str = "eng", model: str = "haiku", n: int = 300, top: int = 10_000, seed: int = 0,
+def main(lang: str = "eng", model: str = "claude-haiku-4-5", n: int = 300, top: int = 10_000, seed: int = 0,
          typed: bool = False, minimal: bool = False, tag: str = "") -> None:
     ref = {w: b for w, (b, _) in sigmorphon(lang).items()}
     with open(os.path.join(OUT, "counts", f"{GOLDFISH[lang]}.json")) as f:
         ranked = list(json.load(f)["counts"])[:top]
     sample = random.Random(seed).sample([w for w in ranked if w in ref], n)
-    pred = segment(sample, LANG_NAME[lang], model, typed, minimal=minimal)
+    pred = asyncio.run(segment(sample, LANG_NAME[lang], model, typed, minimal=minimal))
     print(f"{len(pred)}/{len(sample)} parsed")
     flat = {w: [b for b, *_ in v] if typed else v for w, v in pred.items()}
     # one band: the sample is drawn from the whole top-k
