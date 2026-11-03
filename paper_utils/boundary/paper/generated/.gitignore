@@ -7,3 +7,7 @@
 # manifest.json, which is tracked and holds exactly their union -- so tracking both would
 # be committing the same 60 entries twice, once whole and once in pieces.
 manifest_parts/
+# Written by summarize_bilingual.py and token_counts.py from untracked run directories; the
+# bilingual_report*.md files are the tracked, readable summary.
+bilingual_results*.json
+token_counts/

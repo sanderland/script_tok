@@ -1385,6 +1385,28 @@
     "lang": "ko",
     "trainer": "bpe"
   },
+  "fineweb_ko_5gb_quick_plain_bpe_v34685@ctx": {
+    "arm": "plain",
+    "credit_single_tok": {
+      "dropped": 0,
+      "precision": 0.49421661409043116,
+      "recall": 0.6214511041009464,
+      "scored": 317,
+      "single_token_share": 0.38801261829652994,
+      "words": 317
+    },
+    "exclude_single_tok": {
+      "dropped": 0,
+      "precision": 0.17353951890034364,
+      "recall": 0.38144329896907214,
+      "scored": 194,
+      "single_token_share": 0.38801261829652994,
+      "words": 317
+    },
+    "in_context": true,
+    "lang": "ko",
+    "trainer": "bpe"
+  },
   "fineweb_ko_5gb_quick_plain_mingram_v34685": {
     "arm": "plain",
     "credit_single_tok": {
@@ -1404,6 +1426,28 @@
       "words": 317
     },
     "in_context": false,
+    "lang": "ko",
+    "trainer": "mingram"
+  },
+  "fineweb_ko_5gb_quick_plain_mingram_v34685@ctx": {
+    "arm": "plain",
+    "credit_single_tok": {
+      "dropped": 0,
+      "precision": 0.5131440588853838,
+      "recall": 0.6088328075709779,
+      "scored": 317,
+      "single_token_share": 0.4416403785488959,
+      "words": 317
+    },
+    "exclude_single_tok": {
+      "dropped": 0,
+      "precision": 0.12806026365348397,
+      "recall": 0.2994350282485876,
+      "scored": 177,
+      "single_token_share": 0.4416403785488959,
+      "words": 317
+    },
+    "in_context": true,
     "lang": "ko",
     "trainer": "mingram"
   },
@@ -1605,6 +1649,28 @@
     "lang": "ru",
     "trainer": "bpe"
   },
+  "fineweb_ru_5gb_quick_plain_bpe_v34685@ctx": {
+    "arm": "plain",
+    "credit_single_tok": {
+      "dropped": 0,
+      "precision": 0.11293439276058048,
+      "recall": 0.12704519119351101,
+      "scored": 21575,
+      "single_token_share": 0.10382387022016222,
+      "words": 21575
+    },
+    "exclude_single_tok": {
+      "dropped": 0,
+      "precision": 0.01016599554225621,
+      "recall": 0.02591155934833204,
+      "scored": 19335,
+      "single_token_share": 0.10382387022016222,
+      "words": 21575
+    },
+    "in_context": true,
+    "lang": "ru",
+    "trainer": "bpe"
+  },
   "fineweb_ru_5gb_quick_plain_mingram_v34685": {
     "arm": "plain",
     "credit_single_tok": {
@@ -1624,6 +1690,28 @@
       "words": 21575
     },
     "in_context": false,
+    "lang": "ru",
+    "trainer": "mingram"
+  },
+  "fineweb_ru_5gb_quick_plain_mingram_v34685@ctx": {
+    "arm": "plain",
+    "credit_single_tok": {
+      "dropped": 0,
+      "precision": 0.21093053026540862,
+      "recall": 0.33624565469293166,
+      "scored": 21575,
+      "single_token_share": 0.11300115874855156,
+      "words": 21575
+    },
+    "exclude_single_tok": {
+      "dropped": 0,
+      "precision": 0.11040529813848515,
+      "recall": 0.25168521711867065,
+      "scored": 19137,
+      "single_token_share": 0.11300115874855156,
+      "words": 21575
+    },
+    "in_context": true,
     "lang": "ru",
     "trainer": "mingram"
   }

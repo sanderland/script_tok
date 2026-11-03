@@ -3,6 +3,7 @@
 #
 #   paper_utils/boundary/paper/generated/table_intrinsic_main.tex     compression + MorphScore
 #   paper_utils/boundary/paper/generated/table_downstream_main.tex    bits per byte
+#   paper_utils/boundary/paper/generated/table_downstream_multilang.tex  en, ko and ru
 #   paper_utils/boundary/paper/generated/table_intrinsic_quick.tex    per-language appendix
 #   paper_utils/boundary/paper/generated/table_vocab_duplicates.tex   duplicate vocabulary entries
 #   paper_utils/boundary/paper/generated/downstream_appendix.tex      seed/shard robustness
@@ -92,6 +93,9 @@ uv run python "${SCRIPT_DIR}/make_intrinsic_table.py"                 # table_in
 # not remeasured, and FORCE=1 does not reach here -- pass --force to recount.
 uv run python "${SCRIPT_DIR}/vocab_duplicates.py"                     # table_vocab_duplicates
 uv run python "${DOWN}/make_tex_tables.py"                            # downstream main + appendix
+# English, Korean and Russian side by side. Reads the per-language TSVs beside the English
+# ones and emits nothing for a language whose runs are not there.
+uv run python "${DOWN}/make_multilang_table.py"                       # table_downstream_multilang
 
 echo
 echo "== done. Artifacts under paper_utils/boundary/paper/generated:"

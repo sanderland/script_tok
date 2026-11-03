@@ -246,6 +246,7 @@ def create_streaming_quick_corpus(
     num_workers: int | None = None,
     shuffle_buffer: int = QUICK_SHUFFLE_BUFFER,
     sample_cache: bool = True,
+    text_only: bool = False,
     **kwargs,
 ) -> PretokenizedCorpus:
     """Sample by reading until full, letting the dataset do the shuffling.
@@ -273,6 +274,8 @@ def create_streaming_quick_corpus(
         cached = _read_sample_cache(cache_dir)
         if cached:
             logger.info(f"Reusing cached quick sample for {corpus_name} from {cache_dir}")
+            if text_only:
+                return cached
             return PretokenizedCorpus.from_text_batches(
                 name=corpus_name, base_path=base_dir, pretokenizer=pretokenizer,
                 text_batches=_read_text_batches(cached), num_workers=num_cpus,
@@ -322,6 +325,10 @@ def create_streaming_quick_corpus(
                  "selected_chars": total, "documents": docs},
                 logger,
             )
+        if text_only:
+            if not sample_cache:
+                raise ValueError("text_only requires sample_cache")
+            return paths
         corpus = PretokenizedCorpus.from_text_batches(
             name=corpus_name, base_path=base_dir, pretokenizer=pretokenizer,
             text_batches=_read_text_batches(paths), num_workers=num_cpus,
@@ -538,7 +545,11 @@ def load_corpus_by_name(
             f"Corpus {corpus_name} with pretokenizer {pretokenizer.hash()} not found in cache, creating it: {e}"
         )
 
-    if corpus_name.endswith("300mb"):
+    if corpus_name.startswith("fineweb_enko_"):
+        from script_bpe.corpus.bilingual import create_bilingual_corpus
+
+        return create_bilingual_corpus(corpus_name, pretokenizer, base_dir, num_workers)
+    elif corpus_name.endswith("300mb"):
         # LEGACY (kept for older caches): undocumented 300MB multilingual sample
         # at sanderland/monolingual-tokenizer-data. The hybrid paper has migrated
         # eval to *_fishfood (Goldfish/LREC 2026) which is the published, citable

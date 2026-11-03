@@ -1,0 +1,13 @@
+method	arm	variant	trainer	seed	val_bpb_true	train_bpb_true	val_bpb	train_bpb	byte_factor	depth	vocab_size	tokenizer_id	log
+bnd_w_mingram	bnd_w		mingram	0	0.5441635695816993	0.47566479313678295	0.577348	0.504672	0.9425226545890855	12	34686	bnd_w_mingram_d12_s0	bnd_w_mingram_d12_s0.log
+bnd_w_mingram	bnd_w		mingram	1	0.5431201970030692	0.47438296232654176	0.576241	0.503312	0.9425226545890855	12	34686	bnd_w_mingram_d12_s1	bnd_w_mingram_d12_s1.log
+bnd_w_mingram	bnd_w		mingram	2	0.5429128420190596	0.4763547197199421	0.576021	0.505404	0.9425226545890855	12	34686	bnd_w_mingram_d12_s2	bnd_w_mingram_d12_s2.log
+bnd_wpd_caps_mingram	bnd_wpd_caps		mingram	0	0.5396813759680485	0.4681680276257475	0.581517	0.50446	0.9280577798551867	12	34686	bnd_wpd_caps_mingram_d12_s0	bnd_wpd_caps_mingram_d12_s0.log
+bnd_wpd_caps_mingram	bnd_wpd_caps		mingram	1	0.5403551459162234	0.46742836557520284	0.582243	0.503663	0.9280577798551867	12	34686	bnd_wpd_caps_mingram_d12_s1	bnd_wpd_caps_mingram_d12_s1.log
+bnd_wpd_caps_mingram	bnd_wpd_caps		mingram	2	0.5396516781190932	0.4691870350680284	0.581485	0.505558	0.9280577798551867	12	34686	bnd_wpd_caps_mingram_d12_s2	bnd_wpd_caps_mingram_d12_s2.log
+bnd_wpd_mingram	bnd_wpd		mingram	0	0.5427340183632523	0.4704774323881437	0.585889	0.507887	0.9263427344825595	12	34686	bnd_wpd_mingram_d12_s0	bnd_wpd_mingram_d12_s0.log
+bnd_wpd_mingram	bnd_wpd		mingram	1	0.5426932592829351	0.46939731675973706	0.585845	0.506721	0.9263427344825595	12	34686	bnd_wpd_mingram_d12_s1	bnd_wpd_mingram_d12_s1.log
+bnd_wpd_mingram	bnd_wpd		mingram	2	0.5425858035257352	0.4711684840680677	0.585729	0.508633	0.9263427344825595	12	34686	bnd_wpd_mingram_d12_s2	bnd_wpd_mingram_d12_s2.log
+plain_mingram	plain		mingram	0	0.5490018307930394	0.4775508579621127	0.548833	0.477404	1.0003076177872676	12	34686	plain_mingram_d12_s0	plain_mingram_d12_s0.log
+plain_mingram	plain		mingram	1	0.549276915387931	0.47725176598439434	0.549108	0.477105	1.0003076177872676	12	34686	plain_mingram_d12_s1	plain_mingram_d12_s1.log
+plain_mingram	plain		mingram	2	0.5494329633763058	0.4786081831141139	0.549264	0.478461	1.0003076177872676	12	34686	plain_mingram_d12_s2	plain_mingram_d12_s2.log

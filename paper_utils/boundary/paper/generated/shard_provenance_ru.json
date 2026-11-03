@@ -1,0 +1,99 @@
+{
+ "language": "ru",
+ "created": "2026-09-19T06:34:35+00:00",
+ "source_dataset": "/capstor/store/cscs/swissai/infra01/datasets/swiss-ai/fineweb-2_0_1-quality_10-filterrobots/data/output/rus_Cyrl",
+ "note": "base_data_climbmix is nanochat's directory name and holds no ClimbMix here: these shards are FineWeb-2 ru. The last shard is validation, the rest training.",
+ "train_shards": 10,
+ "train_characters": 2915444144,
+ "shards": [
+  {
+   "shard": "shard_00000.parquet",
+   "role": "train",
+   "source": "/capstor/store/cscs/swissai/infra01/datasets/swiss-ai/fineweb-2_0_1-quality_10-filterrobots/data/output/rus_Cyrl/000_00000.parquet",
+   "bytes": 570533016,
+   "characters": 296521910,
+   "sha256": "e0e33aeafb103776524f094d54f90de5d37b3d4061034c798c13111f892e3c5b"
+  },
+  {
+   "shard": "shard_00001.parquet",
+   "role": "train",
+   "source": "/capstor/store/cscs/swissai/infra01/datasets/swiss-ai/fineweb-2_0_1-quality_10-filterrobots/data/output/rus_Cyrl/000_00001.parquet",
+   "bytes": 561896629,
+   "characters": 289799734,
+   "sha256": "40086125a039e302df74238d6b2ccb9682a343a2452884d3908dbfe7575eb5f2"
+  },
+  {
+   "shard": "shard_00002.parquet",
+   "role": "train",
+   "source": "/capstor/store/cscs/swissai/infra01/datasets/swiss-ai/fineweb-2_0_1-quality_10-filterrobots/data/output/rus_Cyrl/000_00002.parquet",
+   "bytes": 570453664,
+   "characters": 295706668,
+   "sha256": "ab155209c18bc42f2f7794712789a33246c9cafb3c667408fbc3dbc451eefde2"
+  },
+  {
+   "shard": "shard_00003.parquet",
+   "role": "train",
+   "source": "/capstor/store/cscs/swissai/infra01/datasets/swiss-ai/fineweb-2_0_1-quality_10-filterrobots/data/output/rus_Cyrl/000_00003.parquet",
+   "bytes": 557617110,
+   "characters": 286919202,
+   "sha256": "c3c61ef56a57af04795bf9e3737d98773a6de6336ed31cfd0086f83d7de71c67"
+  },
+  {
+   "shard": "shard_00004.parquet",
+   "role": "train",
+   "source": "/capstor/store/cscs/swissai/infra01/datasets/swiss-ai/fineweb-2_0_1-quality_10-filterrobots/data/output/rus_Cyrl/000_00004.parquet",
+   "bytes": 569875851,
+   "characters": 295790728,
+   "sha256": "241746e31e9b9577d488a4a38436e4c896d3168c662076a003fa31926aecee48"
+  },
+  {
+   "shard": "shard_00005.parquet",
+   "role": "train",
+   "source": "/capstor/store/cscs/swissai/infra01/datasets/swiss-ai/fineweb-2_0_1-quality_10-filterrobots/data/output/rus_Cyrl/000_00005.parquet",
+   "bytes": 564874216,
+   "characters": 293060669,
+   "sha256": "68878736ba1846194eef73cb0ea1d097102a1edae664a1c797f17e5377f38de3"
+  },
+  {
+   "shard": "shard_00006.parquet",
+   "role": "train",
+   "source": "/capstor/store/cscs/swissai/infra01/datasets/swiss-ai/fineweb-2_0_1-quality_10-filterrobots/data/output/rus_Cyrl/000_00006.parquet",
+   "bytes": 562675035,
+   "characters": 292839048,
+   "sha256": "b7cdc7302c0961a5bb110d613168137e6c0bc402886b06c265e0c00882fb20bb"
+  },
+  {
+   "shard": "shard_00007.parquet",
+   "role": "train",
+   "source": "/capstor/store/cscs/swissai/infra01/datasets/swiss-ai/fineweb-2_0_1-quality_10-filterrobots/data/output/rus_Cyrl/000_00007.parquet",
+   "bytes": 561617570,
+   "characters": 290495140,
+   "sha256": "18371ec2a6a85c9a358673f1c3bf51c66f3c44e94dfd7edbdff1b4778acc80b2"
+  },
+  {
+   "shard": "shard_00008.parquet",
+   "role": "train",
+   "source": "/capstor/store/cscs/swissai/infra01/datasets/swiss-ai/fineweb-2_0_1-quality_10-filterrobots/data/output/rus_Cyrl/000_00008.parquet",
+   "bytes": 551221224,
+   "characters": 284199362,
+   "sha256": "83f9f3de2d37c20d1aba2b94f30e2318b5ec133f148ac4fa2c4ed545f7c934fe"
+  },
+  {
+   "shard": "shard_00009.parquet",
+   "role": "train",
+   "source": "/capstor/store/cscs/swissai/infra01/datasets/swiss-ai/fineweb-2_0_1-quality_10-filterrobots/data/output/rus_Cyrl/000_00009.parquet",
+   "bytes": 558807146,
+   "characters": 290111683,
+   "sha256": "fc78456dbbc11787f11a3b68c07a196bb54786ebacbcccae92b5b7185688f87d"
+  },
+  {
+   "shard": "shard_00010.parquet",
+   "role": "validation",
+   "source": "/capstor/store/cscs/swissai/infra01/datasets/swiss-ai/fineweb-2_0_1-quality_10-filterrobots/data/output/rus_Cyrl/000_00010.parquet",
+   "bytes": 553841435,
+   "characters": 285969000,
+   "sha256": "680b019851912d72b2959947d8da9921539b26002fd71432b01ad2963da71b7c"
+  }
+ ],
+ "hashed": "2026-09-20T20:00:46+00:00"
+}
