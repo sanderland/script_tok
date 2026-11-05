@@ -18,6 +18,7 @@ word's score is the mean over its tokens; a tokenizer is scored on the words it 
 """
 
 import asyncio
+import itertools
 import json
 import os
 import random
@@ -100,13 +101,16 @@ def spans(analyses: list[list[Piece]]) -> dict[tuple[int, int], float]:
 
 def word_score(gold: dict[tuple[int, int], float], cuts: list[int], length: int) -> list[float]:
     edges = [0, *cuts, length]
-    return [gold.get((a, b), 0.0) for a, b in zip(edges, edges[1:])]
+    return [gold.get(span, 0.0) for span in itertools.pairwise(edges)]
 
 
 async def annotate(words: list[str], lang: str, model: str, batch: int = 50) -> dict[str, str]:
     """Raw annotation per word, cached after every batch; one retry pass for dropped words."""
     path = os.path.join(OUT, f"{lang}_{model}.json")
-    got = json.load(open(path)) if os.path.exists(path) else {}
+    got = {}
+    if os.path.exists(path):
+        with open(path) as f:
+            got = json.load(f)
     spent = 0.0
 
     async def one(chunk: list[str]) -> None:
