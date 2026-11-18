@@ -28,6 +28,11 @@ DEPTH=${DEPTH:-12}
 GPUS=${GPUS:-1}
 NUM_SHARDS=${NUM_SHARDS:-8}
 TRAIN_WORKERS=${TRAIN_WORKERS:-$(nproc 2>/dev/null || sysctl -n hw.ncpu)}
+# Processes each run uses to tokenize on the fly. Left unset, run_downstream_eval.py sizes
+# the pool for a whole node, which is right for one run per node and wrong for several: four
+# co-resident runs would ask for about 1150 worker processes on 288 cores. The packed
+# launcher divides the cores and passes the share.
+ENCODE_WORKERS=${ENCODE_WORKERS:-}
 SMOKE=${SMOKE:-0}
 # Appended to every run tag. Set it when a run differs from the default configuration in a
 # way the tag would otherwise hide, e.g. TAG_SUFFIX=_n32 for a 32-shard data regime, so the
@@ -104,6 +109,10 @@ for arm in "${ARM_LIST[@]}"; do
     echo "-- $tag -> $log"
     smoke_flag=()
     [[ "$SMOKE" == "1" ]] && smoke_flag=(--smoke)
+    # `-n`, so an explicitly empty value falls through to the script's own default rather
+    # than passing an empty flag.
+    workers_flag=()
+    [[ -n "$ENCODE_WORKERS" ]] && workers_flag=(--encode-workers "$ENCODE_WORKERS")
     # bpb only. CORE's language_modeling tasks assert that encode(context) is a prefix of
     # encode(context + continuation), and a scheme that marks a character from its right
     # neighbour breaks that: core_prefix_check.py counts 311/512 violations for bnd_wp and
@@ -123,6 +132,7 @@ for arm in "${ARM_LIST[@]}"; do
         --base-dir "$NANOCHAT_BASE" \
         --eval-modes bpb \
         --shuffle-data-order \
+        "${workers_flag[@]}" \
         "${smoke_flag[@]}" 2>&1 | tee "$log"
   done
 done

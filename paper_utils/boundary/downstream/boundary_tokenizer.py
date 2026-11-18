@@ -28,6 +28,14 @@ from paper_utils.boundary.boundary_pretokenizer import BoundaryScriptPretokenize
 
 assert "BoundaryScriptPretokenizer" in BoundaryScriptPretokenizer.REGISTRY
 
+# Registers the August pre-fix caps class, which the English caps tokenizers behind the
+# published downstream results name. Its base class is renamed so this import cannot replace
+# the current BoundaryScriptPretokenizer; see the module docstring.
+import paper_utils.boundary.legacy_extcaps_pretokenizer  # noqa: E402,F401
+
+assert BoundaryScriptPretokenizer.REGISTRY["BoundaryScriptPretokenizer"][1] is BoundaryScriptPretokenizer
+assert "ExtCapsBoundaryScriptPretokenizer" in BoundaryScriptPretokenizer.REGISTRY
+
 BoundaryBPETokenizer = BPETokenizer
 BoundaryMinGramModel = MinGramModel
 

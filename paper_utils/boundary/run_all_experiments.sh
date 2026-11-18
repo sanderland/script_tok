@@ -3,8 +3,11 @@
 #
 #   paper_utils/boundary/paper/generated/table_intrinsic_main.tex     compression + MorphScore
 #   paper_utils/boundary/paper/generated/table_downstream_main.tex    bits per byte
+#   paper_utils/boundary/paper/generated/table_downstream_multilang.tex  en, ko and ru
 #   paper_utils/boundary/paper/generated/table_intrinsic_quick.tex    per-language appendix
 #   paper_utils/boundary/paper/generated/table_vocab_duplicates.tex   duplicate vocabulary entries
+#   paper_utils/boundary/paper/generated/table_bilingual_main.tex     English/Korean shared vocabulary
+#   paper_utils/boundary/paper/generated/table_bilingual_learned.tex  the same at 64,000 learned entries
 #   paper_utils/boundary/paper/generated/downstream_appendix.tex      seed/shard robustness
 #   paper_utils/boundary/paper/generated/table_example.tex            worked pre-tokenization
 #
@@ -92,6 +95,12 @@ uv run python "${SCRIPT_DIR}/make_intrinsic_table.py"                 # table_in
 # not remeasured, and FORCE=1 does not reach here -- pass --force to recount.
 uv run python "${SCRIPT_DIR}/vocab_duplicates.py"                     # table_vocab_duplicates
 uv run python "${DOWN}/make_tex_tables.py"                            # downstream main + appendix
+# English, Korean and Russian side by side. Reads the per-language TSVs beside the English
+# ones and emits nothing for a language whose runs are not there.
+uv run python "${DOWN}/make_multilang_table.py"                       # table_downstream_multilang
+# English/Korean shared-vocabulary study, from the tracked extract of summarize_bilingual.py's
+# output; that output is not tracked, so this reads the extract and never the run directories.
+uv run python "${SCRIPT_DIR}/make_bilingual_tables.py"                 # table_bilingual_{main,learned}
 
 echo
 echo "== done. Artifacts under paper_utils/boundary/paper/generated:"

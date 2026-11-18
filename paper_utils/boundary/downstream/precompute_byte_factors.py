@@ -25,17 +25,24 @@ sys.path.insert(0, os.path.join(REPO, "eval", "py-nanochat"))
 
 app = cyclopts.App()
 
-DOTTED = "paper_utils.boundary.downstream.boundary_tokenizer.BoundaryBPETokenizer"
+# One class per trainer. This used to be the BPE class for every trainer, so `--trainer
+# mingram` failed on the first file (KeyError: 'merge_rules', since a MinGram file has no
+# merge rules). run_arms.sh treats this step as optional, so the failure was swallowed and
+# every MinGram run measured its own factor instead: the same number, paid for once per run.
+DOTTED = {
+    "bpe": "paper_utils.boundary.downstream.boundary_tokenizer.BoundaryBPETokenizer",
+    "mingram": "paper_utils.boundary.downstream.boundary_tokenizer.BoundaryMinGramModel",
+}
 
 
 def _one(args):
-    arm, path, base = args
+    arm, path, base, dotted = args
     import importlib
 
     from pynanochat.runner import measure_byte_factor
     from pynanochat.tokenizer_adapter import ScriptBPETokenizerAdapter
 
-    module_name, _, cls_name = DOTTED.rpartition(".")
+    module_name, _, cls_name = dotted.rpartition(".")
     cls = getattr(importlib.import_module(module_name), cls_name)
     adapter = ScriptBPETokenizerAdapter(cls.load(path))
     factor, sample = measure_byte_factor(adapter, base, path, cache_dir=base)
@@ -63,12 +70,14 @@ def main(
     if not base:
         raise SystemExit("set NANOCHAT_BASE or pass --base-dir")
 
+    if trainer not in DOTTED:
+        raise SystemExit(f"unknown trainer {trainer!r}; have {sorted(DOTTED)}")
     jobs = []
     for arm in [a.strip() for a in arms.split(",") if a.strip()]:
         path = os.path.join(HERE, "tokenizers", f"{corpus}_{arm}_{trainer}_v{vocab}.json.gz")
         if not os.path.exists(path):
             raise SystemExit(f"missing tokenizer for arm {arm}: {path}")
-        jobs.append((arm, path, base))
+        jobs.append((arm, path, base, DOTTED[trainer]))
 
     print(f"[factors] {len(jobs)} arm(s), whole val shard each, in parallel", flush=True)
     with ProcessPoolExecutor(max_workers=len(jobs)) as pool:

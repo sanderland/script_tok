@@ -100,6 +100,48 @@ The `paper_utils/` directory contains scripts to reproduce paper results from sc
   - `make_intrinsic_table.py` / `downstream/make_tex_tables.py`: the two main tables.
   - The grid trains on the `quick` corpus sample (`fineweb_<lang>_5gb_quick`), which reads
     until its character budget is full instead of reservoir-sampling the whole source.
+  - CPU English/Korean shared-vocabulary ablation, using existing local FineWeb quick caches:
+
+    ```bash
+    .venv/bin/python -m paper_utils.boundary.run_bilingual --million-chars 2000 --workers 4 --max-rss-gib 20
+    .venv/bin/python -m paper_utils.boundary.summarize_bilingual
+    ```
+
+    To extend to all seven schemes with both BPE and MinGram:
+
+    ```bash
+    .venv/bin/python -m paper_utils.boundary.run_bilingual_grid > results/boundary_grid.log 2>&1
+    ```
+
+    For MinGram only with 64,000 learned tokens per scheme, plus its fixed atomics:
+
+    ```bash
+    .venv/bin/python -m paper_utils.boundary.run_bilingual_grid --trainers mingram --learned-vocab 64000 > results/boundary_mingram_64k.log 2>&1
+    ```
+
+    This gives total vocabularies of 65,710 for plain, 65,711 for boundary variants,
+    and 65,713 for boundary+case variants. Its reports use the `_learned64000` suffix.
+
+    The grid reuses verified completed cells, shares pretokenized corpora across trainers,
+    and updates the report after each new cell. MinGram outputs use a separate directory
+    suffix, so BPE artifacts remain available. The grid runs sequentially with four workers
+    and the same 20 GiB memory limit. Single runs accept `--trainer bpe` or `--trainer mingram`.
+
+    Defaults are 2 billion training characters, 50:50 English/Korean, BPE with 34,685
+    total tokens, and `plain`, `bnd_wpd`, `bnd_wpd_caps`. Runs use two workers and train
+    one scheme at a time. The command above uses four workers and stops a child process
+    group if its sampled aggregate resident memory exceeds 20 GiB. `--stage prepare`,
+    `--stage train`, and `--stage analyze` run individual stages.
+    Evaluation uses 500,000 characters per language from the existing Goldfish slices.
+    Registry names such as `fineweb_enko_2000m_en50_local_v2` encode the character budget
+    and English percentage. Version 2 references existing text without copying it and
+    aggregates corpus counts in a restartable SQLite database before exporting Parquet.
+    Sources must already exist locally; no downloads occur. The small 20M pilots used
+    `--million-chars 20 --sample-version 1`, with English percentages 50 and 90.
+    Tokenizers, logs, and per-run metrics go under `results/boundary_bilingual/`.
+    The summary command writes `bilingual_report.md` and `bilingual_results.json` under
+    `paper_utils/boundary/paper/generated/`. The runner also saves stage status and sampled
+    memory high-water marks. This evaluates tokenizers; it does not train language models.
 
 ## Sources
 

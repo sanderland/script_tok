@@ -1,0 +1,1193 @@
+{
+ "sources": {
+  "learned": {
+   "file": "bilingual_results_learned64000.json",
+   "sha256": "6fa2b3882dd86e8eaea0e6235489e1e87b5389bb9b99feb4ffb7618c959086a3"
+  },
+  "main": {
+   "file": "bilingual_results.json",
+   "sha256": "b8f06534174a5aefc60e47e57562f9012675f16308ebdeb21a973a38ce3b6cdd"
+  }
+ },
+ "tables": {
+  "learned": [
+   {
+    "arm": "plain",
+    "atomic_vocab": 1710,
+    "corpus": "fineweb_enko_2000m_en50_local_v2",
+    "duplicates_involved": {
+     "case": 8996,
+     "space": 23662
+    },
+    "evaluation": {
+     "en": {
+      "characters": 500000,
+      "chars_per_token": 4.367536971200461,
+      "roundtrip_failures": 0,
+      "tokens": 114481
+     },
+     "ko": {
+      "characters": 499991,
+      "chars_per_token": 2.422554387324967,
+      "roundtrip_failures": 0,
+      "tokens": 206390
+     }
+    },
+    "evaluation_sha256": {
+     "en": "a26a04d864962b01fcdd09d0a05804b943cc2deec45a55819a54665578c3f5c9",
+     "ko": "4bef4dd05079e44e9a56e47900e6e30dce7a123da6841b161eca4c566e5b041c"
+    },
+    "learned_categories": {
+     "hangul": 40557,
+     "latin": 21530,
+     "mixed": 0,
+     "nonlexical": 1493,
+     "other_script": 420,
+     "undecodable": 0
+    },
+    "learned_vocab": 64000,
+    "tokenizer_sha256": "1341cb0e91873858102f5fc5da8dd91e03c98ba932de04d0b1e3902654a751d1",
+    "total_vocab": 65710,
+    "train_budget_chars": {
+     "en": 1000000000,
+     "ko": 1000000000
+    },
+    "train_sample_sha256": {
+     "en": "cddb7ddb56879f946a427aa24f0d02ac7ed36ba910fd03bc8c986747dc50ca94",
+     "ko": "22d6083718ef4d3f0b8435b95b97ed49d784574622ba4549a8dfcc177ea9f908"
+    },
+    "trainer": "mingram"
+   },
+   {
+    "arm": "bnd_w",
+    "atomic_vocab": 1711,
+    "corpus": "fineweb_enko_2000m_en50_local_v2",
+    "duplicates_involved": {
+     "case": 8387,
+     "space": 2
+    },
+    "evaluation": {
+     "en": {
+      "characters": 500000,
+      "chars_per_token": 3.9498526704953907,
+      "roundtrip_failures": 0,
+      "tokens": 126587
+     },
+     "ko": {
+      "characters": 499991,
+      "chars_per_token": 2.212075495071407,
+      "roundtrip_failures": 0,
+      "tokens": 226028
+     }
+    },
+    "evaluation_sha256": {
+     "en": "a26a04d864962b01fcdd09d0a05804b943cc2deec45a55819a54665578c3f5c9",
+     "ko": "4bef4dd05079e44e9a56e47900e6e30dce7a123da6841b161eca4c566e5b041c"
+    },
+    "learned_categories": {
+     "hangul": 41163,
+     "latin": 21146,
+     "mixed": 0,
+     "nonlexical": 1313,
+     "other_script": 378,
+     "undecodable": 0
+    },
+    "learned_vocab": 64000,
+    "tokenizer_sha256": "ba223bc3dfcd116df16b17f5f94362d26ed1ac573820fffeb738d947f56e8c2c",
+    "total_vocab": 65711,
+    "train_budget_chars": {
+     "en": 1000000000,
+     "ko": 1000000000
+    },
+    "train_sample_sha256": {
+     "en": "cddb7ddb56879f946a427aa24f0d02ac7ed36ba910fd03bc8c986747dc50ca94",
+     "ko": "22d6083718ef4d3f0b8435b95b97ed49d784574622ba4549a8dfcc177ea9f908"
+    },
+    "trainer": "mingram"
+   },
+   {
+    "arm": "bnd_wp",
+    "atomic_vocab": 1711,
+    "corpus": "fineweb_enko_2000m_en50_local_v2",
+    "duplicates_involved": {
+     "case": 8358,
+     "space": 2
+    },
+    "evaluation": {
+     "en": {
+      "characters": 500000,
+      "chars_per_token": 4.278550769283428,
+      "roundtrip_failures": 0,
+      "tokens": 116862
+     },
+     "ko": {
+      "characters": 499991,
+      "chars_per_token": 2.3416259606693424,
+      "roundtrip_failures": 0,
+      "tokens": 213523
+     }
+    },
+    "evaluation_sha256": {
+     "en": "a26a04d864962b01fcdd09d0a05804b943cc2deec45a55819a54665578c3f5c9",
+     "ko": "4bef4dd05079e44e9a56e47900e6e30dce7a123da6841b161eca4c566e5b041c"
+    },
+    "learned_categories": {
+     "hangul": 41020,
+     "latin": 21076,
+     "mixed": 0,
+     "nonlexical": 1527,
+     "other_script": 377,
+     "undecodable": 0
+    },
+    "learned_vocab": 64000,
+    "tokenizer_sha256": "090f8be142ba0aa9e0daf5990b37cf0a5f4041dd6349105ad54c7bc47df93416",
+    "total_vocab": 65711,
+    "train_budget_chars": {
+     "en": 1000000000,
+     "ko": 1000000000
+    },
+    "train_sample_sha256": {
+     "en": "cddb7ddb56879f946a427aa24f0d02ac7ed36ba910fd03bc8c986747dc50ca94",
+     "ko": "22d6083718ef4d3f0b8435b95b97ed49d784574622ba4549a8dfcc177ea9f908"
+    },
+    "trainer": "mingram"
+   },
+   {
+    "arm": "bnd_wpd",
+    "atomic_vocab": 1711,
+    "corpus": "fineweb_enko_2000m_en50_local_v2",
+    "duplicates_involved": {
+     "case": 8326,
+     "space": 2
+    },
+    "evaluation": {
+     "en": {
+      "characters": 500000,
+      "chars_per_token": 4.358285973292424,
+      "roundtrip_failures": 0,
+      "tokens": 114724
+     },
+     "ko": {
+      "characters": 499991,
+      "chars_per_token": 2.387720211460308,
+      "roundtrip_failures": 0,
+      "tokens": 209401
+     }
+    },
+    "evaluation_sha256": {
+     "en": "a26a04d864962b01fcdd09d0a05804b943cc2deec45a55819a54665578c3f5c9",
+     "ko": "4bef4dd05079e44e9a56e47900e6e30dce7a123da6841b161eca4c566e5b041c"
+    },
+    "learned_categories": {
+     "hangul": 40863,
+     "latin": 21022,
+     "mixed": 0,
+     "nonlexical": 1739,
+     "other_script": 376,
+     "undecodable": 0
+    },
+    "learned_vocab": 64000,
+    "tokenizer_sha256": "7f9173328e6a5f7f87eedad0bddba91644666b0ab831eb52c12a8e8ff1d3a464",
+    "total_vocab": 65711,
+    "train_budget_chars": {
+     "en": 1000000000,
+     "ko": 1000000000
+    },
+    "train_sample_sha256": {
+     "en": "cddb7ddb56879f946a427aa24f0d02ac7ed36ba910fd03bc8c986747dc50ca94",
+     "ko": "22d6083718ef4d3f0b8435b95b97ed49d784574622ba4549a8dfcc177ea9f908"
+    },
+    "trainer": "mingram"
+   },
+   {
+    "arm": "bnd_w_caps",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_enko_2000m_en50_local_v2",
+    "duplicates_involved": {
+     "case": 7132,
+     "space": 2
+    },
+    "evaluation": {
+     "en": {
+      "characters": 500000,
+      "chars_per_token": 3.9674038102946194,
+      "roundtrip_failures": 0,
+      "tokens": 126027
+     },
+     "ko": {
+      "characters": 499991,
+      "chars_per_token": 2.2132897159855514,
+      "roundtrip_failures": 0,
+      "tokens": 225904
+     }
+    },
+    "evaluation_sha256": {
+     "en": "a26a04d864962b01fcdd09d0a05804b943cc2deec45a55819a54665578c3f5c9",
+     "ko": "4bef4dd05079e44e9a56e47900e6e30dce7a123da6841b161eca4c566e5b041c"
+    },
+    "learned_categories": {
+     "hangul": 41535,
+     "latin": 20748,
+     "mixed": 0,
+     "nonlexical": 1330,
+     "other_script": 387,
+     "undecodable": 0
+    },
+    "learned_vocab": 64000,
+    "tokenizer_sha256": "f53ebe716a6c800592c50f619c56c5a0d0cf178a71db1c19f25f49e6c7fa523c",
+    "total_vocab": 65713,
+    "train_budget_chars": {
+     "en": 1000000000,
+     "ko": 1000000000
+    },
+    "train_sample_sha256": {
+     "en": "cddb7ddb56879f946a427aa24f0d02ac7ed36ba910fd03bc8c986747dc50ca94",
+     "ko": "22d6083718ef4d3f0b8435b95b97ed49d784574622ba4549a8dfcc177ea9f908"
+    },
+    "trainer": "mingram"
+   },
+   {
+    "arm": "bnd_wp_caps",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_enko_2000m_en50_local_v2",
+    "duplicates_involved": {
+     "case": 7125,
+     "space": 2
+    },
+    "evaluation": {
+     "en": {
+      "characters": 500000,
+      "chars_per_token": 4.29926310630358,
+      "roundtrip_failures": 0,
+      "tokens": 116299
+     },
+     "ko": {
+      "characters": 499991,
+      "chars_per_token": 2.343305056943338,
+      "roundtrip_failures": 0,
+      "tokens": 213370
+     }
+    },
+    "evaluation_sha256": {
+     "en": "a26a04d864962b01fcdd09d0a05804b943cc2deec45a55819a54665578c3f5c9",
+     "ko": "4bef4dd05079e44e9a56e47900e6e30dce7a123da6841b161eca4c566e5b041c"
+    },
+    "learned_categories": {
+     "hangul": 41388,
+     "latin": 20691,
+     "mixed": 0,
+     "nonlexical": 1535,
+     "other_script": 386,
+     "undecodable": 0
+    },
+    "learned_vocab": 64000,
+    "tokenizer_sha256": "b70e70890fcb636170ab1fbfc1079a7bf31717f721b490abd6190f3e75c1db73",
+    "total_vocab": 65713,
+    "train_budget_chars": {
+     "en": 1000000000,
+     "ko": 1000000000
+    },
+    "train_sample_sha256": {
+     "en": "cddb7ddb56879f946a427aa24f0d02ac7ed36ba910fd03bc8c986747dc50ca94",
+     "ko": "22d6083718ef4d3f0b8435b95b97ed49d784574622ba4549a8dfcc177ea9f908"
+    },
+    "trainer": "mingram"
+   },
+   {
+    "arm": "bnd_wpd_caps",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_enko_2000m_en50_local_v2",
+    "duplicates_involved": {
+     "case": 7086,
+     "space": 2
+    },
+    "evaluation": {
+     "en": {
+      "characters": 500000,
+      "chars_per_token": 4.379932899427981,
+      "roundtrip_failures": 0,
+      "tokens": 114157
+     },
+     "ko": {
+      "characters": 499991,
+      "chars_per_token": 2.3898886769816117,
+      "roundtrip_failures": 0,
+      "tokens": 209211
+     }
+    },
+    "evaluation_sha256": {
+     "en": "a26a04d864962b01fcdd09d0a05804b943cc2deec45a55819a54665578c3f5c9",
+     "ko": "4bef4dd05079e44e9a56e47900e6e30dce7a123da6841b161eca4c566e5b041c"
+    },
+    "learned_categories": {
+     "hangul": 41234,
+     "latin": 20627,
+     "mixed": 0,
+     "nonlexical": 1758,
+     "other_script": 381,
+     "undecodable": 0
+    },
+    "learned_vocab": 64000,
+    "tokenizer_sha256": "f2b4c8019bc8678d33d73abcf97e5d2cc860e883bba98fa68647cd05d03a9c21",
+    "total_vocab": 65713,
+    "train_budget_chars": {
+     "en": 1000000000,
+     "ko": 1000000000
+    },
+    "train_sample_sha256": {
+     "en": "cddb7ddb56879f946a427aa24f0d02ac7ed36ba910fd03bc8c986747dc50ca94",
+     "ko": "22d6083718ef4d3f0b8435b95b97ed49d784574622ba4549a8dfcc177ea9f908"
+    },
+    "trainer": "mingram"
+   },
+   {
+    "arm": "plain",
+    "atomic_vocab": 1710,
+    "corpus": "fineweb_enko_5000m_en80_local_v2",
+    "duplicates_involved": {
+     "case": 15101,
+     "space": 22356
+    },
+    "evaluation": {
+     "en": {
+      "characters": 500000,
+      "chars_per_token": 4.535476497160792,
+      "roundtrip_failures": 0,
+      "tokens": 110242
+     },
+     "ko": {
+      "characters": 499991,
+      "chars_per_token": 2.3213610849308455,
+      "roundtrip_failures": 0,
+      "tokens": 215387
+     }
+    },
+    "evaluation_sha256": {
+     "en": "a26a04d864962b01fcdd09d0a05804b943cc2deec45a55819a54665578c3f5c9",
+     "ko": "4bef4dd05079e44e9a56e47900e6e30dce7a123da6841b161eca4c566e5b041c"
+    },
+    "learned_categories": {
+     "hangul": 28028,
+     "latin": 34065,
+     "mixed": 0,
+     "nonlexical": 1589,
+     "other_script": 318,
+     "undecodable": 0
+    },
+    "learned_vocab": 64000,
+    "tokenizer_sha256": "ce861de2c41ff3fc72c556072fe3d5c2d1ad7bad92c1df92016dfa092386462f",
+    "total_vocab": 65710,
+    "train_budget_chars": {
+     "en": 4000000000,
+     "ko": 1000000000
+    },
+    "train_sample_sha256": {
+     "en": "962c79bf57f7ebcd22072606633dfe6849e5094a9311637852dab4db88c00f1d",
+     "ko": "22d6083718ef4d3f0b8435b95b97ed49d784574622ba4549a8dfcc177ea9f908"
+    },
+    "trainer": "mingram"
+   },
+   {
+    "arm": "bnd_w",
+    "atomic_vocab": 1711,
+    "corpus": "fineweb_enko_5000m_en80_local_v2",
+    "duplicates_involved": {
+     "case": 14154,
+     "space": 2
+    },
+    "evaluation": {
+     "en": {
+      "characters": 500000,
+      "chars_per_token": 4.105393666198652,
+      "roundtrip_failures": 0,
+      "tokens": 121791
+     },
+     "ko": {
+      "characters": 499991,
+      "chars_per_token": 2.120582746628213,
+      "roundtrip_failures": 0,
+      "tokens": 235780
+     }
+    },
+    "evaluation_sha256": {
+     "en": "a26a04d864962b01fcdd09d0a05804b943cc2deec45a55819a54665578c3f5c9",
+     "ko": "4bef4dd05079e44e9a56e47900e6e30dce7a123da6841b161eca4c566e5b041c"
+    },
+    "learned_categories": {
+     "hangul": 28880,
+     "latin": 33394,
+     "mixed": 0,
+     "nonlexical": 1428,
+     "other_script": 298,
+     "undecodable": 0
+    },
+    "learned_vocab": 64000,
+    "tokenizer_sha256": "d28a3cb7a50c9239255fc64688d3d7dfdd5efbba08cc4c3f3d54032459b5394e",
+    "total_vocab": 65711,
+    "train_budget_chars": {
+     "en": 4000000000,
+     "ko": 1000000000
+    },
+    "train_sample_sha256": {
+     "en": "962c79bf57f7ebcd22072606633dfe6849e5094a9311637852dab4db88c00f1d",
+     "ko": "22d6083718ef4d3f0b8435b95b97ed49d784574622ba4549a8dfcc177ea9f908"
+    },
+    "trainer": "mingram"
+   },
+   {
+    "arm": "bnd_wpd",
+    "atomic_vocab": 1711,
+    "corpus": "fineweb_enko_5000m_en80_local_v2",
+    "duplicates_involved": {
+     "case": 14071,
+     "space": 2
+    },
+    "evaluation": {
+     "en": {
+      "characters": 500000,
+      "chars_per_token": 4.551122761985382,
+      "roundtrip_failures": 0,
+      "tokens": 109863
+     },
+     "ko": {
+      "characters": 499991,
+      "chars_per_token": 2.281178569310296,
+      "roundtrip_failures": 0,
+      "tokens": 219181
+     }
+    },
+    "evaluation_sha256": {
+     "en": "a26a04d864962b01fcdd09d0a05804b943cc2deec45a55819a54665578c3f5c9",
+     "ko": "4bef4dd05079e44e9a56e47900e6e30dce7a123da6841b161eca4c566e5b041c"
+    },
+    "learned_categories": {
+     "hangul": 28622,
+     "latin": 33171,
+     "mixed": 0,
+     "nonlexical": 1915,
+     "other_script": 292,
+     "undecodable": 0
+    },
+    "learned_vocab": 64000,
+    "tokenizer_sha256": "2db6c0ed6f959f5e2ad1c056a86456ad9f1451e63c6085e6f96b2a3b81267863",
+    "total_vocab": 65711,
+    "train_budget_chars": {
+     "en": 4000000000,
+     "ko": 1000000000
+    },
+    "train_sample_sha256": {
+     "en": "962c79bf57f7ebcd22072606633dfe6849e5094a9311637852dab4db88c00f1d",
+     "ko": "22d6083718ef4d3f0b8435b95b97ed49d784574622ba4549a8dfcc177ea9f908"
+    },
+    "trainer": "mingram"
+   },
+   {
+    "arm": "bnd_wpd_caps",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_enko_5000m_en80_local_v2",
+    "duplicates_involved": {
+     "case": 12416,
+     "space": 2
+    },
+    "evaluation": {
+     "en": {
+      "characters": 500000,
+      "chars_per_token": 4.565376186997809,
+      "roundtrip_failures": 0,
+      "tokens": 109520
+     },
+     "ko": {
+      "characters": 499991,
+      "chars_per_token": 2.2847018181984344,
+      "roundtrip_failures": 0,
+      "tokens": 218843
+     }
+    },
+    "evaluation_sha256": {
+     "en": "a26a04d864962b01fcdd09d0a05804b943cc2deec45a55819a54665578c3f5c9",
+     "ko": "4bef4dd05079e44e9a56e47900e6e30dce7a123da6841b161eca4c566e5b041c"
+    },
+    "learned_categories": {
+     "hangul": 29062,
+     "latin": 32691,
+     "mixed": 0,
+     "nonlexical": 1942,
+     "other_script": 305,
+     "undecodable": 0
+    },
+    "learned_vocab": 64000,
+    "tokenizer_sha256": "e7ccd4286c4d85a096e20f5d7036f3b0ca359e10eb60d8b64f598277cafcd613",
+    "total_vocab": 65713,
+    "train_budget_chars": {
+     "en": 4000000000,
+     "ko": 1000000000
+    },
+    "train_sample_sha256": {
+     "en": "962c79bf57f7ebcd22072606633dfe6849e5094a9311637852dab4db88c00f1d",
+     "ko": "22d6083718ef4d3f0b8435b95b97ed49d784574622ba4549a8dfcc177ea9f908"
+    },
+    "trainer": "mingram"
+   }
+  ],
+  "main": [
+   {
+    "arm": "plain",
+    "atomic_vocab": 1710,
+    "corpus": "fineweb_enko_2000m_en50_local_v2",
+    "duplicates_involved": {
+     "case": 4246,
+     "space": 11520
+    },
+    "evaluation": {
+     "en": {
+      "characters": 500000,
+      "chars_per_token": 4.069175991861648,
+      "roundtrip_failures": 0,
+      "tokens": 122875
+     },
+     "ko": {
+      "characters": 499991,
+      "chars_per_token": 2.1929429824561404,
+      "roundtrip_failures": 0,
+      "tokens": 228000
+     }
+    },
+    "evaluation_sha256": {
+     "en": "a26a04d864962b01fcdd09d0a05804b943cc2deec45a55819a54665578c3f5c9",
+     "ko": "4bef4dd05079e44e9a56e47900e6e30dce7a123da6841b161eca4c566e5b041c"
+    },
+    "learned_categories": {
+     "hangul": 19673,
+     "latin": 12443,
+     "mixed": 0,
+     "nonlexical": 743,
+     "other_script": 116,
+     "undecodable": 0
+    },
+    "learned_vocab": 32975,
+    "tokenizer_sha256": "a6e9cc5937477a250b6bbf2a81e8e14fbb94abb6ffb1912c701e3d8729a2c2e6",
+    "total_vocab": 34685,
+    "train_budget_chars": {
+     "en": 1000000000,
+     "ko": 1000000000
+    },
+    "train_sample_sha256": {
+     "en": "cddb7ddb56879f946a427aa24f0d02ac7ed36ba910fd03bc8c986747dc50ca94",
+     "ko": "22d6083718ef4d3f0b8435b95b97ed49d784574622ba4549a8dfcc177ea9f908"
+    },
+    "trainer": "bpe"
+   },
+   {
+    "arm": "bnd_w",
+    "atomic_vocab": 1711,
+    "corpus": "fineweb_enko_2000m_en50_local_v2",
+    "duplicates_involved": {
+     "case": 4175,
+     "space": 0
+    },
+    "evaluation": {
+     "en": {
+      "characters": 500000,
+      "chars_per_token": 3.694344697137622,
+      "roundtrip_failures": 0,
+      "tokens": 135342
+     },
+     "ko": {
+      "characters": 499991,
+      "chars_per_token": 1.996243003042329,
+      "roundtrip_failures": 0,
+      "tokens": 250466
+     }
+    },
+    "evaluation_sha256": {
+     "en": "a26a04d864962b01fcdd09d0a05804b943cc2deec45a55819a54665578c3f5c9",
+     "ko": "4bef4dd05079e44e9a56e47900e6e30dce7a123da6841b161eca4c566e5b041c"
+    },
+    "learned_categories": {
+     "hangul": 19811,
+     "latin": 12451,
+     "mixed": 0,
+     "nonlexical": 621,
+     "other_script": 91,
+     "undecodable": 0
+    },
+    "learned_vocab": 32974,
+    "tokenizer_sha256": "6f66d9a57cc8b2f604698862d2bcb14dcbc49c9a0177b28c07677e7787cb2bd1",
+    "total_vocab": 34685,
+    "train_budget_chars": {
+     "en": 1000000000,
+     "ko": 1000000000
+    },
+    "train_sample_sha256": {
+     "en": "cddb7ddb56879f946a427aa24f0d02ac7ed36ba910fd03bc8c986747dc50ca94",
+     "ko": "22d6083718ef4d3f0b8435b95b97ed49d784574622ba4549a8dfcc177ea9f908"
+    },
+    "trainer": "bpe"
+   },
+   {
+    "arm": "bnd_w_caps",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_enko_2000m_en50_local_v2",
+    "duplicates_involved": {
+     "case": 3767,
+     "space": 0
+    },
+    "evaluation": {
+     "en": {
+      "characters": 500000,
+      "chars_per_token": 3.695928565092694,
+      "roundtrip_failures": 0,
+      "tokens": 135284
+     },
+     "ko": {
+      "characters": 499991,
+      "chars_per_token": 1.9978303172212077,
+      "roundtrip_failures": 0,
+      "tokens": 250267
+     }
+    },
+    "evaluation_sha256": {
+     "en": "a26a04d864962b01fcdd09d0a05804b943cc2deec45a55819a54665578c3f5c9",
+     "ko": "4bef4dd05079e44e9a56e47900e6e30dce7a123da6841b161eca4c566e5b041c"
+    },
+    "learned_categories": {
+     "hangul": 19919,
+     "latin": 12334,
+     "mixed": 0,
+     "nonlexical": 625,
+     "other_script": 94,
+     "undecodable": 0
+    },
+    "learned_vocab": 32972,
+    "tokenizer_sha256": "36aacf92b4ab22ec1c6955bec6a5d0c597d3cd0d49bf6a2a2d9fc4fd8bdfd920",
+    "total_vocab": 34685,
+    "train_budget_chars": {
+     "en": 1000000000,
+     "ko": 1000000000
+    },
+    "train_sample_sha256": {
+     "en": "cddb7ddb56879f946a427aa24f0d02ac7ed36ba910fd03bc8c986747dc50ca94",
+     "ko": "22d6083718ef4d3f0b8435b95b97ed49d784574622ba4549a8dfcc177ea9f908"
+    },
+    "trainer": "bpe"
+   },
+   {
+    "arm": "bnd_wp",
+    "atomic_vocab": 1711,
+    "corpus": "fineweb_enko_2000m_en50_local_v2",
+    "duplicates_involved": {
+     "case": 4153,
+     "space": 0
+    },
+    "evaluation": {
+     "en": {
+      "characters": 500000,
+      "chars_per_token": 3.9801311851238617,
+      "roundtrip_failures": 0,
+      "tokens": 125624
+     },
+     "ko": {
+      "characters": 499991,
+      "chars_per_token": 2.1004936248870965,
+      "roundtrip_failures": 0,
+      "tokens": 238035
+     }
+    },
+    "evaluation_sha256": {
+     "en": "a26a04d864962b01fcdd09d0a05804b943cc2deec45a55819a54665578c3f5c9",
+     "ko": "4bef4dd05079e44e9a56e47900e6e30dce7a123da6841b161eca4c566e5b041c"
+    },
+    "learned_categories": {
+     "hangul": 19728,
+     "latin": 12394,
+     "mixed": 0,
+     "nonlexical": 762,
+     "other_script": 90,
+     "undecodable": 0
+    },
+    "learned_vocab": 32974,
+    "tokenizer_sha256": "cba5c757427be69f4cdd6d5449d5f0c4bff5e133430f1d82e9a8aa028953e225",
+    "total_vocab": 34685,
+    "train_budget_chars": {
+     "en": 1000000000,
+     "ko": 1000000000
+    },
+    "train_sample_sha256": {
+     "en": "cddb7ddb56879f946a427aa24f0d02ac7ed36ba910fd03bc8c986747dc50ca94",
+     "ko": "22d6083718ef4d3f0b8435b95b97ed49d784574622ba4549a8dfcc177ea9f908"
+    },
+    "trainer": "bpe"
+   },
+   {
+    "arm": "bnd_wp_caps",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_enko_2000m_en50_local_v2",
+    "duplicates_involved": {
+     "case": 3750,
+     "space": 0
+    },
+    "evaluation": {
+     "en": {
+      "characters": 500000,
+      "chars_per_token": 3.9812403952575464,
+      "roundtrip_failures": 0,
+      "tokens": 125589
+     },
+     "ko": {
+      "characters": 499991,
+      "chars_per_token": 2.1016855821773857,
+      "roundtrip_failures": 0,
+      "tokens": 237900
+     }
+    },
+    "evaluation_sha256": {
+     "en": "a26a04d864962b01fcdd09d0a05804b943cc2deec45a55819a54665578c3f5c9",
+     "ko": "4bef4dd05079e44e9a56e47900e6e30dce7a123da6841b161eca4c566e5b041c"
+    },
+    "learned_categories": {
+     "hangul": 19823,
+     "latin": 12289,
+     "mixed": 0,
+     "nonlexical": 768,
+     "other_script": 92,
+     "undecodable": 0
+    },
+    "learned_vocab": 32972,
+    "tokenizer_sha256": "fd6d00584fbd8f0e30ee28a12cb10d1a61442aa7f236217f051e8bd1fe61bdf1",
+    "total_vocab": 34685,
+    "train_budget_chars": {
+     "en": 1000000000,
+     "ko": 1000000000
+    },
+    "train_sample_sha256": {
+     "en": "cddb7ddb56879f946a427aa24f0d02ac7ed36ba910fd03bc8c986747dc50ca94",
+     "ko": "22d6083718ef4d3f0b8435b95b97ed49d784574622ba4549a8dfcc177ea9f908"
+    },
+    "trainer": "bpe"
+   },
+   {
+    "arm": "bnd_wpd",
+    "atomic_vocab": 1711,
+    "corpus": "fineweb_enko_2000m_en50_local_v2",
+    "duplicates_involved": {
+     "case": 4117,
+     "space": 0
+    },
+    "evaluation": {
+     "en": {
+      "characters": 500000,
+      "chars_per_token": 4.044194962550755,
+      "roundtrip_failures": 0,
+      "tokens": 123634
+     },
+     "ko": {
+      "characters": 499991,
+      "chars_per_token": 2.1366771508179347,
+      "roundtrip_failures": 0,
+      "tokens": 234004
+     }
+    },
+    "evaluation_sha256": {
+     "en": "a26a04d864962b01fcdd09d0a05804b943cc2deec45a55819a54665578c3f5c9",
+     "ko": "4bef4dd05079e44e9a56e47900e6e30dce7a123da6841b161eca4c566e5b041c"
+    },
+    "learned_categories": {
+     "hangul": 19583,
+     "latin": 12305,
+     "mixed": 0,
+     "nonlexical": 996,
+     "other_script": 90,
+     "undecodable": 0
+    },
+    "learned_vocab": 32974,
+    "tokenizer_sha256": "e0890e40d4d4f28e957a0d97ceeb5ce9c398bc8c3b0efb9170e8912d1c5fdb20",
+    "total_vocab": 34685,
+    "train_budget_chars": {
+     "en": 1000000000,
+     "ko": 1000000000
+    },
+    "train_sample_sha256": {
+     "en": "cddb7ddb56879f946a427aa24f0d02ac7ed36ba910fd03bc8c986747dc50ca94",
+     "ko": "22d6083718ef4d3f0b8435b95b97ed49d784574622ba4549a8dfcc177ea9f908"
+    },
+    "trainer": "bpe"
+   },
+   {
+    "arm": "bnd_wpd_caps",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_enko_2000m_en50_local_v2",
+    "duplicates_involved": {
+     "case": 3716,
+     "space": 0
+    },
+    "evaluation": {
+     "en": {
+      "characters": 500000,
+      "chars_per_token": 4.046224063703752,
+      "roundtrip_failures": 0,
+      "tokens": 123572
+     },
+     "ko": {
+      "characters": 499991,
+      "chars_per_token": 2.138038528147784,
+      "roundtrip_failures": 0,
+      "tokens": 233855
+     }
+    },
+    "evaluation_sha256": {
+     "en": "a26a04d864962b01fcdd09d0a05804b943cc2deec45a55819a54665578c3f5c9",
+     "ko": "4bef4dd05079e44e9a56e47900e6e30dce7a123da6841b161eca4c566e5b041c"
+    },
+    "learned_categories": {
+     "hangul": 19678,
+     "latin": 12200,
+     "mixed": 0,
+     "nonlexical": 1002,
+     "other_script": 92,
+     "undecodable": 0
+    },
+    "learned_vocab": 32972,
+    "tokenizer_sha256": "974ff91ac586c1d635356c7357e8ae97c0815f932eccca1e6cec65bc0b83a9dd",
+    "total_vocab": 34685,
+    "train_budget_chars": {
+     "en": 1000000000,
+     "ko": 1000000000
+    },
+    "train_sample_sha256": {
+     "en": "cddb7ddb56879f946a427aa24f0d02ac7ed36ba910fd03bc8c986747dc50ca94",
+     "ko": "22d6083718ef4d3f0b8435b95b97ed49d784574622ba4549a8dfcc177ea9f908"
+    },
+    "trainer": "bpe"
+   },
+   {
+    "arm": "plain",
+    "atomic_vocab": 1710,
+    "corpus": "fineweb_enko_2000m_en50_local_v2",
+    "duplicates_involved": {
+     "case": 4303,
+     "space": 11656
+    },
+    "evaluation": {
+     "en": {
+      "characters": 500000,
+      "chars_per_token": 4.105528504684408,
+      "roundtrip_failures": 0,
+      "tokens": 121787
+     },
+     "ko": {
+      "characters": 499991,
+      "chars_per_token": 2.2116253969939046,
+      "roundtrip_failures": 0,
+      "tokens": 226074
+     }
+    },
+    "evaluation_sha256": {
+     "en": "a26a04d864962b01fcdd09d0a05804b943cc2deec45a55819a54665578c3f5c9",
+     "ko": "4bef4dd05079e44e9a56e47900e6e30dce7a123da6841b161eca4c566e5b041c"
+    },
+    "learned_categories": {
+     "hangul": 20235,
+     "latin": 11857,
+     "mixed": 0,
+     "nonlexical": 766,
+     "other_script": 117,
+     "undecodable": 0
+    },
+    "learned_vocab": 32975,
+    "tokenizer_sha256": "12314dbc8ac44ffd3e08750eb3fc3792c7a208de68c77a7e1e3b016e500ad76b",
+    "total_vocab": 34685,
+    "train_budget_chars": {
+     "en": 1000000000,
+     "ko": 1000000000
+    },
+    "train_sample_sha256": {
+     "en": "cddb7ddb56879f946a427aa24f0d02ac7ed36ba910fd03bc8c986747dc50ca94",
+     "ko": "22d6083718ef4d3f0b8435b95b97ed49d784574622ba4549a8dfcc177ea9f908"
+    },
+    "trainer": "mingram"
+   },
+   {
+    "arm": "bnd_w",
+    "atomic_vocab": 1711,
+    "corpus": "fineweb_enko_2000m_en50_local_v2",
+    "duplicates_involved": {
+     "case": 4037,
+     "space": 0
+    },
+    "evaluation": {
+     "en": {
+      "characters": 500000,
+      "chars_per_token": 3.701893888913568,
+      "roundtrip_failures": 0,
+      "tokens": 135066
+     },
+     "ko": {
+      "characters": 499991,
+      "chars_per_token": 2.0126355534444866,
+      "roundtrip_failures": 0,
+      "tokens": 248426
+     }
+    },
+    "evaluation_sha256": {
+     "en": "a26a04d864962b01fcdd09d0a05804b943cc2deec45a55819a54665578c3f5c9",
+     "ko": "4bef4dd05079e44e9a56e47900e6e30dce7a123da6841b161eca4c566e5b041c"
+    },
+    "learned_categories": {
+     "hangul": 20487,
+     "latin": 11738,
+     "mixed": 0,
+     "nonlexical": 650,
+     "other_script": 99,
+     "undecodable": 0
+    },
+    "learned_vocab": 32974,
+    "tokenizer_sha256": "6e9690e897b6f683ca4a218e229c39a84036efbbb0ccf3edfe9e44ed63fef156",
+    "total_vocab": 34685,
+    "train_budget_chars": {
+     "en": 1000000000,
+     "ko": 1000000000
+    },
+    "train_sample_sha256": {
+     "en": "cddb7ddb56879f946a427aa24f0d02ac7ed36ba910fd03bc8c986747dc50ca94",
+     "ko": "22d6083718ef4d3f0b8435b95b97ed49d784574622ba4549a8dfcc177ea9f908"
+    },
+    "trainer": "mingram"
+   },
+   {
+    "arm": "bnd_w_caps",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_enko_2000m_en50_local_v2",
+    "duplicates_involved": {
+     "case": 3379,
+     "space": 0
+    },
+    "evaluation": {
+     "en": {
+      "characters": 500000,
+      "chars_per_token": 3.7310648459070217,
+      "roundtrip_failures": 0,
+      "tokens": 134010
+     },
+     "ko": {
+      "characters": 499991,
+      "chars_per_token": 2.0151989037120632,
+      "roundtrip_failures": 0,
+      "tokens": 248110
+     }
+    },
+    "evaluation_sha256": {
+     "en": "a26a04d864962b01fcdd09d0a05804b943cc2deec45a55819a54665578c3f5c9",
+     "ko": "4bef4dd05079e44e9a56e47900e6e30dce7a123da6841b161eca4c566e5b041c"
+    },
+    "learned_categories": {
+     "hangul": 20694,
+     "latin": 11513,
+     "mixed": 0,
+     "nonlexical": 657,
+     "other_script": 108,
+     "undecodable": 0
+    },
+    "learned_vocab": 32972,
+    "tokenizer_sha256": "4d24ea77a857a8a28eb9bcbd3576d4928419d183f96b94b81d9217bceb3db2e3",
+    "total_vocab": 34685,
+    "train_budget_chars": {
+     "en": 1000000000,
+     "ko": 1000000000
+    },
+    "train_sample_sha256": {
+     "en": "cddb7ddb56879f946a427aa24f0d02ac7ed36ba910fd03bc8c986747dc50ca94",
+     "ko": "22d6083718ef4d3f0b8435b95b97ed49d784574622ba4549a8dfcc177ea9f908"
+    },
+    "trainer": "mingram"
+   },
+   {
+    "arm": "bnd_wp",
+    "atomic_vocab": 1711,
+    "corpus": "fineweb_enko_2000m_en50_local_v2",
+    "duplicates_involved": {
+     "case": 4020,
+     "space": 0
+    },
+    "evaluation": {
+     "en": {
+      "characters": 500000,
+      "chars_per_token": 3.9880040837161816,
+      "roundtrip_failures": 0,
+      "tokens": 125376
+     },
+     "ko": {
+      "characters": 499991,
+      "chars_per_token": 2.1180225785271007,
+      "roundtrip_failures": 0,
+      "tokens": 236065
+     }
+    },
+    "evaluation_sha256": {
+     "en": "a26a04d864962b01fcdd09d0a05804b943cc2deec45a55819a54665578c3f5c9",
+     "ko": "4bef4dd05079e44e9a56e47900e6e30dce7a123da6841b161eca4c566e5b041c"
+    },
+    "learned_categories": {
+     "hangul": 20377,
+     "latin": 11691,
+     "mixed": 0,
+     "nonlexical": 807,
+     "other_script": 99,
+     "undecodable": 0
+    },
+    "learned_vocab": 32974,
+    "tokenizer_sha256": "ec7893aacc7148ec6bab009a5b67f33e6f9088c70029a33fb6a4a521a8ab1e3c",
+    "total_vocab": 34685,
+    "train_budget_chars": {
+     "en": 1000000000,
+     "ko": 1000000000
+    },
+    "train_sample_sha256": {
+     "en": "cddb7ddb56879f946a427aa24f0d02ac7ed36ba910fd03bc8c986747dc50ca94",
+     "ko": "22d6083718ef4d3f0b8435b95b97ed49d784574622ba4549a8dfcc177ea9f908"
+    },
+    "trainer": "mingram"
+   },
+   {
+    "arm": "bnd_wp_caps",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_enko_2000m_en50_local_v2",
+    "duplicates_involved": {
+     "case": 3360,
+     "space": 0
+    },
+    "evaluation": {
+     "en": {
+      "characters": 500000,
+      "chars_per_token": 4.021361472140008,
+      "roundtrip_failures": 0,
+      "tokens": 124336
+     },
+     "ko": {
+      "characters": 499991,
+      "chars_per_token": 2.121131516763604,
+      "roundtrip_failures": 0,
+      "tokens": 235719
+     }
+    },
+    "evaluation_sha256": {
+     "en": "a26a04d864962b01fcdd09d0a05804b943cc2deec45a55819a54665578c3f5c9",
+     "ko": "4bef4dd05079e44e9a56e47900e6e30dce7a123da6841b161eca4c566e5b041c"
+    },
+    "learned_categories": {
+     "hangul": 20579,
+     "latin": 11472,
+     "mixed": 0,
+     "nonlexical": 817,
+     "other_script": 104,
+     "undecodable": 0
+    },
+    "learned_vocab": 32972,
+    "tokenizer_sha256": "2792b11f0e946d7521e5b6c784d52d3dce297125a288625f2a98f61c34534002",
+    "total_vocab": 34685,
+    "train_budget_chars": {
+     "en": 1000000000,
+     "ko": 1000000000
+    },
+    "train_sample_sha256": {
+     "en": "cddb7ddb56879f946a427aa24f0d02ac7ed36ba910fd03bc8c986747dc50ca94",
+     "ko": "22d6083718ef4d3f0b8435b95b97ed49d784574622ba4549a8dfcc177ea9f908"
+    },
+    "trainer": "mingram"
+   },
+   {
+    "arm": "bnd_wpd",
+    "atomic_vocab": 1711,
+    "corpus": "fineweb_enko_2000m_en50_local_v2",
+    "duplicates_involved": {
+     "case": 3995,
+     "space": 0
+    },
+    "evaluation": {
+     "en": {
+      "characters": 500000,
+      "chars_per_token": 4.054459500004055,
+      "roundtrip_failures": 0,
+      "tokens": 123321
+     },
+     "ko": {
+      "characters": 499991,
+      "chars_per_token": 2.1548549756497004,
+      "roundtrip_failures": 0,
+      "tokens": 232030
+     }
+    },
+    "evaluation_sha256": {
+     "en": "a26a04d864962b01fcdd09d0a05804b943cc2deec45a55819a54665578c3f5c9",
+     "ko": "4bef4dd05079e44e9a56e47900e6e30dce7a123da6841b161eca4c566e5b041c"
+    },
+    "learned_categories": {
+     "hangul": 20228,
+     "latin": 11619,
+     "mixed": 0,
+     "nonlexical": 1028,
+     "other_script": 99,
+     "undecodable": 0
+    },
+    "learned_vocab": 32974,
+    "tokenizer_sha256": "f4010cbd7b5cb28f514d1cd693be7d9f6b2ba0b2bb4e3eb878d04467cae64324",
+    "total_vocab": 34685,
+    "train_budget_chars": {
+     "en": 1000000000,
+     "ko": 1000000000
+    },
+    "train_sample_sha256": {
+     "en": "cddb7ddb56879f946a427aa24f0d02ac7ed36ba910fd03bc8c986747dc50ca94",
+     "ko": "22d6083718ef4d3f0b8435b95b97ed49d784574622ba4549a8dfcc177ea9f908"
+    },
+    "trainer": "mingram"
+   },
+   {
+    "arm": "bnd_wpd_caps",
+    "atomic_vocab": 1713,
+    "corpus": "fineweb_enko_2000m_en50_local_v2",
+    "duplicates_involved": {
+     "case": 3321,
+     "space": 0
+    },
+    "evaluation": {
+     "en": {
+      "characters": 500000,
+      "chars_per_token": 4.0877392349387245,
+      "roundtrip_failures": 0,
+      "tokens": 122317
+     },
+     "ko": {
+      "characters": 499991,
+      "chars_per_token": 2.1579612941095228,
+      "roundtrip_failures": 0,
+      "tokens": 231696
+     }
+    },
+    "evaluation_sha256": {
+     "en": "a26a04d864962b01fcdd09d0a05804b943cc2deec45a55819a54665578c3f5c9",
+     "ko": "4bef4dd05079e44e9a56e47900e6e30dce7a123da6841b161eca4c566e5b041c"
+    },
+    "learned_categories": {
+     "hangul": 20422,
+     "latin": 11413,
+     "mixed": 0,
+     "nonlexical": 1033,
+     "other_script": 104,
+     "undecodable": 0
+    },
+    "learned_vocab": 32972,
+    "tokenizer_sha256": "3632202e59090adfb77c5d5d8f5ce375cb037555b8e7fdfec693ff895fea5dc0",
+    "total_vocab": 34685,
+    "train_budget_chars": {
+     "en": 1000000000,
+     "ko": 1000000000
+    },
+    "train_sample_sha256": {
+     "en": "cddb7ddb56879f946a427aa24f0d02ac7ed36ba910fd03bc8c986747dc50ca94",
+     "ko": "22d6083718ef4d3f0b8435b95b97ed49d784574622ba4549a8dfcc177ea9f908"
+    },
+    "trainer": "mingram"
+   }
+  ]
+ }
+}
