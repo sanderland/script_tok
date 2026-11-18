@@ -5,6 +5,7 @@ from script_bpe.pretokenize.pretokenizer import (
     UTF8PretokenizerConfig,
 )
 from script_bpe.pretokenize.scriptencoding import ScriptEncodingV1, ScriptEncodingV2, ScriptEncodingV3
+from script_bpe.pretokenize.sentencepiece_split import sentencepiece_regex
 
 GPT2_REGEX = r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"
 GPT4_REGEX = (
@@ -31,15 +32,43 @@ GPT4O_REGEX_LL = (
     r"""|\p{N}{1,3}| ?[^\s\p{L}\p{N}]{1,16}[\r\n/]{0,16}|\s{0,15}[\r\n]{1,16}|\s{1,16}(?!\S)|\s{1,16}"""
 )
 
+# SentencePiece SplitIntoWords with split_by_whitespace=true and allow_whitespace_only_pieces=false:
+# every space starts a new piece and attaches to the non-space run after it, so a run of n spaces
+# yields n-1 lone spaces plus one space-prefixed word. Nothing else (tabs, newlines, digits,
+# punctuation, scripts) splits. max_sentencepiece_length only filters candidate pieces, not words.
+SP_REGEX = r""" [^ ]*|[^ ]+"""
+
+# trainer_spec of the released Gemma 2 tokenizer.model. Gemma 3's differs only in
+# split_by_whitespace=false, yet its vocabulary has no multi-word pieces, so this covers both.
+SP_GEMMA = dict(
+    split_by_unicode_script=True, split_by_number=True, split_digits=True, allow_whitespace_only_pieces=True
+)
+# What Gemma 3's split_by_whitespace=false allows on paper. The regex only covers where a piece
+# may span; the no-trailing-space rule needs forbid_trailing_space.
+SP_GEMMA_XWS = SP_GEMMA | dict(split_by_whitespace=False)
+
+# The GPT-4 regex with single digits and no possessive quantifiers, as in Aleph Alpha's Kolibri-1
+# tokenizer.json. Used raw, like that byte-level BPE: no NFC, no unassigned-char removal and no
+# char-boundary rule.
+GPT4_D1_REGEX = r"""(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+"""
 
 # Registry of available pretokenizers
 PRETOKENIZER_REGISTRY: dict[str, PretokenizerConfig] = {
+    "bytes_gpt2_cb": UTF8PretokenizerConfig(regex_pattern=GPT2_REGEX),
     "bytes_gpt4": UTF8PretokenizerConfig(regex_pattern=GPT4_REGEX, enforce_char_boundaries=False),
     "bytes_gpt4_cb": UTF8PretokenizerConfig(regex_pattern=GPT4_REGEX),
     "bytes_gpt4o": UTF8PretokenizerConfig(regex_pattern=GPT4O_REGEX, enforce_char_boundaries=False),
     "bytes_gpt4o_cb": UTF8PretokenizerConfig(regex_pattern=GPT4O_REGEX),
     "bytes_gpt4o_ll_cb": UTF8PretokenizerConfig(regex_pattern=GPT4O_REGEX_LL),  # length-limited (paper's exact)
     "bytes_gpt4o_cbi": UTF8PretokenizerConfig(regex_pattern=GPT4O_REGEX, enforce_inherited=True),
+    "bytes_sp_cb": UTF8PretokenizerConfig(regex_pattern=SP_REGEX),
+    "bytes_sp_gemma_cb": UTF8PretokenizerConfig(regex_pattern=sentencepiece_regex(**SP_GEMMA)),
+    "bytes_sp_gemma_xws_cb": UTF8PretokenizerConfig(
+        regex_pattern=sentencepiece_regex(**SP_GEMMA_XWS), forbid_trailing_space=True
+    ),
+    "bytes_gpt4_d1_raw": UTF8PretokenizerConfig(
+        regex_pattern=GPT4_D1_REGEX, normalization=None, remove_unassigned=False, enforce_char_boundaries=False
+    ),
     "bytes_nosplit_cb": UTF8PretokenizerConfig(regex_pattern=None),
     # Backward-compatible alias names expected by tests
     "bytes_nosplit_cbi": UTF8PretokenizerConfig(regex_pattern=None, enforce_inherited=True),

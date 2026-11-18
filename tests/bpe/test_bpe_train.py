@@ -87,7 +87,8 @@ def test_bpe_train(tmp_path, pretokenizer_name, text_fixture, expected_merge_rul
 
     # Basic assertions
     assert isinstance(tokenizer, BPETokenizer)
-    if "gpt4" not in pretokenizer_name:
+    # zeros_text runs out of allowed merges when digits are split into single tokens
+    if not any(name in pretokenizer_name for name in ("gpt4", "sp_gemma")):
         assert len(tokenizer.merge_rules) == x_tokens, (
             f"Expected {x_tokens} merge rules, got {len(tokenizer.merge_rules)}"
         )

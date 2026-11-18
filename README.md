@@ -61,11 +61,19 @@ To train a BPE tokenizer:
 uv run train --corpus kor_hang_300mb -n 64000 --pretokenizer scriptenc_cb --model bpe
 ```
 
+To train a BPE tokenizer with UniBPE merge scoring (merges ranked by Unigram loss drop, as in the [Kolibri tech report](https://aleph-alpha.com/downloads/tech-report.pdf), Sec. 2.1.2), optionally falling back to count-ranked BPE after `--unibpe_merges` merges:
+
+```bash
+uv run train --corpus kor_hang_300mb -n 64000 --pretokenizer scriptenc_cb --model bpe --merge_score unibpe --unibpe_merges 60000
+```
+
 To train a Unigram tokenizer:
 
 ```bash
 uv run train --corpus kor_hang_300mb -n 64000 --pretokenizer scriptenc_cb --model unigram
 ```
+
+Unigram training can use [Sparse L1 Unigram](https://google.github.io/sentencepiece/doc/sparse_l1_unigram/) instead of the default EM and Viterbi pruning by passing `--sparse_l1` (or setting `UnigramTrainerConfig(sparse_l1=True)`). It prunes with soft-thresholded EM, `w = max(0, E[count] - lambda)`, and refits probabilities at the end (`post_l1_debias`).
 
 ### Reproducing Paper Results
 
