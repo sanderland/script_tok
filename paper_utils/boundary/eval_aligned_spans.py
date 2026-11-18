@@ -20,7 +20,6 @@ import time
 import numpy as np
 import pyarrow.parquet as pq
 import regex
-import torch
 
 import paper_utils.boundary.downstream.boundary_tokenizer  # registration
 import paper_utils.boundary.legacy_extcaps_pretokenizer  # published English caps
@@ -292,6 +291,7 @@ def prepare(args,lang,validation,out):
 
 
 def score(args,lang,plan,out):
+    import torch
     from nanochat.gpt import GPT,GPTConfig
     docs=plan['documents']
     plan_hash=sha(out/'plan.json')
@@ -374,6 +374,7 @@ def report(args,lang,plan,out):
 
 
 def main():
+    import torch
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--languages',default='en',help='Comma-separated en,ko,ru')
     p.add_argument('--variants',default=','.join(VARIANTS))
