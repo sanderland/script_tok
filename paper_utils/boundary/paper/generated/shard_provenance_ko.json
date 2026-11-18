@@ -1,0 +1,43 @@
+{
+ "language": "ko",
+ "created": "2026-09-17T20:49:56+00:00",
+ "source_dataset": "/capstor/store/cscs/swissai/infra01/datasets/swiss-ai/fineweb-2_0_1-quality_10-filterrobots/data/output/kor_Hang",
+ "note": "base_data_climbmix is nanochat's directory name and holds no ClimbMix here: these shards are FineWeb-2 ko. The last shard is validation, the rest training.",
+ "train_shards": 3,
+ "train_characters": 1218756773,
+ "shards": [
+  {
+   "shard": "shard_00000.parquet",
+   "role": "train",
+   "source": "/capstor/store/cscs/swissai/infra01/datasets/swiss-ai/fineweb-2_0_1-quality_10-filterrobots/data/output/kor_Hang/000_00000.parquet",
+   "bytes": 430133496,
+   "characters": 404892255,
+   "sha256": "8fefa94ff33afabf8632ae437608a8e5da7edafa7b402a06a28b6a910259c64a"
+  },
+  {
+   "shard": "shard_00001.parquet",
+   "role": "train",
+   "source": "/capstor/store/cscs/swissai/infra01/datasets/swiss-ai/fineweb-2_0_1-quality_10-filterrobots/data/output/kor_Hang/000_00001.parquet",
+   "bytes": 431803909,
+   "characters": 406842780,
+   "sha256": "114e78a0bccc0cd98d24887fb39bbf72efe4753d7e64e0477051464e37995d08"
+  },
+  {
+   "shard": "shard_00002.parquet",
+   "role": "train",
+   "source": "/capstor/store/cscs/swissai/infra01/datasets/swiss-ai/fineweb-2_0_1-quality_10-filterrobots/data/output/kor_Hang/000_00002.parquet",
+   "bytes": 431924206,
+   "characters": 407021738,
+   "sha256": "2c899bcd2280cda9c49763db33998ebdd463a8b602dca0723e5dfe96d2cebea1"
+  },
+  {
+   "shard": "shard_00003.parquet",
+   "role": "validation",
+   "source": "/capstor/store/cscs/swissai/infra01/datasets/swiss-ai/fineweb-2_0_1-quality_10-filterrobots/data/output/kor_Hang/000_00003.parquet",
+   "bytes": 427926623,
+   "characters": 402854217,
+   "sha256": "10a6d656c0726b45e5b472c4705a2715d69af8668a254e7ae93f426a39c61c2d"
+  }
+ ],
+ "hashed": "2026-09-20T20:00:28+00:00"
+}

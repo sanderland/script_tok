@@ -1,0 +1,47 @@
+{
+  "corpus": "fineweb_enko_5000m_en80_local_v2",
+  "training_characters": {
+    "en": 4000000000,
+    "ko": 1000000000
+  },
+  "tokenizer_class": "paper_utils.boundary.downstream.boundary_tokenizer.BoundaryMinGramModel",
+  "path_base": "manifest directory",
+  "tokenizers": [
+    {
+      "arm": "plain",
+      "path": "plain.json.gz",
+      "sha256": "ce861de2c41ff3fc72c556072fe3d5c2d1ad7bad92c1df92016dfa092386462f",
+      "total_tokens": 65710,
+      "learned_tokens": 64000,
+      "training": "plain.train.json",
+      "analysis": "plain.analysis.json"
+    },
+    {
+      "arm": "bnd_w",
+      "path": "bnd_w.json.gz",
+      "sha256": "d28a3cb7a50c9239255fc64688d3d7dfdd5efbba08cc4c3f3d54032459b5394e",
+      "total_tokens": 65711,
+      "learned_tokens": 64000,
+      "training": "bnd_w.train.json",
+      "analysis": "bnd_w.analysis.json"
+    },
+    {
+      "arm": "bnd_wpd",
+      "path": "bnd_wpd.json.gz",
+      "sha256": "2db6c0ed6f959f5e2ad1c056a86456ad9f1451e63c6085e6f96b2a3b81267863",
+      "total_tokens": 65711,
+      "learned_tokens": 64000,
+      "training": "bnd_wpd.train.json",
+      "analysis": "bnd_wpd.analysis.json"
+    },
+    {
+      "arm": "bnd_wpd_caps",
+      "path": "bnd_wpd_caps.json.gz",
+      "sha256": "e7ccd4286c4d85a096e20f5d7036f3b0ca359e10eb60d8b64f598277cafcd613",
+      "total_tokens": 65713,
+      "learned_tokens": 64000,
+      "training": "bnd_wpd_caps.train.json",
+      "analysis": "bnd_wpd_caps.analysis.json"
+    }
+  ]
+}
